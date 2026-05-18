@@ -26,30 +26,30 @@ If your change adds a new request or reply variant, edit
 - `RoleName` (closed enum: Operator, OperatorAssistant,
   Designer, DesignerAssistant, SystemSpecialist,
   SystemAssistant, Poet, PoetAssistant, plus canonical
-  workspace role token parsing/rendering).
+  workspace role token parsing/rendering) where mind graph records need role
+  identity.
 - `ScopeReference` (closed enum: Path | Task) plus
   `WirePath` and `TaskToken` newtypes.
-- `ScopeReason` (provisional `String` newtype).
 - `TimestampNanos` (store-supplied; never agent-supplied).
 - The typed mind graph substrate: `ThoughtKind` / `ThoughtBody`,
   `RelationKind`, `Thought`, `Relation`, `RecordId`, `RelationId`,
   thought/relation filters, subscription records, and graph
   commit/list replies.
-- The closed `MindRequest` enum (`RoleClaim`,
-  `RoleRelease`, `RoleHandoff`, `RoleObservation`,
-  `ActivitySubmission`, `ActivityQuery`, `SubmitThought`,
+- The closed `MindRequest` enum (`SubmitThought`,
   `SubmitRelation`, `QueryThoughts`, `QueryRelations`,
-  `SubscribeThoughts`, `SubscribeRelations`, `Opening`,
-  `NoteSubmission`, `Link`, `StatusChange`,
-  `AliasAssignment`, `Query`).
-- The closed `MindReply` enum (`ClaimAcceptance`,
-  `ClaimRejection`, `ReleaseAcknowledgment`,
-  `HandoffAcceptance`, `HandoffRejection`, `RoleSnapshot`,
-  `ActivityAcknowledgment`, `ActivityList`, `ThoughtCommitted`,
+  `SubscribeThoughts`, `SubscribeRelations`,
+  `SubscriptionRetraction`, `Opening`, `NoteSubmission`,
+  `Link`, `StatusChange`, `AliasAssignment`, `Query`,
+  `AdjudicationRequest`, `ChannelGrant`, `ChannelExtend`,
+  `ChannelRetract`, `AdjudicationDeny`, `ChannelList`).
+- The closed `MindReply` enum (`ThoughtCommitted`,
   `RelationCommitted`, `ThoughtList`, `RelationList`,
-  `SubscriptionAccepted`, `SubscriptionEvent`,
+  `SubscriptionAccepted`, `SubscriptionRetracted`,
   `OpeningReceipt`, `NoteReceipt`, `LinkReceipt`,
-  `StatusReceipt`, `AliasReceipt`, `View`, `Rejection`).
+  `StatusReceipt`, `AliasReceipt`, `View`, `Rejection`,
+  `AdjudicationReceipt`, `ChannelReceipt`,
+  `AdjudicationDenyReceipt`, `ChannelListView`,
+  `MindRequestUnimplemented`).
 - The mind memory/work record vocabulary: `Item`, `Note`, `Edge`,
   `Event`, aliases, references, and ready-query records.
 - The `Frame` type alias and round-trip tests.
@@ -58,12 +58,12 @@ If your change adds a new request or reply variant, edit
 
 - The state actor or the database — that's
   `persona-mind`.
-- The CLI binary parsing — that's the `orchestrate` bin
-  compatibility shim and the `mind` bin target inside `persona-mind`.
+- The CLI binary parsing — that's the `mind` bin target inside
+  `persona-mind`.
+- Ordinary role claims, role release, handoff, role observation, and activity
+  log operations — those live in `signal-persona-orchestrate`.
 - Lock-file projection writing — outside this implementation
   target; `persona-mind` replaces lock files instead of
   projecting them.
-- The activity log retention policy — that's
-  `persona-mind`.
 - Storage tables — those live in `persona-mind`'s
   `src/tables.rs` (typed `sema::Table<K, V>` constants).

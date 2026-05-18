@@ -8,11 +8,17 @@ Read `src/lib.rs` for the public interface — two enums
 `signal_channel!` macro. The variants ARE the messages this
 channel carries:
 
-- **Role lifecycle:** `RoleClaim`, `RoleRelease`,
-  `RoleHandoff`, `RoleObservation`.
-- **Activity log:** `ActivitySubmission`, `ActivityQuery`.
 - **Memory/work graph:** `Opening`, `NoteSubmission`, `Link`,
   `StatusChange`, `AliasAssignment`, `Query`.
+- **Typed mind graph:** `SubmitThought`, `SubmitRelation`,
+  `QueryThoughts`, `QueryRelations`, `SubscribeThoughts`,
+  `SubscribeRelations`, `SubscriptionRetraction`.
+- **Channel choreography:** `AdjudicationRequest`,
+  `ChannelGrant`, `ChannelExtend`, `ChannelRetract`,
+  `AdjudicationDeny`, `ChannelList`.
+
+Ordinary role claims, handoffs, observations, and activity log operations
+belong to `signal-persona-orchestrate`.
 
 ## Quick reference
 
@@ -21,41 +27,34 @@ use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, RequestPayload, SessionEpoch,
 };
 use signal_persona_mind::{
-    MindFrame, MindFrameBody, MindRequest, RoleClaim, RoleName, ScopeReason,
-    ScopeReference, WirePath,
+    ItemKind, ItemPriority, MindFrame, MindFrameBody, MindRequest, Opening,
+    TextBody, Title,
 };
 
-// Designer claims a path and a task scope
 let exchange = ExchangeIdentifier::new(
     SessionEpoch::new(1),
     ExchangeLane::Connector,
     LaneSequence::first(),
 );
-let request = MindRequest::RoleClaim(RoleClaim {
-    role: RoleName::Designer,
-    scopes: vec![
-        ScopeReference::Path(
-            WirePath::from_absolute_path("/git/.../signal/ARCHITECTURE.md")?
-        ),
-    ],
-    reason: ScopeReason::from_text("rescope per /91 §3.1")?,
+let request = MindRequest::Opening(Opening {
+    kind: ItemKind::Task,
+    priority: ItemPriority::High,
+    title: Title::new("wire command-line mind"),
+    body: TextBody::new("replace transitional task storage with typed mind state"),
 });
 let frame = MindFrame::new(MindFrameBody::Request {
     exchange,
     request: request.into_request(),
 });
 let bytes = frame.encode_length_prefixed()?;
-// hand to persona-mind's CLI dispatcher
+// hand to persona-mind's daemon dispatcher
 ```
 
-The state actor replies with `MindReply::ClaimAcceptance`
-on success or `MindReply::ClaimRejection` (carrying
-typed `ScopeConflict` records) on overlap.
+The state actor replies with `MindReply::OpeningReceipt` on success.
 
 Use the public constructors for boundary strings before
 building a frame: `WirePath::from_absolute_path` (which
-stores a normalized absolute path),
-`TaskToken::from_wire_token`, and `ScopeReason::from_text`.
+stores a normalized absolute path) and `TaskToken::from_wire_token`.
 
 ## See also
 

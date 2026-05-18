@@ -5,7 +5,7 @@ edition      = "2024"
 rust-version = "1.85"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/LiGoldragon/signal-persona-mind"
-description  = "Signal contract — `mind` CLI ↔ persona-mind channel: typed records for role/work graph activity and channel choreography."
+description  = "Signal contract — `mind` CLI ↔ persona-mind channel: typed records for work graph, mind graph, and channel choreography."
 publish      = false
 
 [lib]

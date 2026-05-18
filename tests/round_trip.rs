@@ -109,18 +109,6 @@ fn sample_task() -> TaskToken {
     TaskToken::from_wire_token("primary-f99").expect("wire task token")
 }
 
-fn sample_reason() -> ScopeReason {
-    ScopeReason::from_text("design-cascade per /93").expect("scope reason")
-}
-
-fn sample_path_scope() -> ScopeReference {
-    ScopeReference::Path(sample_path())
-}
-
-fn sample_task_scope() -> ScopeReference {
-    ScopeReference::Task(sample_task())
-}
-
 fn sample_adjudication_request() -> AdjudicationRequestId {
     AdjudicationRequestId::new("aab")
 }
@@ -752,42 +740,6 @@ fn unimplemented_reply_round_trips_as_typed_reply() {
 // ─── Request variants ─────────────────────────────────────
 
 #[test]
-fn role_claim_with_paths_round_trips() {
-    let request = MindRequest::RoleClaim(RoleClaim {
-        role: RoleName::Designer,
-        scopes: vec![sample_path_scope(), sample_task_scope()],
-        reason: sample_reason(),
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
-}
-
-#[test]
-fn role_claim_request_round_trips_through_nota_text() {
-    round_trip_nota(
-        MindRequest::RoleClaim(RoleClaim {
-            role: RoleName::Designer,
-            scopes: vec![sample_path_scope(), sample_task_scope()],
-            reason: sample_reason(),
-        }),
-        "(RoleClaim Designer [(Path \"/git/github.com/LiGoldragon/signal-persona-mind/src/lib.rs\") (Task primary-f99)] \"design-cascade per /93\")",
-    );
-}
-
-#[test]
-fn role_name_covers_workspace_coordination_roles() {
-    for role in RoleName::ALL {
-        let request = MindRequest::RoleClaim(RoleClaim {
-            role,
-            scopes: vec![sample_path_scope()],
-            reason: sample_reason(),
-        });
-        let decoded = round_trip_request(request.clone());
-        assert_eq!(decoded, request);
-    }
-}
-
-#[test]
 fn role_name_parses_workspace_coordination_tokens() {
     let cases = [
         ("operator", RoleName::Operator),
@@ -814,89 +766,6 @@ fn role_name_rejects_unregistered_workspace_roles() {
     assert!(RoleName::from_wire_token("operator assistant").is_err());
     assert!(RoleName::from_wire_token("Operator").is_err());
     assert!(RoleName::from_wire_token("critic").is_err());
-}
-
-#[test]
-fn role_release_round_trips() {
-    let request = MindRequest::RoleRelease(RoleRelease {
-        role: RoleName::Operator,
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
-}
-
-#[test]
-fn role_handoff_round_trips() {
-    let request = MindRequest::RoleHandoff(RoleHandoff {
-        from: RoleName::Designer,
-        to: RoleName::Operator,
-        scopes: vec![sample_path_scope()],
-        reason: ScopeReason::from_text("router migration handoff").expect("scope reason"),
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
-}
-
-#[test]
-fn role_observation_round_trips() {
-    let request = MindRequest::RoleObservation(RoleObservation);
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
-}
-
-#[test]
-fn activity_submission_round_trips() {
-    let request = MindRequest::ActivitySubmission(ActivitySubmission {
-        role: RoleName::OperatorAssistant,
-        scope: sample_path_scope(),
-        reason: ScopeReason::from_text("audit signal-persona-system integration")
-            .expect("scope reason"),
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
-}
-
-#[test]
-fn activity_query_unfiltered_round_trips() {
-    let request = MindRequest::ActivityQuery(ActivityQuery {
-        limit: 25,
-        filters: vec![],
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
-}
-
-#[test]
-fn activity_query_with_role_filter_round_trips() {
-    let request = MindRequest::ActivityQuery(ActivityQuery {
-        limit: 50,
-        filters: vec![ActivityFilter::RoleFilter(RoleName::Operator)],
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
-}
-
-#[test]
-fn activity_query_with_path_prefix_round_trips() {
-    let request = MindRequest::ActivityQuery(ActivityQuery {
-        limit: 10,
-        filters: vec![ActivityFilter::PathPrefix(
-            WirePath::from_absolute_path("/git/github.com/LiGoldragon/persona-router")
-                .expect("absolute path"),
-        )],
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
-}
-
-#[test]
-fn activity_query_with_task_filter_round_trips() {
-    let request = MindRequest::ActivityQuery(ActivityQuery {
-        limit: 100,
-        filters: vec![ActivityFilter::TaskToken(sample_task())],
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
 }
 
 #[test]
@@ -1182,48 +1051,6 @@ fn mind_request_exposes_contract_owned_operation_kind() {
             MindOperationKind::SubscribeRelations,
         ),
         (
-            MindRequest::RoleClaim(RoleClaim {
-                role: RoleName::Designer,
-                scopes: vec![sample_path_scope()],
-                reason: sample_reason(),
-            }),
-            MindOperationKind::RoleClaim,
-        ),
-        (
-            MindRequest::RoleRelease(RoleRelease {
-                role: RoleName::Designer,
-            }),
-            MindOperationKind::RoleRelease,
-        ),
-        (
-            MindRequest::RoleHandoff(RoleHandoff {
-                from: RoleName::Designer,
-                to: RoleName::Operator,
-                scopes: vec![sample_path_scope()],
-                reason: sample_reason(),
-            }),
-            MindOperationKind::RoleHandoff,
-        ),
-        (
-            MindRequest::RoleObservation(RoleObservation),
-            MindOperationKind::RoleObservation,
-        ),
-        (
-            MindRequest::ActivitySubmission(ActivitySubmission {
-                role: RoleName::Operator,
-                scope: sample_path_scope(),
-                reason: sample_reason(),
-            }),
-            MindOperationKind::ActivitySubmission,
-        ),
-        (
-            MindRequest::ActivityQuery(ActivityQuery {
-                limit: 10,
-                filters: vec![ActivityFilter::RoleFilter(RoleName::Operator)],
-            }),
-            MindOperationKind::ActivityQuery,
-        ),
-        (
             MindRequest::Opening(Opening {
                 kind: ItemKind::Task,
                 priority: ItemPriority::High,
@@ -1406,32 +1233,6 @@ fn mind_request_variants_do_not_silently_default_to_assert() {
             SignalVerb::Subscribe,
         ),
         (
-            MindRequest::RoleRelease(RoleRelease {
-                role: RoleName::Operator,
-            }),
-            SignalVerb::Retract,
-        ),
-        (
-            MindRequest::RoleHandoff(RoleHandoff {
-                from: RoleName::Designer,
-                to: RoleName::Operator,
-                scopes: vec![sample_path_scope()],
-                reason: sample_reason(),
-            }),
-            SignalVerb::Mutate,
-        ),
-        (
-            MindRequest::RoleObservation(RoleObservation),
-            SignalVerb::Match,
-        ),
-        (
-            MindRequest::ActivityQuery(ActivityQuery {
-                limit: 8,
-                filters: vec![ActivityFilter::RoleFilter(RoleName::Operator)],
-            }),
-            SignalVerb::Match,
-        ),
-        (
             MindRequest::StatusChange(StatusChange {
                 item: ItemReference::Stable(fixture.item_id.clone()),
                 status: ItemStatus::InProgress,
@@ -1464,144 +1265,6 @@ fn mind_operation_kind_round_trips_through_nota_text() {
 }
 
 // ─── Reply variants ───────────────────────────────────────
-
-#[test]
-fn claim_acceptance_round_trips() {
-    let reply = MindReply::ClaimAcceptance(ClaimAcceptance {
-        role: RoleName::Designer,
-        scopes: vec![sample_path_scope()],
-    });
-    let decoded = round_trip_reply(reply.clone());
-    assert_eq!(decoded, reply);
-}
-
-#[test]
-fn claim_acceptance_reply_round_trips_through_nota_text() {
-    round_trip_nota(
-        MindReply::ClaimAcceptance(ClaimAcceptance {
-            role: RoleName::Designer,
-            scopes: vec![sample_task_scope()],
-        }),
-        "(ClaimAcceptance Designer [(Task primary-f99)])",
-    );
-}
-
-#[test]
-fn claim_rejection_round_trips() {
-    let reply = MindReply::ClaimRejection(ClaimRejection {
-        role: RoleName::Designer,
-        conflicts: vec![ScopeConflict {
-            scope: sample_path_scope(),
-            held_by: RoleName::Operator,
-            held_reason: ScopeReason::from_text("Persona-prefix sweep").expect("scope reason"),
-        }],
-    });
-    let decoded = round_trip_reply(reply.clone());
-    assert_eq!(decoded, reply);
-}
-
-#[test]
-fn release_acknowledgment_round_trips() {
-    let reply = MindReply::ReleaseAcknowledgment(ReleaseAcknowledgment {
-        role: RoleName::Designer,
-        released_scopes: vec![sample_path_scope(), sample_task_scope()],
-    });
-    let decoded = round_trip_reply(reply.clone());
-    assert_eq!(decoded, reply);
-}
-
-#[test]
-fn handoff_acceptance_round_trips() {
-    let reply = MindReply::HandoffAcceptance(HandoffAcceptance {
-        from: RoleName::Designer,
-        to: RoleName::Operator,
-        scopes: vec![sample_path_scope()],
-    });
-    let decoded = round_trip_reply(reply.clone());
-    assert_eq!(decoded, reply);
-}
-
-#[test]
-fn handoff_rejection_source_does_not_hold_round_trips() {
-    let reply = MindReply::HandoffRejection(HandoffRejection {
-        from: RoleName::Designer,
-        to: RoleName::Operator,
-        reason: HandoffRejectionReason::SourceRoleDoesNotHold,
-    });
-    let decoded = round_trip_reply(reply.clone());
-    assert_eq!(decoded, reply);
-}
-
-#[test]
-fn handoff_rejection_target_conflict_round_trips() {
-    let reply = MindReply::HandoffRejection(HandoffRejection {
-        from: RoleName::Designer,
-        to: RoleName::Operator,
-        reason: HandoffRejectionReason::TargetRoleConflict(vec![ScopeConflict {
-            scope: sample_path_scope(),
-            held_by: RoleName::DesignerAssistant,
-            held_reason: ScopeReason::from_text("audit pass").expect("scope reason"),
-        }]),
-    });
-    let decoded = round_trip_reply(reply.clone());
-    assert_eq!(decoded, reply);
-}
-
-#[test]
-fn role_snapshot_round_trips() {
-    let reply = MindReply::RoleSnapshot(RoleSnapshot {
-        roles: vec![
-            RoleStatus {
-                role: RoleName::Designer,
-                claims: vec![ClaimEntry {
-                    scope: sample_path_scope(),
-                    reason: sample_reason(),
-                }],
-            },
-            RoleStatus {
-                role: RoleName::Operator,
-                claims: vec![],
-            },
-        ],
-        recent_activity: vec![Activity {
-            role: RoleName::Designer,
-            scope: sample_path_scope(),
-            reason: sample_reason(),
-            stamped_at: TimestampNanos::new(1_730_000_000_000_000_000),
-        }],
-    });
-    let decoded = round_trip_reply(reply.clone());
-    assert_eq!(decoded, reply);
-}
-
-#[test]
-fn activity_acknowledgment_round_trips() {
-    let reply = MindReply::ActivityAcknowledgment(ActivityAcknowledgment { slot: 42 });
-    let decoded = round_trip_reply(reply.clone());
-    assert_eq!(decoded, reply);
-}
-
-#[test]
-fn activity_list_round_trips() {
-    let reply = MindReply::ActivityList(ActivityList {
-        records: vec![
-            Activity {
-                role: RoleName::Designer,
-                scope: sample_path_scope(),
-                reason: ScopeReason::from_text("rescope per /91 §3.1").expect("scope reason"),
-                stamped_at: TimestampNanos::new(1_730_000_000_000_000_000),
-            },
-            Activity {
-                role: RoleName::Operator,
-                scope: sample_task_scope(),
-                reason: ScopeReason::from_text("kameo adoption").expect("scope reason"),
-                stamped_at: TimestampNanos::new(1_730_000_001_000_000_000),
-            },
-        ],
-    });
-    let decoded = round_trip_reply(reply.clone());
-    assert_eq!(decoded, reply);
-}
 
 #[test]
 fn memory_receipt_replies_round_trip() {
@@ -1689,24 +1352,15 @@ fn explicit_variant_lifts_view_into_reply() {
 
 #[test]
 fn path_scope_round_trips() {
-    let request = MindRequest::RoleClaim(RoleClaim {
-        role: RoleName::Designer,
-        scopes: vec![ScopeReference::Path(sample_path())],
-        reason: sample_reason(),
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
+    round_trip_nota(
+        ScopeReference::Path(sample_path()),
+        "(Path \"/git/github.com/LiGoldragon/signal-persona-mind/src/lib.rs\")",
+    );
 }
 
 #[test]
 fn task_scope_round_trips() {
-    let request = MindRequest::RoleClaim(RoleClaim {
-        role: RoleName::Designer,
-        scopes: vec![ScopeReference::Task(sample_task())],
-        reason: sample_reason(),
-    });
-    let decoded = round_trip_request(request.clone());
-    assert_eq!(decoded, request);
+    round_trip_nota(ScopeReference::Task(sample_task()), "(Task primary-f99)");
 }
 
 // ─── Boundary validation ──────────────────────────────────
@@ -1745,12 +1399,4 @@ fn task_token_rejects_brackets_empty_and_whitespace() {
     assert!(TaskToken::from_wire_token("[primary-f99]").is_err());
     assert!(TaskToken::from_wire_token("").is_err());
     assert!(TaskToken::from_wire_token("primary f99").is_err());
-}
-
-#[test]
-fn scope_reason_rejects_blank_and_multiline_text() {
-    assert!(ScopeReason::from_text("short reason").is_ok());
-    assert!(ScopeReason::from_text("").is_err());
-    assert!(ScopeReason::from_text("   ").is_err());
-    assert!(ScopeReason::from_text("first\nsecond").is_err());
 }

@@ -3,18 +3,6 @@
 //! Read this file as the public interface of the central Persona
 //! mind channel. The channel carries:
 //!
-//! - **Role claim/release/handoff** — the claim-flow today
-//!   served by `tools/orchestrate` (a bash helper); migrating
-//!   into `persona-mind`.
-//! - **Role observation** — read the active claims for every
-//!   role plus the most recent activity entries.
-//! - **Activity submission** — append a typed activity record:
-//!   who (role), what (path or task token), why (short reason).
-//!   Time is store-stamped, never agent-supplied (per
-//!   `~/primary/ESSENCE.md` §"Infrastructure mints identity,
-//!   time, and sender").
-//! - **Activity query** — read recent activity records,
-//!   optionally filtered by role or scope.
 //! - **Memory/work graph** — append typed item, note, edge,
 //!   alias, and status events, then query the derived view.
 //! - **Typed mind graph substrate** — submit/query/subscribe to
@@ -23,8 +11,8 @@
 //!   designer/152.
 //!
 //! The channel is **request/reply** (every operation has a
-//! typed reply). Subscription mode is a future extension —
-//! see `~/primary/reports/operator/100-persona-mind-central-rename-plan.md`.
+//! typed reply). Long-lived subscription delivery uses the stream grammar
+//! declared in this contract.
 //!
 //! See `ARCHITECTURE.md` for the channel's role and
 //! boundaries; `~/primary/skills/contract-repo.md` for the
@@ -53,8 +41,6 @@ pub enum Error {
     InvalidWirePath { path: String },
     #[error("task token must be non-empty, unbracketed, and contain no whitespace: {token}")]
     InvalidTaskToken { token: String },
-    #[error("scope reason must be non-empty and single-line: {reason}")]
-    InvalidScopeReason { reason: String },
     #[error("unknown workspace role token: {role}")]
     UnknownRoleName { role: String },
 }
@@ -327,58 +313,6 @@ impl AsRef<str> for TaskToken {
     }
 }
 
-// ─── Reason ───────────────────────────────────────────────
-
-/// A short reason string. Provisional per
-/// `~/primary/reports/designer/92-sema-as-database-library-architecture-revamp.md`
-/// §4 — strings allowed here until the typed Nexus record
-/// shape for "intent" is named.
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, PartialEq, Eq, Hash,
-)]
-pub struct ScopeReason(String);
-
-impl ScopeReason {
-    pub fn try_new(reason: String) -> Result<Self> {
-        Self::from_text(reason)
-    }
-
-    pub fn from_text(reason: impl Into<String>) -> Result<Self> {
-        let reason = reason.into();
-        if reason.trim().is_empty() || reason.contains('\n') || reason.contains('\r') {
-            Err(Error::InvalidScopeReason { reason })
-        } else {
-            Ok(Self(reason))
-        }
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl TryFrom<String> for ScopeReason {
-    type Error = Error;
-
-    fn try_from(reason: String) -> Result<Self> {
-        Self::from_text(reason)
-    }
-}
-
-impl TryFrom<&str> for ScopeReason {
-    type Error = Error;
-
-    fn try_from(reason: &str) -> Result<Self> {
-        Self::from_text(reason)
-    }
-}
-
-impl AsRef<str> for ScopeReason {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
 // ─── Time ─────────────────────────────────────────────────
 
 /// Nanoseconds since the UNIX epoch. Store-supplied at
@@ -407,267 +341,6 @@ impl TimestampNanos {
     pub const fn value(self) -> u64 {
         self.0
     }
-}
-
-// ─── Claim verbs ──────────────────────────────────────────
-
-/// A role asks to claim one or more scopes with a short
-/// reason. Reply: `ClaimAcceptance` on success, `ClaimRejection`
-/// listing every conflict on failure.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct RoleClaim {
-    pub role: RoleName,
-    pub scopes: Vec<ScopeReference>,
-    pub reason: ScopeReason,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ClaimAcceptance {
-    pub role: RoleName,
-    pub scopes: Vec<ScopeReference>,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ClaimRejection {
-    pub role: RoleName,
-    pub conflicts: Vec<ScopeConflict>,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ScopeConflict {
-    pub scope: ScopeReference,
-    pub held_by: RoleName,
-    pub held_reason: ScopeReason,
-}
-
-// ─── Release verbs ────────────────────────────────────────
-
-/// A role releases all of its currently-held scopes.
-/// Reply: `ReleaseAcknowledgment` listing what was released.
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, Copy, PartialEq, Eq,
-)]
-pub struct RoleRelease {
-    pub role: RoleName,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ReleaseAcknowledgment {
-    pub role: RoleName,
-    pub released_scopes: Vec<ScopeReference>,
-}
-
-// ─── Handoff verbs ────────────────────────────────────────
-
-/// One role hands a set of scopes to another role atomically.
-/// Reply: `HandoffAcceptance` on success, `HandoffRejection`
-/// with a typed reason on failure.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct RoleHandoff {
-    pub from: RoleName,
-    pub to: RoleName,
-    pub scopes: Vec<ScopeReference>,
-    pub reason: ScopeReason,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct HandoffAcceptance {
-    pub from: RoleName,
-    pub to: RoleName,
-    pub scopes: Vec<ScopeReference>,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct HandoffRejection {
-    pub from: RoleName,
-    pub to: RoleName,
-    pub reason: HandoffRejectionReason,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
-pub enum HandoffRejectionReason {
-    /// The `from` role doesn't currently hold the named scopes.
-    SourceRoleDoesNotHold,
-    /// The `to` role's existing claims conflict with the
-    /// scopes being handed off (the conflict list names which
-    /// scopes and which existing holders).
-    TargetRoleConflict(Vec<ScopeConflict>),
-}
-
-impl NotaEncode for HandoffRejectionReason {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::SourceRoleDoesNotHold => {
-                encoder.start_record("SourceRoleDoesNotHold")?;
-                encoder.end_record()
-            }
-            Self::TargetRoleConflict(conflicts) => {
-                encoder.start_record("TargetRoleConflict")?;
-                conflicts.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for HandoffRejectionReason {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "SourceRoleDoesNotHold" => {
-                decoder.expect_record_head("SourceRoleDoesNotHold")?;
-                decoder.expect_record_end()?;
-                Ok(Self::SourceRoleDoesNotHold)
-            }
-            "TargetRoleConflict" => {
-                decoder.expect_record_head("TargetRoleConflict")?;
-                let conflicts = Vec::<ScopeConflict>::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::TargetRoleConflict(conflicts))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "HandoffRejectionReason",
-                got: other.to_string(),
-            }),
-        }
-    }
-}
-
-// ─── Observation ──────────────────────────────────────────
-
-/// Request a snapshot of every role's active claims plus the
-/// most recent activity entries. Reply: `RoleSnapshot`.
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, Copy, PartialEq, Eq,
-)]
-pub struct RoleObservation;
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct RoleSnapshot {
-    pub roles: Vec<RoleStatus>,
-    pub recent_activity: Vec<Activity>,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct RoleStatus {
-    pub role: RoleName,
-    pub claims: Vec<ClaimEntry>,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ClaimEntry {
-    pub scope: ScopeReference,
-    pub reason: ScopeReason,
-}
-
-// ─── Activity log ─────────────────────────────────────────
-
-/// One activity record: who touched what and why. Time is
-/// store-supplied (per ESSENCE infrastructure-mints rule —
-/// the agent never invents timestamps).
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct Activity {
-    pub role: RoleName,
-    pub scope: ScopeReference,
-    pub reason: ScopeReason,
-    pub stamped_at: TimestampNanos,
-}
-
-/// Submit a new activity record. The store assigns
-/// `stamped_at` on commit. Reply: `ActivityAcknowledgment`
-/// carrying the slot the record landed in.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ActivitySubmission {
-    pub role: RoleName,
-    pub scope: ScopeReference,
-    pub reason: ScopeReason,
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, Copy, PartialEq, Eq,
-)]
-pub struct ActivityAcknowledgment {
-    /// The slot (sequential u64) the record was assigned.
-    pub slot: u64,
-}
-
-/// Query the activity log. Limit caps how many records come
-/// back; filters narrow by role or scope. Empty filter list
-/// = "all".
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ActivityQuery {
-    pub limit: u32,
-    pub filters: Vec<ActivityFilter>,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
-pub enum ActivityFilter {
-    /// Only entries from this role.
-    RoleFilter(RoleName),
-    /// Only entries whose scope is `Path(p)` where `p`
-    /// starts with this prefix.
-    PathPrefix(WirePath),
-    /// Only entries whose scope is the exact-match
-    /// `Task(token)`.
-    TaskToken(TaskToken),
-}
-
-impl NotaEncode for ActivityFilter {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::RoleFilter(role) => {
-                encoder.start_record("RoleFilter")?;
-                role.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::PathPrefix(path) => {
-                encoder.start_record("PathPrefix")?;
-                path.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::TaskToken(token) => {
-                encoder.start_record("TaskToken")?;
-                token.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for ActivityFilter {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "RoleFilter" => {
-                decoder.expect_record_head("RoleFilter")?;
-                let role = RoleName::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::RoleFilter(role))
-            }
-            "PathPrefix" => {
-                decoder.expect_record_head("PathPrefix")?;
-                let path = WirePath::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::PathPrefix(path))
-            }
-            "TaskToken" => {
-                decoder.expect_record_head("TaskToken")?;
-                let token = TaskToken::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::TaskToken(token))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "ActivityFilter",
-                got: other.to_string(),
-            }),
-        }
-    }
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ActivityList {
-    /// Ordered most-recent first.
-    pub records: Vec<Activity>,
 }
 
 // ─── Mind Memory Identity ─────────────────────────────────
@@ -1638,12 +1311,6 @@ pub enum MindOperationKind {
     SubscribeThoughts,
     SubscribeRelations,
     SubscriptionRetraction,
-    RoleClaim,
-    RoleRelease,
-    RoleHandoff,
-    RoleObservation,
-    ActivitySubmission,
-    ActivityQuery,
     Opening,
     NoteSubmission,
     Link,
@@ -1753,12 +1420,6 @@ signal_channel! {
             Subscribe SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
             Subscribe SubscribeRelations(SubscribeRelations) opens MindEventStream,
             Retract SubscriptionRetraction(SubscriptionId),
-            Assert RoleClaim(RoleClaim),
-            Retract RoleRelease(RoleRelease),
-            Mutate RoleHandoff(RoleHandoff),
-            Match RoleObservation(RoleObservation),
-            Assert ActivitySubmission(ActivitySubmission),
-            Match ActivityQuery(ActivityQuery),
             Assert Opening(Opening),
             Assert NoteSubmission(NoteSubmission),
             Assert Link(Link),
@@ -1779,14 +1440,6 @@ signal_channel! {
             RelationList(RelationList),
             SubscriptionAccepted(SubscriptionAccepted),
             SubscriptionRetracted(SubscriptionRetracted),
-            ClaimAcceptance(ClaimAcceptance),
-            ClaimRejection(ClaimRejection),
-            ReleaseAcknowledgment(ReleaseAcknowledgment),
-            HandoffAcceptance(HandoffAcceptance),
-            HandoffRejection(HandoffRejection),
-            RoleSnapshot(RoleSnapshot),
-            ActivityAcknowledgment(ActivityAcknowledgment),
-            ActivityList(ActivityList),
             OpeningReceipt(OpeningReceipt),
             NoteReceipt(NoteReceipt),
             LinkReceipt(LinkReceipt),
@@ -1822,12 +1475,6 @@ impl MindRequest {
             Self::SubscribeThoughts(_) => MindOperationKind::SubscribeThoughts,
             Self::SubscribeRelations(_) => MindOperationKind::SubscribeRelations,
             Self::SubscriptionRetraction(_) => MindOperationKind::SubscriptionRetraction,
-            Self::RoleClaim(_) => MindOperationKind::RoleClaim,
-            Self::RoleRelease(_) => MindOperationKind::RoleRelease,
-            Self::RoleHandoff(_) => MindOperationKind::RoleHandoff,
-            Self::RoleObservation(_) => MindOperationKind::RoleObservation,
-            Self::ActivitySubmission(_) => MindOperationKind::ActivitySubmission,
-            Self::ActivityQuery(_) => MindOperationKind::ActivityQuery,
             Self::Opening(_) => MindOperationKind::Opening,
             Self::NoteSubmission(_) => MindOperationKind::NoteSubmission,
             Self::Link(_) => MindOperationKind::Link,

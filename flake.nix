@@ -1,5 +1,5 @@
 {
-  description = "signal-persona-mind — Signal contract for `mind` CLI ↔ persona-mind (role claim/release/handoff/observation + activity log)";
+  description = "signal-persona-mind — Signal contract for `mind` CLI ↔ persona-mind work graph, mind graph, and channel choreography";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

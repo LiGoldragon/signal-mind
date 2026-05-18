@@ -7,9 +7,8 @@
 ## 0 · TL;DR
 
 `signal-persona-mind` is the public vocabulary for Persona's central mind. It
-defines the typed request/reply channel used by the `mind` CLI,
-external `tools/orchestrate` cutover wrappers, and long-lived `persona-mind`
-daemon.
+defines the typed request/reply channel used by the `mind` CLI and long-lived
+`persona-mind` daemon.
 
 > **Scope.** This contract sits on today's stack — `signal-core` wire,
 > rkyv archives, `sema-db` storage in consumers. The
@@ -24,9 +23,8 @@ transport lifecycle, or lock-file migration.
 It also owns the mapping from each `MindRequest` variant to the
 `SignalVerb` root that frames it. The `signal_channel!` declaration carries
 the root beside each request variant and emits `MindRequest::signal_verb()`,
-so graph creation, graph queries,
-subscriptions, role release, and channel retraction cannot silently
-travel as `Assert`.
+so graph creation, graph queries, subscriptions, and channel retraction cannot
+silently travel as `Assert`.
 
 ```mermaid
 flowchart LR
@@ -41,7 +39,7 @@ flowchart LR
 
 | Side | Component |
 |---|---|
-| Request producer | `mind` CLI, `tools/orchestrate` shim, future hosts that speak the same channel. |
+| Request producer | `mind` CLI and future hosts that speak the same channel. |
 | Request consumer | `persona-mind` daemon. |
 | Reply producer | `persona-mind` daemon. |
 | Reply consumer | the caller that submitted the operation. |
@@ -73,12 +71,6 @@ signal_channel! {
             Subscribe SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
             Subscribe SubscribeRelations(SubscribeRelations) opens MindEventStream,
             Retract SubscriptionRetraction(SubscriptionId),
-            Assert RoleClaim(RoleClaim),
-            Retract RoleRelease(RoleRelease),
-            Mutate RoleHandoff(RoleHandoff),
-            Match RoleObservation(RoleObservation),
-            Assert ActivitySubmission(ActivitySubmission),
-            Match ActivityQuery(ActivityQuery),
             Assert Opening(Opening),
             Assert NoteSubmission(NoteSubmission),
             Assert Link(Link),
@@ -99,14 +91,6 @@ signal_channel! {
             RelationList(RelationList),
             SubscriptionAccepted(SubscriptionAccepted),
             SubscriptionRetracted(SubscriptionRetracted),
-            ClaimAcceptance(ClaimAcceptance),
-            ClaimRejection(ClaimRejection),
-            ReleaseAcknowledgment(ReleaseAcknowledgment),
-            HandoffAcceptance(HandoffAcceptance),
-            HandoffRejection(HandoffRejection),
-            RoleSnapshot(RoleSnapshot),
-            ActivityAcknowledgment(ActivityAcknowledgment),
-            ActivityList(ActivityList),
             OpeningReceipt(OpeningReceipt),
             NoteReceipt(NoteReceipt),
             LinkReceipt(LinkReceipt),
@@ -149,21 +133,7 @@ from strings or default every payload to `Assert`.
 
 ## 3 · Record Families
 
-### 3.1 Role coordination
-
-| Request | Reply |
-|---|---|
-| `RoleClaim` | `ClaimAcceptance` or `ClaimRejection` |
-| `RoleRelease` | `ReleaseAcknowledgment` |
-| `RoleHandoff` | `HandoffAcceptance` or `HandoffRejection` |
-| `RoleObservation` | `RoleSnapshot` |
-
-These records replace the lock-file claim/release/handoff protocol. Lock files
-are outside this contract and outside the `persona-mind` implementation target.
-They belong only to the temporary workspace workflow until agents switch to
-`mind`.
-
-### 3.1.5 Typed mind graph substrate
+### 3.1 Typed mind graph substrate
 
 | Request | Reply |
 |---|---|
@@ -199,17 +169,7 @@ whose body is `Reference(Identity)`, not just any Reference.
 their minting, collision handling, durable indices, and short display-id
 projection. The contract owns only the typed records that cross the channel.
 
-### 3.2 Activity
-
-| Request | Reply |
-|---|---|
-| `ActivitySubmission` | `ActivityAcknowledgment` |
-| `ActivityQuery` | `ActivityList` |
-
-Activity time is store-supplied. `ActivitySubmission` does not carry
-`TimestampNanos`.
-
-### 3.3 Work and memory graph
+### 3.2 Work and memory graph
 
 | Request | Reply |
 |---|---|
@@ -274,7 +234,6 @@ The contract validates boundary strings before they become wire values.
 | `RoleName` | closed role set plus canonical wire-token parsing/rendering: operator, operator-assistant, designer, designer-assistant, system-specialist, system-assistant, poet, poet-assistant. |
 | `WirePath` | absolute normalized slash-separated path; rejects `..`. |
 | `TaskToken` | raw unbracketed token, non-empty, no whitespace or brackets. |
-| `ScopeReason` | non-empty single-line text. |
 | `TimestampNanos` | store-supplied timestamp type; request records do not mint it. |
 | `ActorName` | event/caller identity after infrastructure resolution. |
 | `RecordId` | opaque durable thought identifier minted by `persona-mind`. |
@@ -299,8 +258,8 @@ inside NOTA, but there is no second text syntax.
 The contract records implement NOTA directly. Root `MindRequest` and
 `MindReply` text decoding dispatches through `signal_core::signal_channel!`;
 payload records derive or implement NOTA in this crate. Validating boundary
-newtypes such as `WirePath`, `TaskToken`, and `ScopeReason` decode through
-their constructors, so text input cannot bypass boundary validation.
+newtypes such as `WirePath` and `TaskToken` decode through their constructors,
+so text input cannot bypass boundary validation.
 
 ```mermaid
 flowchart LR
@@ -313,9 +272,9 @@ flowchart LR
 Representative contract text shapes:
 
 ```text
-(RoleClaim Designer [(Path "/git/github.com/LiGoldragon/signal-persona-mind/src/lib.rs") (Task primary-f99)] "design-cascade per /93")
 (Query (Ready) 25)
 (Opening Task High "wire command-line mind" "replace lock helper with typed state")
+(ChannelGrant (Internal Router) (Internal Harness) [Delivery])
 ```
 
 Surface owners decide where this NOTA is accepted or rendered. This crate owns
@@ -359,8 +318,6 @@ MindUnimplementedReason
   `~/primary/protocols/orchestration.md`.
 - Request payloads do not mint `ActorName`, `TimestampNanos`, `EventSeq`,
   `OperationId`, stable item IDs, or display IDs.
-- Activity time is store-supplied; `ActivitySubmission` does not carry
-  `TimestampNanos`.
 - Lock files and BEADS are represented only as temporary external references or
   aliases, never as live backend protocol.
 - Channel choreography records use `signal-persona-auth` endpoint and origin
@@ -385,8 +342,7 @@ Existing tests in `tests/round_trip.rs` cover:
 
 - request/reply frame round trips;
 - representative NOTA text round trips for root requests and replies:
-  `RoleClaim`, `Query`, `ChannelGrant`, and `ClaimAcceptance`;
-- role and activity variants;
+  `Query`, `Opening`, and `ChannelGrant`;
 - memory/work variants;
 - every `QueryKind`;
 - every `EdgeKind`;
