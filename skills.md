@@ -24,10 +24,11 @@ If your change adds a new request or reply variant, edit
 ## What this repo owns
 
 - `RoleName` (closed enum: Operator, OperatorAssistant,
-  Designer, DesignerAssistant, SystemSpecialist,
-  SystemAssistant, Poet, PoetAssistant, plus canonical
-  workspace role token parsing/rendering) where mind graph records need role
-  identity.
+  SecondOperatorAssistant, Designer, DesignerAssistant,
+  SecondDesignerAssistant, SystemSpecialist, SystemAssistant,
+  SecondSystemAssistant, Poet, PoetAssistant, plus canonical
+  workspace role token parsing/rendering) where mind graph records
+  need role identity.
 - `ScopeReference` (closed enum: Path | Task) plus
   `WirePath` and `TaskToken` newtypes.
 - `TimestampNanos` (store-supplied; never agent-supplied).

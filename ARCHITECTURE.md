@@ -231,7 +231,7 @@ The contract validates boundary strings before they become wire values.
 
 | Type | Invariant |
 |---|---|
-| `RoleName` | closed role set plus canonical wire-token parsing/rendering: operator, operator-assistant, designer, designer-assistant, system-specialist, system-assistant, poet, poet-assistant. |
+| `RoleName` | closed role set plus canonical wire-token parsing/rendering: operator, operator-assistant, second-operator-assistant, designer, designer-assistant, second-designer-assistant, system-specialist, system-assistant, second-system-assistant, poet, poet-assistant. |
 | `WirePath` | absolute normalized slash-separated path; rejects `..`. |
 | `TaskToken` | raw unbracketed token, non-empty, no whitespace or brackets. |
 | `TimestampNanos` | store-supplied timestamp type; request records do not mint it. |
