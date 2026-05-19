@@ -10,6 +10,48 @@
 defines the typed request/reply channel used by the `mind` CLI and long-lived
 `persona-mind` daemon.
 
+## MUST IMPLEMENT — signal architecture migration
+
+This contract is migrating to contract-local verbs per
+`primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`
+and `primary/reports/designer/239-signal-architecture-migration-plan.md`.
+
+The current `MindRequest` enum mixes many SignalVerb-tagged variants
+across three relations (typed mind graph; work-and-memory graph;
+channel choreography). Drop the SignalVerb prefixes throughout. The
+public verbs for the typed-graph relation become `Submit` (for
+`SubmitThought`, `SubmitRelation` — already verb-form; payloads are
+`Thought` / `Relation`), `Query` (lift the repeated `Query*` siblings —
+`QueryThoughts`, `QueryRelations` — into one `Query` operation root
+whose payload names the read target), `Watch` (for the subscribe
+side; payload names the watch target — thoughts vs relations).
+For the work-and-memory graph, `Submit` covers `Opening`,
+`NoteSubmission` (rename payload to `Note`), `Link`, and
+`AliasAssignment` (payload `AliasAssignment`); `Mutate StatusChange`
+becomes a contract-local verb — likely `ChangeStatus` or `Transition`
+since `Mutate` is grammatically wrong on a verb. The channel
+choreography family — `AdjudicationRequest`, `ChannelGrant`,
+`ChannelExtend`, `ChannelRetract`, `AdjudicationDeny`, `ChannelList` —
+needs case-by-case redesign: `Adjudicate` may be one verb-form root
+whose payload names the request/deny shape, `Grant` / `Extend` /
+`Revoke` may stay as verb-form roots, and `ChannelList` lifts to a
+`Query` form. Move the verb-to-Sema lowering out of the contract
+entirely.
+
+Open question for the designer: the channel-choreography relation
+carries six tightly-coupled variants whose lowering shapes are very
+different (some assert work, some mutate live grants, some retract).
+The right contract-local verbs likely need a designer pass before the
+operator picks this up — leave the existing shape pending that pass
+rather than guessing.
+
+References: `primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`,
+`primary/reports/designer/239-signal-architecture-migration-plan.md`.
+
+**Note to remover:** when the refactor lands, remove this section and
+add a `## Migration history — contract-local verbs (2026-05-XX)`
+paragraph noting the shape change.
+
 > **Scope.** This contract sits on today's stack — `signal-core` wire,
 > rkyv archives, `sema-db` storage in consumers. The
 > eventually-self-hosting stack is Sema-on-Sema, in which signal-*
