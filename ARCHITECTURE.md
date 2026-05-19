@@ -29,21 +29,20 @@ For the work-and-memory graph, `Submit` covers `Opening`,
 `NoteSubmission` (rename payload to `Note`), `Link`, and
 `AliasAssignment` (payload `AliasAssignment`); `Mutate StatusChange`
 becomes a contract-local verb — likely `ChangeStatus` or `Transition`
-since `Mutate` is grammatically wrong on a verb. The channel
-choreography family — `AdjudicationRequest`, `ChannelGrant`,
-`ChannelExtend`, `ChannelRetract`, `AdjudicationDeny`, `ChannelList` —
-needs case-by-case redesign: `Adjudicate` may be one verb-form root
-whose payload names the request/deny shape, `Grant` / `Extend` /
-`Revoke` may stay as verb-form roots, and `ChannelList` lifts to a
-`Query` form. Move the verb-to-Sema lowering out of the contract
-entirely.
-
-Open question for the designer: the channel-choreography relation
-carries six tightly-coupled variants whose lowering shapes are very
-different (some assert work, some mutate live grants, some retract).
-The right contract-local verbs likely need a designer pass before the
-operator picks this up — leave the existing shape pending that pass
-rather than guessing.
+since `Mutate` is grammatically wrong on a verb. The channel-choreography family splits into multiple
+contract-local verbs (psyche-settled 2026-05-19T20:30Z — verbs are
+cheap; the split makes each operation's intent visible at the call
+site): `Grant` (issue a channel grant), `Extend` (extend an existing
+grant), `Revoke` (retract a live grant; replaces `ChannelRetract`),
+`Adjudicate` (open an adjudication for resolution; replaces
+`AdjudicationRequest`), `Deny` (reject an adjudication; replaces
+`AdjudicationDeny`), and `Query` (read the channel list; replaces
+`ChannelList`). The prior "collapse under one Adjudicate verb"
+option is retired. Move the verb-to-Sema lowering out of the
+contract entirely — the daemon executor decides what Sema operations
+each contract verb produces, possibly fanning out (e.g., `Grant` may
+Assert the grant record and Mutate live-grant state in one
+transaction).
 
 References: `primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`,
 `primary/reports/designer/239-signal-architecture-migration-plan.md`.
