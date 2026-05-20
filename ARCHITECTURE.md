@@ -33,10 +33,12 @@ contract-local verbs:
   becomes a contract-local verb — likely `ChangeStatus` or
   `Transition` since `Mutate` is grammatically wrong on a verb.
 - *Channel choreography:* this contract keeps Router-to-Mind
-  adjudication observation and read-side channel views only.
-  Mind-to-Router authority orders are not ordinary Mind working
-  requests. `Grant`, `Extend`, `Revoke`, and `Deny` live in
-  `owner-signal-persona-router`, the router's owner signal. The
+  adjudication observation and read-side channel views only. Router
+  channel authority orders are not ordinary Mind working requests.
+  `Grant`, `Extend`, `Revoke`, and `Deny` live in
+  `owner-signal-persona-router`, the router's owner signal, and are
+  called by Orchestrate. Mind decides at the cognitive level and
+  orders Orchestrate through `owner-signal-persona-orchestrate`. The
   remaining Mind-side verbs are `Adjudicate` (open an adjudication for
   resolution; replaces `AdjudicationRequest`) and `Query` (read the
   channel list; replaces `ChannelList`).
@@ -59,7 +61,9 @@ daemon owns its typed Command enum. Example commands:
 `MindCommand::ChangeWorkItemStatus`,
 `MindCommand::RecordAdjudicationRequest`, and
 `MindCommand::ReadChannelList`. Router channel authority commands live
-behind `owner-signal-persona-router`, not this working signal.
+behind Orchestrate's machinery path:
+`owner-signal-persona-orchestrate` → `owner-signal-persona-router`,
+not this working signal.
 
 **Layer 3 — Sema classification (signal-sema).** Each Component
 Command projects to a payloadless `SemaOperation` class via
@@ -255,10 +259,12 @@ These records are the typed working boundary between `persona-router`
 and `persona-mind` for channel choreography observation. Router parks a
 message whose channel is missing or inactive and submits
 `AdjudicationRequest`. Mind records the request and may inspect channel
-views through `ChannelList`. If Mind or the owner authority chain
-decides to change router channel policy, it sends `Grant`, `Extend`,
-`Revoke`, or `Deny` through `owner-signal-persona-router`, not through
-this working signal.
+views through `ChannelList`. If Mind decides router channel policy
+should change, it orders Orchestrate through
+`owner-signal-persona-orchestrate`. Orchestrate then sends `Grant`,
+`Extend`, `Revoke`, or `Deny` through
+`owner-signal-persona-router`. Mind does not call Router's owner
+signal directly.
 
 The destination handler set inside `persona-mind` is a stateful
 `ChoreographyAdjudicator` actor that owns the adjudication log and any
@@ -385,8 +391,8 @@ MindUnimplementedReason
   types; they do not carry proof material.
 - Channel choreography is closed vocabulary; there is no stringly "kind" or
   catch-all request.
-- Mind-to-Router channel authority orders are absent from this working
-  signal and live in `owner-signal-persona-router`.
+- Router channel authority orders are absent from this working signal
+  and live in `owner-signal-persona-router`, called by Orchestrate.
 - `ChannelMessageKind` does not contain owner-order names such as
   channel grant, extension, revocation, or denial.
 - This contract crate contains no CLI, daemon, actor runtime, database table,
