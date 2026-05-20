@@ -10,48 +10,78 @@
 defines the typed request/reply channel used by the `mind` CLI and long-lived
 `persona-mind` daemon.
 
-## MUST IMPLEMENT — signal architecture migration
+## MUST IMPLEMENT — three-layer migration
 
-This contract is migrating to contract-local verbs per
-`primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`
-and `primary/reports/designer/239-signal-architecture-migration-plan.md`.
+This contract is migrating to the three-layer model affirmed
+2026-05-20 per
+`primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
+and `primary/reports/designer/248-three-layer-changes-for-operators.md`.
 
-The current `MindRequest` enum mixes many SignalVerb-tagged variants
-across three relations (typed mind graph; work-and-memory graph;
-channel choreography). Drop the SignalVerb prefixes throughout. The
-public verbs for the typed-graph relation become `Submit` (for
-`SubmitThought`, `SubmitRelation` — already verb-form; payloads are
-`Thought` / `Relation`), `Query` (lift the repeated `Query*` siblings —
-`QueryThoughts`, `QueryRelations` — into one `Query` operation root
-whose payload names the read target), `Watch` (for the subscribe
-side; payload names the watch target — thoughts vs relations).
-For the work-and-memory graph, `Submit` covers `Opening`,
-`NoteSubmission` (rename payload to `Note`), `Link`, and
-`AliasAssignment` (payload `AliasAssignment`); `Mutate StatusChange`
-becomes a contract-local verb — likely `ChangeStatus` or `Transition`
-since `Mutate` is grammatically wrong on a verb. The channel-choreography family splits into multiple
-contract-local verbs (psyche-settled 2026-05-19T20:30Z — verbs are
-cheap; the split makes each operation's intent visible at the call
-site): `Grant` (issue a channel grant), `Extend` (extend an existing
-grant), `Revoke` (retract a live grant; replaces `ChannelRetract`),
-`Adjudicate` (open an adjudication for resolution; replaces
-`AdjudicationRequest`), `Deny` (reject an adjudication; replaces
-`AdjudicationDeny`), and `Query` (read the channel list; replaces
-`ChannelList`). The prior "collapse under one Adjudicate verb"
-option is retired. Move the verb-to-Sema lowering out of the
-contract entirely — the daemon executor decides what Sema operations
-each contract verb produces, possibly fanning out (e.g., `Grant` may
-Assert the grant record and Mutate live-grant state in one
-transaction).
+**Layer 1 — Contract Operations on the wire (this crate).** Drop the
+SignalVerb wrappers entirely. The current `MindRequest` enum mixes
+many SignalVerb-tagged variants across three relations (typed mind
+graph; work-and-memory graph; channel choreography). The
+contract-local verbs:
 
-References: `primary/reports/designer/238-signal-architecture-redirection-contract-local-verbs.md`,
-`primary/reports/designer/239-signal-architecture-migration-plan.md`.
+- *Typed mind graph relation:* `Submit` (for `SubmitThought`,
+  `SubmitRelation` — already verb-form; payloads are `Thought` /
+  `Relation`), `Query` (lift the repeated `Query*` siblings into one
+  `Query` operation root whose payload names the read target).
+- *Work-and-memory graph:* `Submit` covers `Opening`,
+  `NoteSubmission` (rename payload to `Note`), `Link`, and
+  `AliasAssignment` (payload `AliasAssignment`); `Mutate StatusChange`
+  becomes a contract-local verb — likely `ChangeStatus` or
+  `Transition` since `Mutate` is grammatically wrong on a verb.
+- *Channel choreography:* the family splits into multiple
+  contract-local verbs (psyche-settled 2026-05-19T20:30Z — verbs are
+  cheap; the split makes each operation's intent visible at the call
+  site): `Grant` (issue a channel grant), `Extend` (extend an existing
+  grant), `Revoke` (retract a live grant; replaces `ChannelRetract`),
+  `Adjudicate` (open an adjudication for resolution; replaces
+  `AdjudicationRequest`), `Deny` (reject an adjudication; replaces
+  `AdjudicationDeny`), and `Query` (read the channel list; replaces
+  `ChannelList`).
+
+**Mandatory `Tap`/`Untap` for persona components.** Persona-mind is a
+persona component, so its observable surface is standardized.
+Replace the existing subscription pairs (`SubscribeThoughts`,
+`SubscribeRelations`, `SubscriptionRetraction`) with the
+macro-injected `Tap(ObserverFilter)` /
+`Untap(MindObserverSubscriptionToken)` for the standardized observer
+hook. If domain-specific watch surfaces are still needed (e.g.
+streaming Thought commits to a specific subscriber set), they can
+keep domain-local `Watch`/`Unwatch` verbs alongside the mandatory
+observability.
+
+**Layer 2 — Component Commands (persona-mind daemon).** The mind
+daemon owns its typed Command enum. Example commands:
+`MindCommand::AssertThought`, `MindCommand::AssertRelation`,
+`MindCommand::ReadThoughtIndex`, `MindCommand::RecordOpening`,
+`MindCommand::ChangeWorkItemStatus`,
+`MindCommand::IssueChannelGrant`,
+`MindCommand::RevokeChannelGrant`. A single contract operation may
+lower to multiple commands in one transaction (e.g. `Grant` may
+record the grant record and mutate live-grant state in one
+`OperationPlan`).
+
+**Layer 3 — Sema classification (signal-sema).** Each Component
+Command projects to a payloadless `SemaOperation` class via
+`ToSemaOperation`. Cross-component observers filter by class.
+
+**Frame layer.** The dependency on `signal-core` shifts to
+`signal-frame`.
+
+References:
+- `primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
+- `primary/reports/designer/248-three-layer-changes-for-operators.md`
+- `primary/skills/component-triad.md` §"Verbs come in three layers"
+- `primary/skills/contract-repo.md` §"Public contracts use contract-local operation verbs"
 
 **Note to remover:** when the refactor lands, remove this section and
-add a `## Migration history — contract-local verbs (2026-05-XX)`
+add a `## Migration history — three-layer model (2026-05-XX)`
 paragraph noting the shape change.
 
-> **Scope.** This contract sits on today's stack — `signal-core` wire,
+> **Scope.** This contract sits on today's stack — `signal-frame` wire,
 > rkyv archives, `sema-db` storage in consumers. The
 > eventually-self-hosting stack is Sema-on-Sema, in which signal-*
 > as a separate vocabulary layer collapses. Today's contract is a
@@ -61,11 +91,10 @@ This repo owns records, validation newtypes, rkyv round trips, and channel
 shape. It does not own the CLI binary, actors, database, storage tables,
 transport lifecycle, or lock-file migration.
 
-It also owns the mapping from each `MindRequest` variant to the
-`SignalVerb` root that frames it. The `signal_channel!` declaration carries
-the root beside each request variant and emits `MindRequest::signal_verb()`,
-so graph creation, graph queries, subscriptions, and channel retraction cannot
-silently travel as `Assert`.
+Each `MindRequest` variant is a contract-local verb in verb form
+(Layer 1). The daemon owns its typed Component Commands (Layer 2)
+and projects them to payloadless Sema class labels (Layer 3) for
+observation — Sema classification does not appear on the wire.
 
 ```mermaid
 flowchart LR
@@ -89,12 +118,12 @@ The CLI text surface is one NOTA record in and one NOTA record out. That text
 projection must decode into the same `MindRequest` enum declared here. It must
 not create a second CLI-only command language.
 
-Rust-to-Rust boundaries use `signal-core` frames carrying rkyv archives. The
+Rust-to-Rust boundaries use `signal-frame` frames carrying rkyv archives. The
 same typed request/reply vocabulary underlies both the NOTA projection and the
 binary frame projection.
 
 The local transport between CLI and daemon belongs to `persona-mind`, not this
-contract. The likely first transport is a Unix socket carrying `signal-core`
+contract. The likely first transport is a Unix socket carrying `signal-frame`
 frames.
 
 ## 2 · Channel Declaration
@@ -161,16 +190,15 @@ signal_channel! {
 Closed enums are intentional. There is no `Unknown` escape hatch. New
 operations are schema changes coordinated through this contract.
 
-The request enum exposes two contract-owned discriminants:
+The request enum exposes one contract-owned discriminant:
 
 - `operation_kind()` names the domain operation for audit and UI surfaces.
-- `signal_verb()` is emitted by `signal_channel!` from the root written beside
-  each request variant and names the operation root used in the
-  `signal-core::Request` envelope.
 
-The second mapping belongs here because this contract owns the request
-vocabulary. Runtime components execute the mapped verb; they do not infer it
-from strings or default every payload to `Assert`.
+Under the three-layer model, Sema classification (Layer 3) lives in
+the daemon's `ToSemaOperation` impl on its Component Command type
+(Layer 2), not in this contract crate. The contract names the
+caller's domain action; the daemon decides what Sema-class label
+to emit for observation.
 
 ## 3 · Record Families
 
@@ -297,7 +325,7 @@ The required text surface is NOTA. Nexus may supply the semantic content shape
 inside NOTA, but there is no second text syntax.
 
 The contract records implement NOTA directly. Root `MindRequest` and
-`MindReply` text decoding dispatches through `signal_core::signal_channel!`;
+`MindReply` text decoding dispatches through `signal_frame::signal_channel!`;
 payload records derive or implement NOTA in this crate. Validating boundary
 newtypes such as `WirePath` and `TaskToken` decode through their constructors,
 so text input cannot bypass boundary validation.
@@ -324,7 +352,7 @@ the codec on the contract types, and the parsed value is one of the
 
 ## 6 · Versioning
 
-`signal-core::Frame` carries protocol version. Schema changes that add/remove
+`signal-frame::Frame` carries protocol version. Schema changes that add/remove
 variants or change fields require coordinated upgrades of producers and
 consumers.
 
@@ -352,7 +380,9 @@ MindUnimplementedReason
 ## 7 · Constraints
 
 - The channel is one closed `MindRequest` enum and one closed `MindReply`
-  enum emitted by `signal_channel!`.
+  enum emitted by `signal_channel!`. All variants are contract-local
+  verbs in verb form; Sema classification is daemon-side projection
+  only.
 - The architecture's channel declaration matches the implemented
   `signal_channel!` invocation in `src/lib.rs`.
 - `RoleName` covers every workspace coordination role in
@@ -430,6 +460,8 @@ tests/round_trip.rs     frame round trips, NOTA witnesses, and validation tests
 ## See Also
 
 - `../persona-mind/ARCHITECTURE.md`
-- `../signal-core/ARCHITECTURE.md`
+- `../signal-frame/ARCHITECTURE.md`
+- `../signal-sema/ARCHITECTURE.md`
 - `~/primary/protocols/orchestration.md`
 - `~/primary/skills/contract-repo.md`
+- `~/primary/skills/component-triad.md` §"Verbs come in three layers".
