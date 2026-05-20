@@ -1207,9 +1207,6 @@ pub enum ChannelMessageKind {
     TranscriptEvent,
     AdjudicationRequest,
     DeliveryNotification,
-    ChannelGrant,
-    ChannelExtend,
-    ChannelRetract,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -1282,32 +1279,6 @@ pub struct AdjudicationReceipt {
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ChannelGrant {
-    pub source: ChannelEndpoint,
-    pub destination: ChannelEndpoint,
-    pub kinds: Vec<ChannelMessageKind>,
-    pub duration: ChannelDuration,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ChannelExtend {
-    pub channel: ChannelId,
-    pub duration: ChannelDuration,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ChannelRetract {
-    pub channel: ChannelId,
-    pub reason: TextBody,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct AdjudicationDeny {
-    pub request: AdjudicationRequestId,
-    pub reason: TextBody,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ChannelList {
     pub filters: Vec<ChannelFilter>,
 }
@@ -1330,10 +1301,6 @@ pub enum MindOperationKind {
     AliasAssignment,
     Query,
     AdjudicationRequest,
-    ChannelGrant,
-    ChannelExtend,
-    ChannelRetract,
-    AdjudicationDeny,
     ChannelList,
 }
 
@@ -1397,16 +1364,6 @@ impl NotaDecode for ChannelFilter {
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct ChannelReceipt {
-    pub channel: ChannelId,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
-pub struct AdjudicationDenyReceipt {
-    pub request: AdjudicationRequestId,
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ChannelView {
     pub channel: ChannelId,
     pub source: ChannelEndpoint,
@@ -1439,10 +1396,6 @@ signal_channel! {
             Assert AliasAssignment(AliasAssignment),
             Match Query(Query),
             Assert AdjudicationRequest(AdjudicationRequest),
-            Assert ChannelGrant(ChannelGrant),
-            Mutate ChannelExtend(ChannelExtend),
-            Retract ChannelRetract(ChannelRetract),
-            Assert AdjudicationDeny(AdjudicationDeny),
             Match ChannelList(ChannelList),
         }
         reply MindReply {
@@ -1460,8 +1413,6 @@ signal_channel! {
             View(View),
             Rejection(Rejection),
             AdjudicationReceipt(AdjudicationReceipt),
-            ChannelReceipt(ChannelReceipt),
-            AdjudicationDenyReceipt(AdjudicationDenyReceipt),
             ChannelListView(ChannelListView),
             MindRequestUnimplemented(MindRequestUnimplemented),
         }
@@ -1494,10 +1445,6 @@ impl MindRequest {
             Self::AliasAssignment(_) => MindOperationKind::AliasAssignment,
             Self::Query(_) => MindOperationKind::Query,
             Self::AdjudicationRequest(_) => MindOperationKind::AdjudicationRequest,
-            Self::ChannelGrant(_) => MindOperationKind::ChannelGrant,
-            Self::ChannelExtend(_) => MindOperationKind::ChannelExtend,
-            Self::ChannelRetract(_) => MindOperationKind::ChannelRetract,
-            Self::AdjudicationDeny(_) => MindOperationKind::AdjudicationDeny,
             Self::ChannelList(_) => MindOperationKind::ChannelList,
         }
     }

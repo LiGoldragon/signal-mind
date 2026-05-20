@@ -137,10 +137,6 @@ fn sample_internal_endpoint(component: ComponentName) -> ChannelEndpoint {
     ChannelEndpoint::Internal(component)
 }
 
-fn sample_external_owner_endpoint() -> ChannelEndpoint {
-    ChannelEndpoint::External(ConnectionClass::Owner)
-}
-
 struct MemoryFixture {
     item_id: StableItemId,
     display_id: DisplayId,
@@ -941,32 +937,18 @@ fn adjudication_request_round_trips() {
 #[test]
 fn channel_choreography_requests_round_trip() {
     let requests = vec![
-        MindRequest::ChannelGrant(ChannelGrant {
-            source: sample_external_owner_endpoint(),
-            destination: sample_internal_endpoint(ComponentName::Router),
-            kinds: vec![
-                ChannelMessageKind::MessageSubmission,
-                ChannelMessageKind::InboxQuery,
-            ],
-            duration: ChannelDuration::Permanent,
-        }),
-        MindRequest::ChannelExtend(ChannelExtend {
-            channel: sample_channel(),
-            duration: ChannelDuration::TimeBound(TimestampNanos::new(1_730_000_000_000_000_000)),
-        }),
-        MindRequest::ChannelRetract(ChannelRetract {
-            channel: sample_channel(),
-            reason: TextBody::new("operator closed the path"),
-        }),
-        MindRequest::AdjudicationDeny(AdjudicationDeny {
+        MindRequest::AdjudicationRequest(AdjudicationRequest {
             request: sample_adjudication_request(),
-            reason: TextBody::new("destination is unavailable"),
+            origin: MessageOrigin::External(ConnectionClass::Owner),
+            destination: sample_internal_endpoint(ComponentName::Router),
+            kind: ChannelMessageKind::MessageSubmission,
+            body_summary: TextBody::new("owner asks router to deliver a prompt"),
         }),
         MindRequest::ChannelList(ChannelList {
             filters: vec![
                 ChannelFilter::Source(sample_internal_endpoint(ComponentName::Mind)),
                 ChannelFilter::Destination(sample_internal_endpoint(ComponentName::Router)),
-                ChannelFilter::Kind(ChannelMessageKind::ChannelGrant),
+                ChannelFilter::Kind(ChannelMessageKind::MessageDelivery),
             ],
         }),
     ];
@@ -975,22 +957,6 @@ fn channel_choreography_requests_round_trip() {
         let decoded = round_trip_request(request.clone());
         assert_eq!(decoded, request);
     }
-}
-
-#[test]
-fn channel_grant_request_round_trips_through_nota_text() {
-    round_trip_nota(
-        MindRequest::ChannelGrant(ChannelGrant {
-            source: sample_external_owner_endpoint(),
-            destination: sample_internal_endpoint(ComponentName::Router),
-            kinds: vec![
-                ChannelMessageKind::MessageSubmission,
-                ChannelMessageKind::InboxQuery,
-            ],
-            duration: ChannelDuration::Permanent,
-        }),
-        "(ChannelGrant (External (Owner)) (Internal Router) [MessageSubmission InboxQuery] (Permanent))",
-    );
 }
 
 #[test]
@@ -1004,6 +970,39 @@ fn message_ingress_kind_is_distinct_from_generic_message_submission() {
         "MessageIngressSubmission",
     );
     round_trip_nota(ChannelMessageKind::MessageSubmission, "MessageSubmission");
+}
+
+#[test]
+fn channel_message_kinds_do_not_model_router_owner_orders() {
+    let forbidden = [
+        "ChannelGrant",
+        "ChannelExtend",
+        "ChannelRetract",
+        "AdjudicationDeny",
+        "AdjudicationDenial",
+    ];
+
+    let allowed = [
+        ChannelMessageKind::MessageIngressSubmission,
+        ChannelMessageKind::MessageSubmission,
+        ChannelMessageKind::InboxQuery,
+        ChannelMessageKind::FocusObservation,
+        ChannelMessageKind::PromptBufferObservation,
+        ChannelMessageKind::MessageDelivery,
+        ChannelMessageKind::TerminalInput,
+        ChannelMessageKind::TerminalCapture,
+        ChannelMessageKind::TerminalResize,
+        ChannelMessageKind::TranscriptEvent,
+        ChannelMessageKind::AdjudicationRequest,
+        ChannelMessageKind::DeliveryNotification,
+    ];
+
+    for kind in allowed {
+        let mut encoder = Encoder::new();
+        kind.encode(&mut encoder).expect("encode");
+        let encoded = encoder.into_string();
+        assert!(!forbidden.contains(&encoded.as_str()));
+    }
 }
 
 #[test]
@@ -1120,36 +1119,6 @@ fn mind_request_exposes_contract_owned_operation_kind() {
             MindOperationKind::AdjudicationRequest,
         ),
         (
-            MindRequest::ChannelGrant(ChannelGrant {
-                source: sample_external_owner_endpoint(),
-                destination: sample_internal_endpoint(ComponentName::Router),
-                kinds: vec![ChannelMessageKind::MessageSubmission],
-                duration: ChannelDuration::Permanent,
-            }),
-            MindOperationKind::ChannelGrant,
-        ),
-        (
-            MindRequest::ChannelExtend(ChannelExtend {
-                channel: sample_channel(),
-                duration: ChannelDuration::OneShot,
-            }),
-            MindOperationKind::ChannelExtend,
-        ),
-        (
-            MindRequest::ChannelRetract(ChannelRetract {
-                channel: sample_channel(),
-                reason: TextBody::new("operator closed the path"),
-            }),
-            MindOperationKind::ChannelRetract,
-        ),
-        (
-            MindRequest::AdjudicationDeny(AdjudicationDeny {
-                request: sample_adjudication_request(),
-                reason: TextBody::new("destination unavailable"),
-            }),
-            MindOperationKind::AdjudicationDeny,
-        ),
-        (
             MindRequest::ChannelList(ChannelList { filters: vec![] }),
             MindOperationKind::ChannelList,
         ),
@@ -1251,13 +1220,6 @@ fn mind_request_variants_do_not_silently_default_to_assert() {
             SignalVerb::Mutate,
         ),
         (
-            MindRequest::ChannelRetract(ChannelRetract {
-                channel: sample_channel(),
-                reason: TextBody::new("retired channel"),
-            }),
-            SignalVerb::Retract,
-        ),
-        (
             MindRequest::ChannelList(ChannelList { filters: vec![] }),
             SignalVerb::Match,
         ),
@@ -1271,7 +1233,10 @@ fn mind_request_variants_do_not_silently_default_to_assert() {
 
 #[test]
 fn mind_operation_kind_round_trips_through_nota_text() {
-    round_trip_nota(MindOperationKind::ChannelGrant, "ChannelGrant");
+    round_trip_nota(
+        MindOperationKind::AdjudicationRequest,
+        "AdjudicationRequest",
+    );
 }
 
 // ─── Reply variants ───────────────────────────────────────
@@ -1313,20 +1278,14 @@ fn channel_choreography_replies_round_trip() {
         MindReply::AdjudicationReceipt(AdjudicationReceipt {
             request: sample_adjudication_request(),
         }),
-        MindReply::ChannelReceipt(ChannelReceipt {
-            channel: sample_channel(),
-        }),
-        MindReply::AdjudicationDenyReceipt(AdjudicationDenyReceipt {
-            request: sample_adjudication_request(),
-        }),
         MindReply::ChannelListView(ChannelListView {
             channels: vec![ChannelView {
                 channel: sample_channel(),
                 source: sample_internal_endpoint(ComponentName::Mind),
                 destination: sample_internal_endpoint(ComponentName::Router),
                 kinds: vec![
-                    ChannelMessageKind::ChannelGrant,
-                    ChannelMessageKind::ChannelRetract,
+                    ChannelMessageKind::MessageDelivery,
+                    ChannelMessageKind::AdjudicationRequest,
                 ],
                 duration: ChannelDuration::OneShot,
             }],

@@ -32,15 +32,14 @@ contract-local verbs:
   `AliasAssignment` (payload `AliasAssignment`); `Mutate StatusChange`
   becomes a contract-local verb — likely `ChangeStatus` or
   `Transition` since `Mutate` is grammatically wrong on a verb.
-- *Channel choreography:* the family splits into multiple
-  contract-local verbs (psyche-settled 2026-05-19T20:30Z — verbs are
-  cheap; the split makes each operation's intent visible at the call
-  site): `Grant` (issue a channel grant), `Extend` (extend an existing
-  grant), `Revoke` (retract a live grant; replaces `ChannelRetract`),
-  `Adjudicate` (open an adjudication for resolution; replaces
-  `AdjudicationRequest`), `Deny` (reject an adjudication; replaces
-  `AdjudicationDeny`), and `Query` (read the channel list; replaces
-  `ChannelList`).
+- *Channel choreography:* this contract keeps Router-to-Mind
+  adjudication observation and read-side channel views only.
+  Mind-to-Router authority orders are not ordinary Mind working
+  requests. `Grant`, `Extend`, `Revoke`, and `Deny` live in
+  `owner-signal-persona-router`, the router's owner signal. The
+  remaining Mind-side verbs are `Adjudicate` (open an adjudication for
+  resolution; replaces `AdjudicationRequest`) and `Query` (read the
+  channel list; replaces `ChannelList`).
 
 **Mandatory `Tap`/`Untap` for persona components.** Persona-mind is a
 persona component, so its observable surface is standardized.
@@ -58,11 +57,9 @@ daemon owns its typed Command enum. Example commands:
 `MindCommand::AssertThought`, `MindCommand::AssertRelation`,
 `MindCommand::ReadThoughtIndex`, `MindCommand::RecordOpening`,
 `MindCommand::ChangeWorkItemStatus`,
-`MindCommand::IssueChannelGrant`,
-`MindCommand::RevokeChannelGrant`. A single contract operation may
-lower to multiple commands in one transaction (e.g. `Grant` may
-record the grant record and mutate live-grant state in one
-`OperationPlan`).
+`MindCommand::RecordAdjudicationRequest`, and
+`MindCommand::ReadChannelList`. Router channel authority commands live
+behind `owner-signal-persona-router`, not this working signal.
 
 **Layer 3 — Sema classification (signal-sema).** Each Component
 Command projects to a payloadless `SemaOperation` class via
@@ -148,10 +145,6 @@ signal_channel! {
             Assert AliasAssignment(AliasAssignment),
             Match Query(Query),
             Assert AdjudicationRequest(AdjudicationRequest),
-            Assert ChannelGrant(ChannelGrant),
-            Mutate ChannelExtend(ChannelExtend),
-            Retract ChannelRetract(ChannelRetract),
-            Assert AdjudicationDeny(AdjudicationDeny),
             Match ChannelList(ChannelList),
         }
         reply MindReply {
@@ -169,8 +162,6 @@ signal_channel! {
             View(View),
             Rejection(Rejection),
             AdjudicationReceipt(AdjudicationReceipt),
-            ChannelReceipt(ChannelReceipt),
-            AdjudicationDenyReceipt(AdjudicationDenyReceipt),
             ChannelListView(ChannelListView),
             MindRequestUnimplemented(MindRequestUnimplemented),
         }
@@ -258,27 +249,24 @@ the contract does not model a live BEADS backend.
 | Request | Reply |
 |---|---|
 | `AdjudicationRequest` | `AdjudicationReceipt` |
-| `ChannelGrant` | `ChannelReceipt` |
-| `ChannelExtend` | `ChannelReceipt` |
-| `ChannelRetract` | `ChannelReceipt` |
-| `AdjudicationDeny` | `AdjudicationDenyReceipt` |
 | `ChannelList` | `ChannelListView` |
 
-These records are the typed boundary between `persona-router` and
-`persona-mind` for channel choreography. Router parks a message whose
-channel is missing or inactive and submits `AdjudicationRequest`. Mind replies
-by recording the request, deciding policy internally, and later emitting a
-grant, extension, retraction, deny, or channel view through the same closed
-contract vocabulary.
+These records are the typed working boundary between `persona-router`
+and `persona-mind` for channel choreography observation. Router parks a
+message whose channel is missing or inactive and submits
+`AdjudicationRequest`. Mind records the request and may inspect channel
+views through `ChannelList`. If Mind or the owner authority chain
+decides to change router channel policy, it sends `Grant`, `Extend`,
+`Revoke`, or `Deny` through `owner-signal-persona-router`, not through
+this working signal.
 
-The destination handler set inside `persona-mind` is a single stateful
-`ChoreographyAdjudicator` actor that owns policy, the live grant table, and the
-adjudication log. `AdjudicationRequest`, `ChannelGrant`, `ChannelExtend`,
-`ChannelRetract`, `AdjudicationDeny`, and `ChannelList` all route to that one
-actor; it answers with the receipt or view reply for each. This contract owns
-only the request/reply vocabulary that crosses the channel; the actor and its
-state shape belong to `persona-mind`. Until that actor lands, mind replies
-`MindRequestUnimplemented(ChoreographyPolicyMissing)` for this family.
+The destination handler set inside `persona-mind` is a stateful
+`ChoreographyAdjudicator` actor that owns the adjudication log and any
+Mind-side policy reasoning. It does not own the router's live grant
+table. `AdjudicationRequest` and `ChannelList` route to that actor; it
+answers with the receipt or view reply. Until that actor lands, mind
+replies `MindRequestUnimplemented(ChoreographyPolicyMissing)` for this
+family.
 
 The endpoint and kind vocabulary is typed:
 
@@ -286,12 +274,16 @@ The endpoint and kind vocabulary is typed:
   `External(ConnectionClass)`.
 - `ChannelMessageKind` is a closed enum for first-stack route categories such
   as message submission, inbox query, message delivery, terminal input, prompt
-  observation, adjudication, and channel grant/retract traffic. **Includes
+  observation, and adjudication. **Includes
   `MessageIngressSubmission`** — the channel kind for the
   `Internal(Message) → Internal(Router)` structural channel that
   `persona-message-daemon` forwards user-typed messages over. This
   variant must be distinct from the generic delivery kinds so audit and
   choreography can tell message ingress from other internal traffic.
+- Owner-order names such as channel grant, extension, revocation, and
+  denial are intentionally absent from `ChannelMessageKind`; those are
+  operations on `owner-signal-persona-router`, not routed message
+  categories in the Mind working signal.
 - `ChannelDuration` is `OneShot`, `Permanent`, or `TimeBound(TimestampNanos)`.
 
 ## 4 · Boundary Newtypes
@@ -343,7 +335,7 @@ Representative contract text shapes:
 ```text
 (Query (Ready) 25)
 (Opening Task High "wire command-line mind" "replace lock helper with typed state")
-(ChannelGrant (Internal Router) (Internal Harness) [Delivery])
+(AdjudicationRequest "adjudication-aab" (External (Owner)) (Internal Router) MessageSubmission "owner asks router to deliver a prompt")
 ```
 
 Surface owners decide where this NOTA is accepted or rendered. This crate owns
@@ -363,9 +355,7 @@ catch-all records.
 
 `MindReply` carries a typed `MindRequestUnimplemented(MindUnimplementedReason)`
 variant. Prototype-time mind decodes every `MindRequest` variant; for choreography
-ops or other variants whose behavior is not yet built (e.g., the
-`ChannelGrant` / `ChannelRetract` / `AdjudicationDeny` family until the
-choreography policy engine lands), mind replies
+ops or other variants whose behavior is not yet built, mind replies
 `MindRequestUnimplemented(NotInPrototypeScope)` — a typed answer, not a panic
 and not a parse error.
 
@@ -386,7 +376,7 @@ MindUnimplementedReason
 - The architecture's channel declaration matches the implemented
   `signal_channel!` invocation in `src/lib.rs`.
 - `RoleName` covers every workspace coordination role in
-  `~/primary/protocols/orchestration.md`.
+  `~/primary/orchestrate/AGENTS.md`.
 - Request payloads do not mint `ActorName`, `TimestampNanos`, `EventSeq`,
   `OperationId`, stable item IDs, or display IDs.
 - Lock files and BEADS are represented only as temporary external references or
@@ -395,6 +385,10 @@ MindUnimplementedReason
   types; they do not carry proof material.
 - Channel choreography is closed vocabulary; there is no stringly "kind" or
   catch-all request.
+- Mind-to-Router channel authority orders are absent from this working
+  signal and live in `owner-signal-persona-router`.
+- `ChannelMessageKind` does not contain owner-order names such as
+  channel grant, extension, revocation, or denial.
 - This contract crate contains no CLI, daemon, actor runtime, database table,
   transport, or migration implementation.
 - The text surface is NOTA projected into these exact records; there is no
@@ -404,8 +398,9 @@ MindUnimplementedReason
   request closes it; the producer emits `MindReply::SubscriptionRetracted`
   as the final acknowledgement before the stream ends.
 - Channel-choreography requests route inside `persona-mind` to one stateful
-  `ChoreographyAdjudicator` actor; this contract closes the vocabulary, the
-  actor owns the policy and grant state.
+  `ChoreographyAdjudicator` actor; this contract closes the Mind-side
+  observation vocabulary, and Router owner signal owns grant-state
+  authority orders.
 
 ## 8 · Tests
 
@@ -413,11 +408,12 @@ Existing tests in `tests/round_trip.rs` cover:
 
 - request/reply frame round trips;
 - representative NOTA text round trips for root requests and replies:
-  `Query`, `Opening`, and `ChannelGrant`;
+  `Query`, `Opening`, and `AdjudicationRequest`;
 - memory/work variants;
 - every `QueryKind`;
 - every `EdgeKind`;
 - channel choreography request/reply variants;
+- absence of router owner-order names from `ChannelMessageKind`;
 - typed unimplemented reason variants;
 - `MessageIngressSubmission` distinct from generic `MessageSubmission`;
 - scope variants;
@@ -460,8 +456,9 @@ tests/round_trip.rs     frame round trips, NOTA witnesses, and validation tests
 ## See Also
 
 - `../persona-mind/ARCHITECTURE.md`
+- `../owner-signal-persona-router/ARCHITECTURE.md`
 - `../signal-frame/ARCHITECTURE.md`
 - `../signal-sema/ARCHITECTURE.md`
-- `~/primary/protocols/orchestration.md`
+- `~/primary/orchestrate/AGENTS.md`
 - `~/primary/skills/contract-repo.md`
 - `~/primary/skills/component-triad.md` §"Verbs come in three layers".
