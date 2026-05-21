@@ -18,10 +18,7 @@
 //! boundaries; `~/primary/skills/contract-repo.md` for the
 //! contract-repo discipline this crate follows.
 
-use nota_codec::{
-    Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaSum, NotaTransparent,
-    NotaTryTransparent,
-};
+use nota_codec::{NotaEnum, NotaRecord, NotaTransparent, NotaTryTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
 use signal_persona_auth::{ChannelId, ComponentName, ConnectionClass, MessageOrigin};
@@ -161,54 +158,13 @@ impl TryFrom<&str> for RoleName {
 // ─── Scope reference ──────────────────────────────────────
 
 /// What's being claimed / observed / acted on.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ScopeReference {
     /// An absolute file or directory path.
     Path(WirePath),
     /// A bracketed task token like `[primary-f99]` (stored
     /// without brackets here).
     Task(TaskToken),
-}
-
-impl NotaEncode for ScopeReference {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::Path(path) => {
-                encoder.start_record("Path")?;
-                path.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::Task(task) => {
-                encoder.start_record("Task")?;
-                task.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for ScopeReference {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "Path" => {
-                decoder.expect_record_head("Path")?;
-                let path = WirePath::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Path(path))
-            }
-            "Task" => {
-                decoder.expect_record_head("Task")?;
-                let task = TaskToken::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Task(task))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "ScopeReference",
-                got: other.to_string(),
-            }),
-        }
-    }
 }
 
 /// Absolute path, newtyped for cross-platform stability on
@@ -617,66 +573,14 @@ pub enum EdgeKind {
     References,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ItemReference {
     Stable(StableItemId),
     Display(DisplayId),
     Alias(ExternalAlias),
 }
 
-impl NotaEncode for ItemReference {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::Stable(id) => {
-                encoder.start_record("Stable")?;
-                id.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::Display(id) => {
-                encoder.start_record("Display")?;
-                id.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::Alias(alias) => {
-                encoder.start_record("Alias")?;
-                alias.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for ItemReference {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "Stable" => {
-                decoder.expect_record_head("Stable")?;
-                let id = StableItemId::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Stable(id))
-            }
-            "Display" => {
-                decoder.expect_record_head("Display")?;
-                let id = DisplayId::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Display(id))
-            }
-            "Alias" => {
-                decoder.expect_record_head("Alias")?;
-                let alias = ExternalAlias::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Alias(alias))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "ItemReference",
-                got: other.to_string(),
-            }),
-        }
-    }
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExternalReference {
     Report(ReportPath),
     GitCommit(CommitHash),
@@ -684,161 +588,16 @@ pub enum ExternalReference {
     File(ReferencePath),
 }
 
-impl NotaEncode for ExternalReference {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::Report(path) => {
-                encoder.start_record("Report")?;
-                path.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::GitCommit(commit) => {
-                encoder.start_record("GitCommit")?;
-                commit.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::BeadsTask(task) => {
-                encoder.start_record("BeadsTask")?;
-                task.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::File(path) => {
-                encoder.start_record("File")?;
-                path.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for ExternalReference {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "Report" => {
-                decoder.expect_record_head("Report")?;
-                let path = ReportPath::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Report(path))
-            }
-            "GitCommit" => {
-                decoder.expect_record_head("GitCommit")?;
-                let commit = CommitHash::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::GitCommit(commit))
-            }
-            "BeadsTask" => {
-                decoder.expect_record_head("BeadsTask")?;
-                let task = BeadsToken::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::BeadsTask(task))
-            }
-            "File" => {
-                decoder.expect_record_head("File")?;
-                let path = ReferencePath::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::File(path))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "ExternalReference",
-                got: other.to_string(),
-            }),
-        }
-    }
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum LinkTarget {
     Item(ItemReference),
     External(ExternalReference),
 }
 
-impl NotaEncode for LinkTarget {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::Item(item) => {
-                encoder.start_record("Item")?;
-                item.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::External(external) => {
-                encoder.start_record("External")?;
-                external.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for LinkTarget {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "Item" => {
-                decoder.expect_record_head("Item")?;
-                let item = ItemReference::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Item(item))
-            }
-            "External" => {
-                decoder.expect_record_head("External")?;
-                let external = ExternalReference::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::External(external))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "LinkTarget",
-                got: other.to_string(),
-            }),
-        }
-    }
-}
-
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EdgeTarget {
     Item(StableItemId),
     External(ExternalReference),
-}
-
-impl NotaEncode for EdgeTarget {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::Item(item) => {
-                encoder.start_record("Item")?;
-                item.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::External(external) => {
-                encoder.start_record("External")?;
-                external.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for EdgeTarget {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "Item" => {
-                decoder.expect_record_head("Item")?;
-                let item = StableItemId::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Item(item))
-            }
-            "External" => {
-                decoder.expect_record_head("External")?;
-                let external = ExternalReference::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::External(external))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "EdgeTarget",
-                got: other.to_string(),
-            }),
-        }
-    }
 }
 
 // ─── Mind Memory Requests ─────────────────────────────────
@@ -884,7 +643,7 @@ pub struct Query {
     pub limit: QueryLimit,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum QueryKind {
     Ready,
     Blocked,
@@ -894,105 +653,6 @@ pub enum QueryKind {
     ByKind(ItemKind),
     ByStatus(ItemStatus),
     ByAlias(ExternalAlias),
-}
-
-impl NotaEncode for QueryKind {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::Ready => {
-                encoder.start_record("Ready")?;
-                encoder.end_record()
-            }
-            Self::Blocked => {
-                encoder.start_record("Blocked")?;
-                encoder.end_record()
-            }
-            Self::Open => {
-                encoder.start_record("Open")?;
-                encoder.end_record()
-            }
-            Self::RecentEvents => {
-                encoder.start_record("RecentEvents")?;
-                encoder.end_record()
-            }
-            Self::ByItem(item) => {
-                encoder.start_record("ByItem")?;
-                item.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::ByKind(kind) => {
-                encoder.start_record("ByKind")?;
-                kind.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::ByStatus(status) => {
-                encoder.start_record("ByStatus")?;
-                status.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::ByAlias(alias) => {
-                encoder.start_record("ByAlias")?;
-                alias.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for QueryKind {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "Ready" => {
-                decoder.expect_record_head("Ready")?;
-                decoder.expect_record_end()?;
-                Ok(Self::Ready)
-            }
-            "Blocked" => {
-                decoder.expect_record_head("Blocked")?;
-                decoder.expect_record_end()?;
-                Ok(Self::Blocked)
-            }
-            "Open" => {
-                decoder.expect_record_head("Open")?;
-                decoder.expect_record_end()?;
-                Ok(Self::Open)
-            }
-            "RecentEvents" => {
-                decoder.expect_record_head("RecentEvents")?;
-                decoder.expect_record_end()?;
-                Ok(Self::RecentEvents)
-            }
-            "ByItem" => {
-                decoder.expect_record_head("ByItem")?;
-                let item = ItemReference::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::ByItem(item))
-            }
-            "ByKind" => {
-                decoder.expect_record_head("ByKind")?;
-                let kind = ItemKind::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::ByKind(kind))
-            }
-            "ByStatus" => {
-                decoder.expect_record_head("ByStatus")?;
-                let status = ItemStatus::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::ByStatus(status))
-            }
-            "ByAlias" => {
-                decoder.expect_record_head("ByAlias")?;
-                let alias = ExternalAlias::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::ByAlias(alias))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "QueryKind",
-                got: other.to_string(),
-            }),
-        }
-    }
 }
 
 // ─── Mind Memory Projections ──────────────────────────────
@@ -1068,7 +728,7 @@ pub struct AliasAddedEvent {
     pub alias: ExternalAlias,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum Event {
     ItemOpened(ItemOpenedEvent),
     NoteAdded(NoteAddedEvent),
@@ -1144,51 +804,10 @@ impl AdjudicationRequestId {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum ChannelEndpoint {
     Internal(ComponentName),
     External(ConnectionClass),
-}
-
-impl NotaEncode for ChannelEndpoint {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::Internal(component) => {
-                encoder.start_record("Internal")?;
-                component.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::External(connection_class) => {
-                encoder.start_record("External")?;
-                connection_class.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for ChannelEndpoint {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "Internal" => {
-                decoder.expect_record_head("Internal")?;
-                let component = ComponentName::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Internal(component))
-            }
-            "External" => {
-                decoder.expect_record_head("External")?;
-                let connection_class = ConnectionClass::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::External(connection_class))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "ChannelEndpoint",
-                got: other.to_string(),
-            }),
-        }
-    }
 }
 
 #[derive(
@@ -1209,59 +828,13 @@ pub enum ChannelMessageKind {
     DeliveryNotification,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+)]
 pub enum ChannelDuration {
     OneShot,
     Permanent,
     TimeBound(TimestampNanos),
-}
-
-impl NotaEncode for ChannelDuration {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::OneShot => {
-                encoder.start_record("OneShot")?;
-                encoder.end_record()
-            }
-            Self::Permanent => {
-                encoder.start_record("Permanent")?;
-                encoder.end_record()
-            }
-            Self::TimeBound(timestamp) => {
-                encoder.start_record("TimeBound")?;
-                timestamp.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for ChannelDuration {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "OneShot" => {
-                decoder.expect_record_head("OneShot")?;
-                decoder.expect_record_end()?;
-                Ok(Self::OneShot)
-            }
-            "Permanent" => {
-                decoder.expect_record_head("Permanent")?;
-                decoder.expect_record_end()?;
-                Ok(Self::Permanent)
-            }
-            "TimeBound" => {
-                decoder.expect_record_head("TimeBound")?;
-                let timestamp = TimestampNanos::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::TimeBound(timestamp))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "ChannelDuration",
-                got: other.to_string(),
-            }),
-        }
-    }
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
@@ -1304,63 +877,11 @@ pub enum MindOperationKind {
     ChannelList,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum ChannelFilter {
     Source(ChannelEndpoint),
     Destination(ChannelEndpoint),
     Kind(ChannelMessageKind),
-}
-
-impl NotaEncode for ChannelFilter {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::Source(endpoint) => {
-                encoder.start_record("Source")?;
-                endpoint.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::Destination(endpoint) => {
-                encoder.start_record("Destination")?;
-                endpoint.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::Kind(kind) => {
-                encoder.start_record("Kind")?;
-                kind.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for ChannelFilter {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "Source" => {
-                decoder.expect_record_head("Source")?;
-                let endpoint = ChannelEndpoint::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Source(endpoint))
-            }
-            "Destination" => {
-                decoder.expect_record_head("Destination")?;
-                let endpoint = ChannelEndpoint::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Destination(endpoint))
-            }
-            "Kind" => {
-                decoder.expect_record_head("Kind")?;
-                let kind = ChannelMessageKind::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::Kind(kind))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "ChannelFilter",
-                got: other.to_string(),
-            }),
-        }
-    }
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]

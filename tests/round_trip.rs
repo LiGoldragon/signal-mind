@@ -718,11 +718,11 @@ fn unimplemented_reply_round_trips_as_typed_reply() {
         ),
         (
             MindUnimplementedReason::DependencyMissing(DependencyKind::Router),
-            "(MindRequestUnimplemented (DependencyMissing Router))",
+            "(MindRequestUnimplemented ((DependencyMissing Router)))",
         ),
         (
             MindUnimplementedReason::ResourceUnavailable(ResourceKind::Database),
-            "(MindRequestUnimplemented (ResourceUnavailable Database))",
+            "(MindRequestUnimplemented ((ResourceUnavailable Database)))",
         ),
     ];
 
@@ -872,7 +872,7 @@ fn query_request_round_trips_through_nota_text() {
             kind: QueryKind::Ready,
             limit: QueryLimit::new(25),
         }),
-        "(Query (Ready) 25)",
+        "(Query (Ready 25))",
     );
 }
 

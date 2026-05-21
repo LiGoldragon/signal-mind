@@ -1,6 +1,4 @@
-use nota_codec::{
-    Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum, NotaRecord, NotaSum, NotaTransparent,
-};
+use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_persona_auth::{ChannelId, ComponentName, EngineId, HostName, UnixUserId};
 
@@ -315,7 +313,7 @@ pub struct Relation {
     pub note: Option<TextBody>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum ThoughtBody {
     Observation(ObservationBody),
     Memory(MemoryBody),
@@ -354,7 +352,7 @@ pub struct ObservationBody {
     pub location: Option<RecordId>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum ObservationSummary {
     ComponentSpawned(ComponentSpawned),
     ComponentReady(ComponentReady),
@@ -441,7 +439,7 @@ pub struct MemoryBody {
     pub role: Option<RecordId>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum MemoryKind {
     Session(SessionMemory),
     Thread(ThreadMemory),
@@ -502,7 +500,7 @@ pub enum Confidence {
     Disputed,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum BeliefStatus {
     Current(CurrentBelief),
     Superseded(SupersededBelief),
@@ -530,7 +528,7 @@ pub struct GoalBody {
     pub scope: GoalScope,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum GoalScope {
     Workspace(WorkspaceGoal),
     Project(ProjectGoal),
@@ -572,7 +570,7 @@ pub struct ClaimBody {
     pub activity: ClaimActivity,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum ClaimScope {
     Paths(PathClaimScope),
     Tasks(TaskClaimScope),
@@ -595,7 +593,7 @@ pub struct CombinedClaimScope {
     pub tasks: Vec<ScopeReference>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum ClaimActivity {
     Active(ActiveClaim),
     Paused(PausedClaim),
@@ -650,7 +648,7 @@ impl ReferenceBody {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum ReferenceTarget {
     File(FileReference),
     CodeSymbol(CodeSymbolReference),
@@ -677,7 +675,7 @@ pub struct UrlReference {
     pub url: NormalizedUrl,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum IdentityReference {
     User(UserIdentity),
     Role(RoleIdentity),
@@ -770,7 +768,7 @@ pub struct SubscribeRelations {
     pub filter: RelationFilter,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum ThoughtFilter {
     ByKind(ByThoughtKind),
     ByAuthor(ByThoughtAuthor),
@@ -817,7 +815,7 @@ pub struct CompositeThoughtFilter {
     pub memory: Option<RecordId>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum RelationFilter {
     ByKind(ByRelationKind),
     BySource(ByRelationSource),
@@ -872,7 +870,7 @@ pub struct RelationList {
     pub has_more: bool,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum MindSnapshot {
     Thought(Thought),
     Relation(Relation),
@@ -884,7 +882,7 @@ pub struct SubscriptionAccepted {
     pub initial_snapshot: Vec<MindSnapshot>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum MindDelta {
     ThoughtCommitted(Thought),
     RelationCommitted(Relation),
@@ -931,69 +929,12 @@ pub enum ResourceKind {
     Database,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+)]
 pub enum MindUnimplementedReason {
     NotInPrototypeScope,
     ChoreographyPolicyMissing,
     DependencyMissing(DependencyKind),
     ResourceUnavailable(ResourceKind),
-}
-
-impl NotaEncode for MindUnimplementedReason {
-    fn encode(&self, encoder: &mut Encoder) -> nota_codec::Result<()> {
-        match self {
-            Self::NotInPrototypeScope => {
-                encoder.start_record("NotInPrototypeScope")?;
-                encoder.end_record()
-            }
-            Self::ChoreographyPolicyMissing => {
-                encoder.start_record("ChoreographyPolicyMissing")?;
-                encoder.end_record()
-            }
-            Self::DependencyMissing(dependency) => {
-                encoder.start_record("DependencyMissing")?;
-                dependency.encode(encoder)?;
-                encoder.end_record()
-            }
-            Self::ResourceUnavailable(resource) => {
-                encoder.start_record("ResourceUnavailable")?;
-                resource.encode(encoder)?;
-                encoder.end_record()
-            }
-        }
-    }
-}
-
-impl NotaDecode for MindUnimplementedReason {
-    fn decode(decoder: &mut Decoder<'_>) -> nota_codec::Result<Self> {
-        let head = decoder.peek_record_head()?;
-        match head.as_str() {
-            "NotInPrototypeScope" => {
-                decoder.expect_record_head("NotInPrototypeScope")?;
-                decoder.expect_record_end()?;
-                Ok(Self::NotInPrototypeScope)
-            }
-            "ChoreographyPolicyMissing" => {
-                decoder.expect_record_head("ChoreographyPolicyMissing")?;
-                decoder.expect_record_end()?;
-                Ok(Self::ChoreographyPolicyMissing)
-            }
-            "DependencyMissing" => {
-                decoder.expect_record_head("DependencyMissing")?;
-                let dependency = DependencyKind::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::DependencyMissing(dependency))
-            }
-            "ResourceUnavailable" => {
-                decoder.expect_record_head("ResourceUnavailable")?;
-                let resource = ResourceKind::decode(decoder)?;
-                decoder.expect_record_end()?;
-                Ok(Self::ResourceUnavailable(resource))
-            }
-            other => Err(nota_codec::Error::UnknownKindForVerb {
-                verb: "MindUnimplementedReason",
-                got: other.to_string(),
-            }),
-        }
-    }
 }
