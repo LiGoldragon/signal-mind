@@ -22,6 +22,7 @@ use nota_codec::{NotaEnum, NotaRecord, NotaTransparent, NotaTryTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
 use signal_persona_auth::{ChannelId, ComponentName, ConnectionClass, MessageOrigin};
+pub use signal_sema::Magnitude;
 use std::fmt;
 use std::str::FromStr;
 
@@ -552,17 +553,6 @@ pub enum ItemStatus {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
 )]
-pub enum ItemPriority {
-    Critical,
-    High,
-    Normal,
-    Low,
-    Backlog,
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
-)]
 pub enum EdgeKind {
     DependsOn,
     ParentOf,
@@ -605,7 +595,7 @@ pub enum EdgeTarget {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct Opening {
     pub kind: ItemKind,
-    pub priority: ItemPriority,
+    pub priority: Magnitude,
     pub title: Title,
     pub body: TextBody,
 }
@@ -664,7 +654,7 @@ pub struct Item {
     pub aliases: Vec<ExternalAlias>,
     pub kind: ItemKind,
     pub status: ItemStatus,
-    pub priority: ItemPriority,
+    pub priority: Magnitude,
     pub title: Title,
     pub body: TextBody,
 }

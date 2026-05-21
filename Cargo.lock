@@ -289,6 +289,17 @@ dependencies = [
  "rkyv",
  "signal-core",
  "signal-persona-auth",
+ "signal-sema",
+ "thiserror",
+]
+
+[[package]]
+name = "signal-sema"
+version = "0.1.0"
+source = "git+https://github.com/LiGoldragon/signal-sema.git#22b036a095857b42a81556666e093f03bf4533a1"
+dependencies = [
+ "nota-codec",
+ "rkyv",
  "thiserror",
 ]
 

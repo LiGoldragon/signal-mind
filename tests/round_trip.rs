@@ -169,7 +169,7 @@ impl MemoryFixture {
             aliases: vec![ExternalAlias::new("primary-aab")],
             kind: ItemKind::Task,
             status: ItemStatus::Open,
-            priority: ItemPriority::High,
+            priority: Magnitude::High,
             title: Title::new("Implement native mind memory graph"),
             body: TextBody::new("Replace BEADS with typed Persona mind records."),
         }
@@ -778,7 +778,7 @@ fn role_name_rejects_unregistered_workspace_roles() {
 fn open_request_round_trips_through_length_prefixed_frame() {
     let request = MindRequest::Opening(Opening {
         kind: ItemKind::Task,
-        priority: ItemPriority::High,
+        priority: Magnitude::High,
         title: Title::new("Replace BEADS"),
         body: TextBody::new("Open a typed mind item."),
     });
@@ -1062,7 +1062,7 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         (
             MindRequest::Opening(Opening {
                 kind: ItemKind::Task,
-                priority: ItemPriority::High,
+                priority: Magnitude::High,
                 title: Title::new("Add operation kinds"),
                 body: TextBody::new("Expose discriminants from the contract crate."),
             }),
@@ -1302,7 +1302,7 @@ fn channel_choreography_replies_round_trip() {
 fn explicit_variant_lifts_opening_into_request() {
     let opening = Opening {
         kind: ItemKind::Question,
-        priority: ItemPriority::Normal,
+        priority: Magnitude::Medium,
         title: Title::new("Choose migration order"),
         body: TextBody::new("Need a decision before implementation."),
     };

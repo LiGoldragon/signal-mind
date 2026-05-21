@@ -27,7 +27,7 @@ use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, RequestPayload, SessionEpoch,
 };
 use signal_persona_mind::{
-    ItemKind, ItemPriority, MindFrame, MindFrameBody, MindRequest, Opening,
+    ItemKind, Magnitude, MindFrame, MindFrameBody, MindRequest, Opening,
     TextBody, Title,
 };
 
@@ -38,7 +38,7 @@ let exchange = ExchangeIdentifier::new(
 );
 let request = MindRequest::Opening(Opening {
     kind: ItemKind::Task,
-    priority: ItemPriority::High,
+    priority: Magnitude::High,
     title: Title::new("wire command-line mind"),
     body: TextBody::new("replace transitional task storage with typed mind state"),
 });
