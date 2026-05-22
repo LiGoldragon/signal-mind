@@ -340,8 +340,8 @@ Representative contract text shapes:
 
 ```text
 (Query (Ready) 25)
-(Opening Task High "wire command-line mind" "replace lock helper with typed state")
-(AdjudicationRequest "adjudication-aab" (External (Owner)) (Internal Router) MessageSubmission "owner asks router to deliver a prompt")
+(Opening Task High [wire command-line mind] [replace lock helper with typed state])
+(AdjudicationRequest [adjudication-aab] (External (Owner)) (Internal Router) MessageSubmission [owner asks router to deliver a prompt])
 ```
 
 Surface owners decide where this NOTA is accepted or rendered. This crate owns
