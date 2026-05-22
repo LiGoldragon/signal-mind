@@ -1323,7 +1323,7 @@ fn explicit_variant_lifts_view_into_reply() {
 fn path_scope_round_trips() {
     round_trip_nota(
         ScopeReference::Path(sample_path()),
-        "(Path \"/git/github.com/LiGoldragon/signal-persona-mind/src/lib.rs\")",
+        "(Path [/git/github.com/LiGoldragon/signal-persona-mind/src/lib.rs])",
     );
 }
 
