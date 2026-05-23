@@ -117,8 +117,8 @@ fn sample_channel() -> ChannelIdentifier {
     ChannelIdentifier::new("channel-aab")
 }
 
-fn sample_record() -> RecordId {
-    RecordId::new("rec-aab")
+fn sample_record() -> RecordIdentifier {
+    RecordIdentifier::new("rec-aab")
 }
 
 fn sample_relation() -> RelationId {
@@ -138,8 +138,8 @@ fn sample_internal_endpoint(component: ComponentName) -> ChannelEndpoint {
 }
 
 struct MemoryFixture {
-    item_id: StableItemId,
-    display_id: DisplayId,
+    item_id: StableItemIdentifier,
+    display_identifier: DisplayIdentifier,
     actor: ActorName,
     operation: OperationId,
 }
@@ -147,8 +147,8 @@ struct MemoryFixture {
 impl MemoryFixture {
     fn new() -> Self {
         Self {
-            item_id: StableItemId::new("aab"),
-            display_id: DisplayId::new("aab"),
+            item_id: StableItemIdentifier::new("aab"),
+            display_identifier: DisplayIdentifier::new("aab"),
             actor: ActorName::new("operator"),
             operation: OperationId::new("aab"),
         }
@@ -165,7 +165,7 @@ impl MemoryFixture {
     fn item(&self) -> Item {
         Item {
             id: self.item_id.clone(),
-            display_id: self.display_id.clone(),
+            display_identifier: self.display_identifier.clone(),
             aliases: vec![ExternalAlias::new("primary-aab")],
             kind: ItemKind::Task,
             status: ItemStatus::Open,
@@ -201,7 +201,7 @@ impl MemoryFixture {
     fn edge(&self) -> Edge {
         Edge {
             event: EventSeq::new(3),
-            source: StableItemId::new("aac"),
+            source: StableItemIdentifier::new("aac"),
             kind: EdgeKind::DependsOn,
             target: EdgeTarget::Item(self.item_id.clone()),
             body: Some(TextBody::new("Implementation waits on the contract.")),
@@ -254,7 +254,7 @@ impl MemoryFixture {
 }
 
 struct MindGraphFixture {
-    record: RecordId,
+    record: RecordIdentifier,
     relation: RelationId,
     actor: ActorName,
     occurred_at: TimestampNanos,
@@ -293,7 +293,7 @@ impl MindGraphFixture {
 
     fn identity_reference_thought(&self) -> Thought {
         Thought {
-            id: RecordId::new("identity-aab"),
+            id: RecordIdentifier::new("identity-aab"),
             kind: ThoughtKind::Reference,
             body: self.reference_body(),
             author: self.actor.clone(),
@@ -303,7 +303,7 @@ impl MindGraphFixture {
 
     fn file_reference_thought(&self) -> Thought {
         Thought {
-            id: RecordId::new("file-aab"),
+            id: RecordIdentifier::new("file-aab"),
             kind: ThoughtKind::Reference,
             body: ThoughtBody::Reference(ReferenceBody {
                 target: ReferenceTarget::File(FileReference {
@@ -320,7 +320,7 @@ impl MindGraphFixture {
         Relation {
             id: self.relation.clone(),
             kind: RelationKind::Authored,
-            source: RecordId::new("identity-aab"),
+            source: RecordIdentifier::new("identity-aab"),
             target: self.record.clone(),
             author: self.actor.clone(),
             occurred_at: self.occurred_at,
@@ -546,8 +546,8 @@ fn submit_thought_request_round_trips() {
 fn submit_relation_request_round_trips() {
     let request = MindRequest::SubmitRelation(SubmitRelation {
         kind: RelationKind::Implements,
-        source: RecordId::new("claim-aab"),
-        target: RecordId::new("goal-aab"),
+        source: RecordIdentifier::new("claim-aab"),
+        target: RecordIdentifier::new("goal-aab"),
         note: Some(TextBody::new("claim commits work toward the goal")),
     });
 
@@ -574,7 +574,7 @@ fn query_thoughts_request_round_trips_with_composite_filter() {
 fn query_relations_request_round_trips_with_source_filter() {
     let request = MindRequest::QueryRelations(QueryRelations {
         filter: RelationFilter::BySource(ByRelationSource {
-            source: RecordId::new("goal-aab"),
+            source: RecordIdentifier::new("goal-aab"),
         }),
         limit: 16,
     });
@@ -586,12 +586,12 @@ fn query_relations_request_round_trips_with_source_filter() {
 fn subscribe_requests_round_trip() {
     let thoughts = MindRequest::SubscribeThoughts(SubscribeThoughts {
         filter: ThoughtFilter::InMemory(InMemory {
-            memory: RecordId::new("memory-aab"),
+            memory: RecordIdentifier::new("memory-aab"),
         }),
     });
     let relations = MindRequest::SubscribeRelations(SubscribeRelations {
         filter: RelationFilter::ByTarget(ByRelationTarget {
-            target: RecordId::new("goal-aab"),
+            target: RecordIdentifier::new("goal-aab"),
         }),
     });
 
@@ -605,7 +605,7 @@ fn thought_and_relation_replies_round_trip() {
     let replies = vec![
         MindReply::ThoughtCommitted(ThoughtCommitted {
             record: fixture.record.clone(),
-            display: DisplayId::new("aab"),
+            display: DisplayIdentifier::new("aab"),
             occurred_at: fixture.occurred_at,
         }),
         MindReply::RelationCommitted(RelationCommitted {
@@ -666,12 +666,12 @@ fn subscription_replies_round_trip() {
 fn subscribe_opens_and_subscription_retraction_closes_the_mind_event_stream() {
     let subscribe_thoughts = MindRequest::SubscribeThoughts(SubscribeThoughts {
         filter: ThoughtFilter::InMemory(InMemory {
-            memory: RecordId::new("memory-aab"),
+            memory: RecordIdentifier::new("memory-aab"),
         }),
     });
     let subscribe_relations = MindRequest::SubscribeRelations(SubscribeRelations {
         filter: RelationFilter::ByTarget(ByRelationTarget {
-            target: RecordId::new("goal-aab"),
+            target: RecordIdentifier::new("goal-aab"),
         }),
     });
     let retract = MindRequest::SubscriptionRetraction(SubscriptionIdentifier::new("sub-aab"));
@@ -789,7 +789,7 @@ fn open_request_round_trips_through_length_prefixed_frame() {
 #[test]
 fn add_note_request_round_trips() {
     let request = MindRequest::NoteSubmission(NoteSubmission {
-        item: ItemReference::Display(DisplayId::new("aab")),
+        item: ItemReference::Display(DisplayIdentifier::new("aab")),
         body: TextBody::new("Append-only note."),
     });
     let decoded = round_trip_request(request.clone());
@@ -799,9 +799,9 @@ fn add_note_request_round_trips() {
 #[test]
 fn link_request_round_trips_with_typed_edge_kind() {
     let request = MindRequest::Link(Link {
-        source: ItemReference::Display(DisplayId::new("abc")),
+        source: ItemReference::Display(DisplayIdentifier::new("abc")),
         kind: EdgeKind::DependsOn,
-        target: LinkTarget::Item(ItemReference::Display(DisplayId::new("aab"))),
+        target: LinkTarget::Item(ItemReference::Display(DisplayIdentifier::new("aab"))),
         body: None,
     });
     let decoded = round_trip_request(request.clone());
@@ -811,7 +811,7 @@ fn link_request_round_trips_with_typed_edge_kind() {
 #[test]
 fn link_request_round_trips_with_external_report_reference() {
     let request = MindRequest::Link(Link {
-        source: ItemReference::Display(DisplayId::new("aab")),
+        source: ItemReference::Display(DisplayIdentifier::new("aab")),
         kind: EdgeKind::References,
         target: LinkTarget::External(ExternalReference::Report(ReportPath::new(
             "reports/operator/100-persona-mind-central-rename-plan.md",
@@ -836,7 +836,7 @@ fn status_change_request_round_trips() {
 #[test]
 fn add_alias_request_round_trips() {
     let request = MindRequest::AliasAssignment(AliasAssignment {
-        item: ItemReference::Stable(StableItemId::new("aab")),
+        item: ItemReference::Stable(StableItemIdentifier::new("aab")),
         alias: ExternalAlias::new("primary-aab"),
     });
     let decoded = round_trip_request(request.clone());
@@ -891,7 +891,7 @@ fn every_edge_kind_round_trips_as_a_link_request() {
 
     for kind in kinds {
         fixture.assert_request_round_trips(MindRequest::Link(Link {
-            source: ItemReference::Stable(StableItemId::new("aac")),
+            source: ItemReference::Stable(StableItemIdentifier::new("aac")),
             kind,
             target: LinkTarget::Item(ItemReference::Stable(fixture.item_id.clone())),
             body: None,
@@ -1019,8 +1019,8 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         (
             MindRequest::SubmitRelation(SubmitRelation {
                 kind: RelationKind::Implements,
-                source: RecordId::new("claim-aab"),
-                target: RecordId::new("goal-aab"),
+                source: RecordIdentifier::new("claim-aab"),
+                target: RecordIdentifier::new("goal-aab"),
                 note: None,
             }),
             MindOperationKind::SubmitRelation,
@@ -1054,7 +1054,7 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         (
             MindRequest::SubscribeRelations(SubscribeRelations {
                 filter: RelationFilter::ByTarget(ByRelationTarget {
-                    target: RecordId::new("goal-aab"),
+                    target: RecordIdentifier::new("goal-aab"),
                 }),
             }),
             MindOperationKind::SubscribeRelations,
@@ -1143,8 +1143,8 @@ fn mind_graph_request_variants_have_expected_signal_verbs() {
         (
             MindRequest::SubmitRelation(SubmitRelation {
                 kind: RelationKind::Implements,
-                source: RecordId::new("claim-aab"),
-                target: RecordId::new("goal-aab"),
+                source: RecordIdentifier::new("claim-aab"),
+                target: RecordIdentifier::new("goal-aab"),
                 note: None,
             }),
             SignalVerb::Assert,
@@ -1178,7 +1178,7 @@ fn mind_graph_request_variants_have_expected_signal_verbs() {
         (
             MindRequest::SubscribeRelations(SubscribeRelations {
                 filter: RelationFilter::ByTarget(ByRelationTarget {
-                    target: RecordId::new("goal-aab"),
+                    target: RecordIdentifier::new("goal-aab"),
                 }),
             }),
             SignalVerb::Subscribe,
@@ -1206,7 +1206,7 @@ fn mind_request_variants_do_not_silently_default_to_assert() {
         (
             MindRequest::SubscribeRelations(SubscribeRelations {
                 filter: RelationFilter::ByTarget(ByRelationTarget {
-                    target: RecordId::new("decision-aab"),
+                    target: RecordIdentifier::new("decision-aab"),
                 }),
             }),
             SignalVerb::Subscribe,

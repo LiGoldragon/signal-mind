@@ -229,7 +229,7 @@ the same table before accepting a relation. The full endpoint validator also
 checks relation-specific body constraints; `Authored` requires a source Thought
 whose body is `Reference(Identity)`, not just any Reference.
 
-`RecordId` and `RelationId` are opaque contract values. `persona-mind` owns
+`RecordIdentifier` and `RelationId` are opaque contract values. `persona-mind` owns
 their minting, collision handling, durable indices, and short display-id
 projection. The contract owns only the typed records that cross the channel.
 
@@ -303,10 +303,10 @@ The contract validates boundary strings before they become wire values.
 | `TaskToken` | raw unbracketed token, non-empty, no whitespace or brackets. |
 | `TimestampNanos` | store-supplied timestamp type; request records do not mint it. |
 | `ActorName` | event/caller identity after infrastructure resolution. |
-| `RecordId` | opaque durable thought identifier minted by `persona-mind`. |
+| `RecordIdentifier` | opaque durable thought identifier minted by `persona-mind`. |
 | `RelationId` | opaque durable relation identifier minted by `persona-mind`. |
-| `StableItemId` | internal work graph identity. |
-| `DisplayId` | short human identity for work graph references. |
+| `StableItemIdentifier` | internal work graph identity. |
+| `DisplayIdentifier` | short human identity for work graph references. |
 | `ExternalAlias` | imported or external identifiers. |
 | `AdjudicationRequestId` | short router-minted identifier for one parked adjudication request. |
 | `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-origin`. |

@@ -1,17 +1,19 @@
 use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_persona_origin::{
-    ChannelIdentifier, ComponentName, EngineIdentifier, HostName, UnixUserId,
+    ChannelIdentifier, ComponentName, EngineIdentifier, HostName, UnixUserIdentifier,
 };
 
-use crate::{ActorName, DisplayId, RoleName, ScopeReference, TextBody, TimestampNanos, WirePath};
+use crate::{
+    ActorName, DisplayIdentifier, RoleName, ScopeReference, TextBody, TimestampNanos, WirePath,
+};
 
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct RecordId(String);
+pub struct RecordIdentifier(String);
 
-impl RecordId {
+impl RecordIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -129,9 +131,9 @@ impl HarnessKind {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct HarnessId(String);
+pub struct HarnessIdentifier(String);
 
-impl HarnessId {
+impl HarnessIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -291,7 +293,7 @@ pub struct RelationKindMismatch {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct Thought {
-    pub id: RecordId,
+    pub id: RecordIdentifier,
     pub kind: ThoughtKind,
     pub body: ThoughtBody,
     pub author: ActorName,
@@ -308,8 +310,8 @@ impl Thought {
 pub struct Relation {
     pub id: RelationId,
     pub kind: RelationKind,
-    pub source: RecordId,
-    pub target: RecordId,
+    pub source: RecordIdentifier,
+    pub target: RecordIdentifier,
     pub author: ActorName,
     pub occurred_at: TimestampNanos,
     pub note: Option<TextBody>,
@@ -351,7 +353,7 @@ impl ThoughtBody {
 pub struct ObservationBody {
     pub summary: ObservationSummary,
     pub detail: Option<TextBody>,
-    pub location: Option<RecordId>,
+    pub location: Option<RecordIdentifier>,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
@@ -412,19 +414,19 @@ pub struct ChannelRetracted {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ClaimStarted {
-    pub claim: RecordId,
+    pub claim: RecordIdentifier,
     pub role: RoleName,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ClaimReleased {
-    pub claim: RecordId,
+    pub claim: RecordIdentifier,
     pub role: RoleName,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct SessionEnded {
-    pub session: RecordId,
+    pub session: RecordIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
@@ -438,7 +440,7 @@ pub struct MemoryBody {
     pub title: TextBody,
     pub summary: TextBody,
     pub boundary: Option<TimeRange>,
-    pub role: Option<RecordId>,
+    pub role: Option<RecordIdentifier>,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
@@ -452,7 +454,7 @@ pub enum MemoryKind {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct SessionMemory {
-    pub harness: HarnessId,
+    pub harness: HarnessIdentifier,
     pub engine: EngineIdentifier,
 }
 
@@ -516,7 +518,7 @@ pub struct CurrentBelief;
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct SupersededBelief {
-    pub replacement: Option<RecordId>,
+    pub replacement: Option<RecordIdentifier>,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
@@ -618,7 +620,7 @@ pub struct PausedClaim {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ReleasingClaim {
     pub releasing_at: TimestampNanos,
-    pub completion: Option<RecordId>,
+    pub completion: Option<RecordIdentifier>,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
@@ -690,7 +692,7 @@ pub enum IdentityReference {
     Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, Copy, PartialEq, Eq,
 )]
 pub struct UserIdentity {
-    pub uid: UnixUserId,
+    pub uid: UnixUserIdentifier,
 }
 
 #[derive(
@@ -709,7 +711,7 @@ pub struct ComponentIdentity {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct HarnessIdentity {
     pub kind: HarnessKind,
-    pub id: HarnessId,
+    pub id: HarnessIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
@@ -743,8 +745,8 @@ pub struct SubmitThought {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct SubmitRelation {
     pub kind: RelationKind,
-    pub source: RecordId,
-    pub target: RecordId,
+    pub source: RecordIdentifier,
+    pub target: RecordIdentifier,
     pub note: Option<TextBody>,
 }
 
@@ -800,12 +802,12 @@ pub struct ByThoughtTimeRange {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct InGoal {
-    pub goal: RecordId,
+    pub goal: RecordIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct InMemory {
-    pub memory: RecordId,
+    pub memory: RecordIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
@@ -813,8 +815,8 @@ pub struct CompositeThoughtFilter {
     pub kinds: Vec<ThoughtKind>,
     pub author: Option<ActorName>,
     pub time_range: Option<ByThoughtTimeRange>,
-    pub goal: Option<RecordId>,
-    pub memory: Option<RecordId>,
+    pub goal: Option<RecordIdentifier>,
+    pub memory: Option<RecordIdentifier>,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
@@ -832,25 +834,25 @@ pub struct ByRelationKind {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ByRelationSource {
-    pub source: RecordId,
+    pub source: RecordIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ByRelationTarget {
-    pub target: RecordId,
+    pub target: RecordIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct CompositeRelationFilter {
     pub kinds: Vec<RelationKind>,
-    pub source: Option<RecordId>,
-    pub target: Option<RecordId>,
+    pub source: Option<RecordIdentifier>,
+    pub target: Option<RecordIdentifier>,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ThoughtCommitted {
-    pub record: RecordId,
-    pub display: DisplayId,
+    pub record: RecordIdentifier,
+    pub display: DisplayIdentifier,
     pub occurred_at: TimestampNanos,
 }
 

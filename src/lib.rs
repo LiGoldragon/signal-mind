@@ -317,9 +317,9 @@ impl TimestampNanos {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct StableItemId(String);
+pub struct StableItemIdentifier(String);
 
-impl StableItemId {
+impl StableItemIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -332,9 +332,9 @@ impl StableItemId {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct DisplayId(String);
+pub struct DisplayIdentifier(String);
 
-impl DisplayId {
+impl DisplayIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -565,8 +565,8 @@ pub enum EdgeKind {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ItemReference {
-    Stable(StableItemId),
-    Display(DisplayId),
+    Stable(StableItemIdentifier),
+    Display(DisplayIdentifier),
     Alias(ExternalAlias),
 }
 
@@ -586,7 +586,7 @@ pub enum LinkTarget {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EdgeTarget {
-    Item(StableItemId),
+    Item(StableItemIdentifier),
     External(ExternalReference),
 }
 
@@ -649,8 +649,8 @@ pub enum QueryKind {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct Item {
-    pub id: StableItemId,
-    pub display_id: DisplayId,
+    pub id: StableItemIdentifier,
+    pub display_identifier: DisplayIdentifier,
     pub aliases: Vec<ExternalAlias>,
     pub kind: ItemKind,
     pub status: ItemStatus,
@@ -662,7 +662,7 @@ pub struct Item {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct Note {
     pub event: EventSeq,
-    pub item: StableItemId,
+    pub item: StableItemIdentifier,
     pub author: ActorName,
     pub body: TextBody,
 }
@@ -670,7 +670,7 @@ pub struct Note {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct Edge {
     pub event: EventSeq,
-    pub source: StableItemId,
+    pub source: StableItemIdentifier,
     pub kind: EdgeKind,
     pub target: EdgeTarget,
     pub body: Option<TextBody>,
@@ -706,7 +706,7 @@ pub struct EdgeAddedEvent {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct StatusChangedEvent {
     pub header: EventHeader,
-    pub item: StableItemId,
+    pub item: StableItemIdentifier,
     pub status: ItemStatus,
     pub body: Option<TextBody>,
 }
@@ -714,7 +714,7 @@ pub struct StatusChangedEvent {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct AliasAddedEvent {
     pub header: EventHeader,
-    pub item: StableItemId,
+    pub item: StableItemIdentifier,
     pub alias: ExternalAlias,
 }
 
