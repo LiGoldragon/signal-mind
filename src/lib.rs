@@ -21,7 +21,7 @@
 use nota_codec::{NotaEnum, NotaRecord, NotaTransparent, NotaTryTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_core::signal_channel;
-use signal_persona_auth::{ChannelId, ComponentName, ConnectionClass, MessageOrigin};
+use signal_persona_origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
 pub use signal_sema::Magnitude;
 use std::fmt;
 use std::str::FromStr;
@@ -876,7 +876,7 @@ pub enum ChannelFilter {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ChannelView {
-    pub channel: ChannelId,
+    pub channel: ChannelIdentifier,
     pub source: ChannelEndpoint,
     pub destination: ChannelEndpoint,
     pub kinds: Vec<ChannelMessageKind>,

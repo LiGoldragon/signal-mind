@@ -309,7 +309,7 @@ The contract validates boundary strings before they become wire values.
 | `DisplayId` | short human identity for work graph references. |
 | `ExternalAlias` | imported or external identifiers. |
 | `AdjudicationRequestId` | short router-minted identifier for one parked adjudication request. |
-| `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-auth`. |
+| `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-origin`. |
 | `ChannelMessageKind` | closed set of first-stack route categories. |
 | `ChannelDuration` | channel lifetime requested or emitted by mind choreography. |
 
@@ -387,7 +387,7 @@ MindUnimplementedReason
   `OperationId`, stable item IDs, or display IDs.
 - Lock files and BEADS are represented only as temporary external references or
   aliases, never as live backend protocol.
-- Channel choreography records use `signal-persona-auth` endpoint and origin
+- Channel choreography records use `signal-persona-origin` endpoint and origin
   types; they do not carry proof material.
 - Channel choreography is closed vocabulary; there is no stringly "kind" or
   catch-all request.

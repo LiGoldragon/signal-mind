@@ -11,8 +11,8 @@ use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalVerb, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
 };
-use signal_persona_auth::{ChannelId, ComponentName, ConnectionClass, MessageOrigin};
 use signal_persona_mind::*;
+use signal_persona_origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -113,8 +113,8 @@ fn sample_adjudication_request() -> AdjudicationRequestId {
     AdjudicationRequestId::new("aab")
 }
 
-fn sample_channel() -> ChannelId {
-    ChannelId::new("channel-aab")
+fn sample_channel() -> ChannelIdentifier {
+    ChannelIdentifier::new("channel-aab")
 }
 
 fn sample_record() -> RecordId {
@@ -125,8 +125,8 @@ fn sample_relation() -> RelationId {
     RelationId::new("rel-aab")
 }
 
-fn sample_engine() -> signal_persona_auth::EngineId {
-    signal_persona_auth::EngineId::new("engine-aab")
+fn sample_engine() -> signal_persona_origin::EngineIdentifier {
+    signal_persona_origin::EngineIdentifier::new("engine-aab")
 }
 
 fn sample_actor() -> ActorName {

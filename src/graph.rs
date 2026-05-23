@@ -1,6 +1,8 @@
 use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
-use signal_persona_auth::{ChannelId, ComponentName, EngineId, HostName, UnixUserId};
+use signal_persona_origin::{
+    ChannelIdentifier, ComponentName, EngineIdentifier, HostName, UnixUserId,
+};
 
 use crate::{ActorName, DisplayId, RoleName, ScopeReference, TextBody, TimestampNanos, WirePath};
 
@@ -370,42 +372,42 @@ pub enum ObservationSummary {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ComponentSpawned {
     pub component: ComponentName,
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ComponentReady {
     pub component: ComponentName,
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ComponentExited {
     pub component: ComponentName,
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
     pub exit_code: Option<i32>,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct MessageReceived {
-    pub channel: ChannelId,
+    pub channel: ChannelIdentifier,
     pub origin: ActorName,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct MessageDelivered {
-    pub channel: ChannelId,
+    pub channel: ChannelIdentifier,
     pub recipient: ActorName,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ChannelGranted {
-    pub channel: ChannelId,
+    pub channel: ChannelIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ChannelRetracted {
-    pub channel: ChannelId,
+    pub channel: ChannelIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
@@ -451,7 +453,7 @@ pub enum MemoryKind {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct SessionMemory {
     pub harness: HarnessId,
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
@@ -700,7 +702,7 @@ pub struct RoleIdentity {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct ComponentIdentity {
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
     pub component: ComponentName,
 }
 
@@ -712,7 +714,7 @@ pub struct HarnessIdentity {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct EngineIdentity {
-    pub engine: EngineId,
+    pub engine: EngineIdentifier,
     pub host: HostName,
 }
 
