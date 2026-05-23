@@ -26,9 +26,9 @@ impl RecordIdentifier {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct RelationId(String);
+pub struct RelationIdentifier(String);
 
-impl RelationId {
+impl RelationIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -56,9 +56,9 @@ impl SubscriptionIdentifier {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct AlternativeId(String);
+pub struct AlternativeIdentifier(String);
 
-impl AlternativeId {
+impl AlternativeIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -308,7 +308,7 @@ impl Thought {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct Relation {
-    pub id: RelationId,
+    pub id: RelationIdentifier,
     pub kind: RelationKind,
     pub source: RecordIdentifier,
     pub target: RecordIdentifier,
@@ -627,14 +627,14 @@ pub struct ReleasingClaim {
 pub struct DecisionBody {
     pub question: TextBody,
     pub alternatives: Vec<Alternative>,
-    pub chosen: AlternativeId,
+    pub chosen: AlternativeIdentifier,
     pub criteria: Vec<TextBody>,
     pub rationale: TextBody,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct Alternative {
-    pub id: AlternativeId,
+    pub id: AlternativeIdentifier,
     pub description: TextBody,
     pub pros: Vec<TextBody>,
     pub cons: Vec<TextBody>,
@@ -858,7 +858,7 @@ pub struct ThoughtCommitted {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct RelationCommitted {
-    pub relation: RelationId,
+    pub relation: RelationIdentifier,
     pub occurred_at: TimestampNanos,
 }
 

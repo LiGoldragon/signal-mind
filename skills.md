@@ -33,7 +33,7 @@ If your change adds a new request or reply variant, edit
   `WirePath` and `TaskToken` newtypes.
 - `TimestampNanos` (store-supplied; never agent-supplied).
 - The typed mind graph substrate: `ThoughtKind` / `ThoughtBody`,
-  `RelationKind`, `Thought`, `Relation`, `RecordIdentifier`, `RelationId`,
+  `RelationKind`, `Thought`, `Relation`, `RecordIdentifier`, `RelationIdentifier`,
   thought/relation filters, subscription records, and graph
   commit/list replies.
 - The closed `MindRequest` enum (`SubmitThought`,

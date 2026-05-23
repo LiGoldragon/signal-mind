@@ -109,8 +109,8 @@ fn sample_task() -> TaskToken {
     TaskToken::from_wire_token("primary-f99").expect("wire task token")
 }
 
-fn sample_adjudication_request() -> AdjudicationRequestId {
-    AdjudicationRequestId::new("aab")
+fn sample_adjudication_request() -> AdjudicationRequestIdentifier {
+    AdjudicationRequestIdentifier::new("aab")
 }
 
 fn sample_channel() -> ChannelIdentifier {
@@ -121,8 +121,8 @@ fn sample_record() -> RecordIdentifier {
     RecordIdentifier::new("rec-aab")
 }
 
-fn sample_relation() -> RelationId {
-    RelationId::new("rel-aab")
+fn sample_relation() -> RelationIdentifier {
+    RelationIdentifier::new("rel-aab")
 }
 
 fn sample_engine() -> signal_persona_origin::EngineIdentifier {
@@ -141,7 +141,7 @@ struct MemoryFixture {
     item_id: StableItemIdentifier,
     display_identifier: DisplayIdentifier,
     actor: ActorName,
-    operation: OperationId,
+    operation: OperationIdentifier,
 }
 
 impl MemoryFixture {
@@ -150,7 +150,7 @@ impl MemoryFixture {
             item_id: StableItemIdentifier::new("aab"),
             display_identifier: DisplayIdentifier::new("aab"),
             actor: ActorName::new("operator"),
-            operation: OperationId::new("aab"),
+            operation: OperationIdentifier::new("aab"),
         }
     }
 
@@ -255,7 +255,7 @@ impl MemoryFixture {
 
 struct MindGraphFixture {
     record: RecordIdentifier,
-    relation: RelationId,
+    relation: RelationIdentifier,
     actor: ActorName,
     occurred_at: TimestampNanos,
 }
@@ -333,19 +333,19 @@ impl MindGraphFixture {
             question: TextBody::new("Should the mind graph land in the contract first?"),
             alternatives: vec![
                 Alternative {
-                    id: AlternativeId::new("contract-first"),
+                    id: AlternativeIdentifier::new("contract-first"),
                     description: TextBody::new("Land signal-persona-mind first."),
                     pros: vec![TextBody::new("consumers compile against one vocabulary")],
                     cons: vec![TextBody::new("persona-mind waits for the pin")],
                 },
                 Alternative {
-                    id: AlternativeId::new("consumer-first"),
+                    id: AlternativeIdentifier::new("consumer-first"),
                     description: TextBody::new("Prototype in persona-mind first."),
                     pros: vec![TextBody::new("fast local reducer feedback")],
                     cons: vec![TextBody::new("risks a parallel vocabulary")],
                 },
             ],
-            chosen: AlternativeId::new("contract-first"),
+            chosen: AlternativeIdentifier::new("contract-first"),
             criteria: vec![TextBody::new("contracts choreograph parallel work")],
             rationale: TextBody::new("The typed vocabulary must be the shared boundary."),
         })

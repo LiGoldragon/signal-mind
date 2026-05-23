@@ -229,7 +229,7 @@ the same table before accepting a relation. The full endpoint validator also
 checks relation-specific body constraints; `Authored` requires a source Thought
 whose body is `Reference(Identity)`, not just any Reference.
 
-`RecordIdentifier` and `RelationId` are opaque contract values. `persona-mind` owns
+`RecordIdentifier` and `RelationIdentifier` are opaque contract values. `persona-mind` owns
 their minting, collision handling, durable indices, and short display-id
 projection. The contract owns only the typed records that cross the channel.
 
@@ -304,11 +304,11 @@ The contract validates boundary strings before they become wire values.
 | `TimestampNanos` | store-supplied timestamp type; request records do not mint it. |
 | `ActorName` | event/caller identity after infrastructure resolution. |
 | `RecordIdentifier` | opaque durable thought identifier minted by `persona-mind`. |
-| `RelationId` | opaque durable relation identifier minted by `persona-mind`. |
+| `RelationIdentifier` | opaque durable relation identifier minted by `persona-mind`. |
 | `StableItemIdentifier` | internal work graph identity. |
 | `DisplayIdentifier` | short human identity for work graph references. |
 | `ExternalAlias` | imported or external identifiers. |
-| `AdjudicationRequestId` | short router-minted identifier for one parked adjudication request. |
+| `AdjudicationRequestIdentifier` | short router-minted identifier for one parked adjudication request. |
 | `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-origin`. |
 | `ChannelMessageKind` | closed set of first-stack route categories. |
 | `ChannelDuration` | channel lifetime requested or emitted by mind choreography. |
@@ -384,7 +384,7 @@ MindUnimplementedReason
 - `RoleName` covers every workspace coordination role in
   `~/primary/orchestrate/AGENTS.md`.
 - Request payloads do not mint `ActorName`, `TimestampNanos`, `EventSeq`,
-  `OperationId`, stable item IDs, or display IDs.
+  `OperationIdentifier`, stable item IDs, or display IDs.
 - Lock files and BEADS are represented only as temporary external references or
   aliases, never as live backend protocol.
 - Channel choreography records use `signal-persona-origin` endpoint and origin

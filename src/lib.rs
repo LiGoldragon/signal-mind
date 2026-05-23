@@ -377,9 +377,9 @@ impl BeadsToken {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct OperationId(String);
+pub struct OperationIdentifier(String);
 
-impl OperationId {
+impl OperationIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -681,7 +681,7 @@ pub struct Edge {
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct EventHeader {
     pub event: EventSeq,
-    pub operation: OperationId,
+    pub operation: OperationIdentifier,
     pub actor: ActorName,
 }
 
@@ -782,9 +782,9 @@ pub enum RejectionReason {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct AdjudicationRequestId(String);
+pub struct AdjudicationRequestIdentifier(String);
 
-impl AdjudicationRequestId {
+impl AdjudicationRequestIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -829,7 +829,7 @@ pub enum ChannelDuration {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct AdjudicationRequest {
-    pub request: AdjudicationRequestId,
+    pub request: AdjudicationRequestIdentifier,
     pub origin: MessageOrigin,
     pub destination: ChannelEndpoint,
     pub kind: ChannelMessageKind,
@@ -838,7 +838,7 @@ pub struct AdjudicationRequest {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct AdjudicationReceipt {
-    pub request: AdjudicationRequestId,
+    pub request: AdjudicationRequestIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
