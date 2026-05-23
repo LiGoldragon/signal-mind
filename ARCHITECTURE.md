@@ -141,7 +141,7 @@ signal_channel! {
             Match QueryRelations(QueryRelations),
             Subscribe SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
             Subscribe SubscribeRelations(SubscribeRelations) opens MindEventStream,
-            Retract SubscriptionRetraction(SubscriptionId),
+            Retract SubscriptionRetraction(SubscriptionIdentifier),
             Assert Opening(Opening),
             Assert NoteSubmission(NoteSubmission),
             Assert Link(Link),
@@ -173,7 +173,7 @@ signal_channel! {
             SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
         }
         stream MindEventStream {
-            token SubscriptionId;
+            token SubscriptionIdentifier;
             opened SubscriptionAccepted;
             event SubscriptionDelta;
             close SubscriptionRetraction;
@@ -210,7 +210,7 @@ to emit for observation.
 
 Subscription close follows the `signal_channel!` streaming grammar. The
 `Subscribe` request opens the stream; the consumer sends a typed
-`MindRequest::SubscriptionRetraction(SubscriptionId)` request to close it;
+`MindRequest::SubscriptionRetraction(SubscriptionIdentifier)` request to close it;
 the producer emits `MindReply::SubscriptionRetracted` as the final
 acknowledgement before the stream ends. Both the retract request and the
 retracted reply are first-class — `signal_channel!` derives the
@@ -400,7 +400,7 @@ MindUnimplementedReason
 - The text surface is NOTA projected into these exact records; there is no
   second command language.
 - Subscription close uses the streaming grammar: a `Subscribe` request opens
-  the stream; a typed `Retract SubscriptionRetraction(SubscriptionId)`
+  the stream; a typed `Retract SubscriptionRetraction(SubscriptionIdentifier)`
   request closes it; the producer emits `MindReply::SubscriptionRetracted`
   as the final acknowledgement before the stream ends.
 - Channel-choreography requests route inside `persona-mind` to one stateful

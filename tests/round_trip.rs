@@ -631,17 +631,17 @@ fn thought_and_relation_replies_round_trip() {
 fn subscription_replies_round_trip() {
     let fixture = MindGraphFixture::new();
     let accepted = MindReply::SubscriptionAccepted(SubscriptionAccepted {
-        subscription: SubscriptionId::new("sub-aab"),
+        subscription: SubscriptionIdentifier::new("sub-aab"),
         initial_snapshot: vec![
             MindSnapshot::Thought(fixture.thought()),
             MindSnapshot::Relation(fixture.relation()),
         ],
     });
     let retracted = MindReply::SubscriptionRetracted(SubscriptionRetracted {
-        subscription: SubscriptionId::new("sub-aab"),
+        subscription: SubscriptionIdentifier::new("sub-aab"),
     });
     let event = MindEvent::SubscriptionDelta(SubscriptionEvent {
-        subscription: SubscriptionId::new("sub-aab"),
+        subscription: SubscriptionIdentifier::new("sub-aab"),
         delta: MindDelta::ThoughtCommitted(Thought {
             body: fixture.decision_body(),
             kind: ThoughtKind::Decision,
@@ -674,7 +674,7 @@ fn subscribe_opens_and_subscription_retraction_closes_the_mind_event_stream() {
             target: RecordId::new("goal-aab"),
         }),
     });
-    let retract = MindRequest::SubscriptionRetraction(SubscriptionId::new("sub-aab"));
+    let retract = MindRequest::SubscriptionRetraction(SubscriptionIdentifier::new("sub-aab"));
 
     assert_eq!(
         subscribe_thoughts.opened_stream(),

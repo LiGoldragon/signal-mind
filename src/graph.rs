@@ -37,9 +37,9 @@ impl RelationId {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
 )]
-pub struct SubscriptionId(String);
+pub struct SubscriptionIdentifier(String);
 
-impl SubscriptionId {
+impl SubscriptionIdentifier {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -878,7 +878,7 @@ pub enum MindSnapshot {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct SubscriptionAccepted {
-    pub subscription: SubscriptionId,
+    pub subscription: SubscriptionIdentifier,
     pub initial_snapshot: Vec<MindSnapshot>,
 }
 
@@ -890,19 +890,19 @@ pub enum MindDelta {
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct SubscriptionEvent {
-    pub subscription: SubscriptionId,
+    pub subscription: SubscriptionIdentifier,
     pub delta: MindDelta,
 }
 
 /// Typed acknowledgement that a mind-graph subscription has been retracted.
 ///
-/// Returned in reply to `MindRequest::SubscriptionRetraction(SubscriptionId)`.
+/// Returned in reply to `MindRequest::SubscriptionRetraction(SubscriptionIdentifier)`.
 /// Carries the retracted subscription so callers can match the ack to the
 /// request they sent. Matches the Path A pattern used by `signal-criome` and
 /// `signal-persona-terminal`.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
 pub struct SubscriptionRetracted {
-    pub subscription: SubscriptionId,
+    pub subscription: SubscriptionIdentifier,
 }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]

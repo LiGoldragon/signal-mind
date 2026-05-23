@@ -899,7 +899,7 @@ signal_channel! {
             Match QueryRelations(QueryRelations),
             Subscribe SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
             Subscribe SubscribeRelations(SubscribeRelations) opens MindEventStream,
-            Retract SubscriptionRetraction(SubscriptionId),
+            Retract SubscriptionRetraction(SubscriptionIdentifier),
             Assert Opening(Opening),
             Assert NoteSubmission(NoteSubmission),
             Assert Link(Link),
@@ -931,7 +931,7 @@ signal_channel! {
             SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
         }
         stream MindEventStream {
-            token SubscriptionId;
+            token SubscriptionIdentifier;
             opened SubscriptionAccepted;
             event SubscriptionDelta;
             close SubscriptionRetraction;
