@@ -1,4 +1,4 @@
-//! Signal contract — `mind` CLI ↔ `persona-mind`.
+//! Signal contract — `mind` CLI ↔ `mind`.
 //!
 //! Read this file as the public interface of the central Persona
 //! mind channel. The channel carries:

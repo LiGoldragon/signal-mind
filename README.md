@@ -1,7 +1,7 @@
-# signal-persona-mind
+# signal-mind
 
 The Signal contract between **`mind`** (the CLI agents invoke per call)
-and **`persona-mind`** (the central state actor that owns `mind.redb`).
+and **`mind`** (the central state actor that owns `mind.redb`).
 
 Read `src/lib.rs` for the public interface — two enums
 (`MindRequest`, `MindReply`) declared via the
@@ -26,7 +26,7 @@ belong to `signal-persona-orchestrate`.
 use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, RequestPayload, SessionEpoch,
 };
-use signal_persona_mind::{
+use signal_mind::{
     ItemKind, Magnitude, MindFrame, MindFrameBody, MindRequest, Opening,
     TextBody, Title,
 };
@@ -47,7 +47,7 @@ let frame = MindFrame::new(MindFrameBody::Request {
     request: request.into_request(),
 });
 let bytes = frame.encode_length_prefixed()?;
-// hand to persona-mind's daemon dispatcher
+// hand to mind's daemon dispatcher
 ```
 
 The state actor replies with `MindReply::OpeningReceipt` on success.
@@ -63,5 +63,5 @@ stores a normalized absolute path) and `TaskToken::from_wire_token`.
   discipline
 - `signal-core` — kernel that supplies `Frame`,
   `Request`, `Reply`, `signal_channel!`
-- `persona-mind` — the consumer that implements
+- `mind` — the consumer that implements
   this contract

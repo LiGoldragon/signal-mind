@@ -1,14 +1,14 @@
-# signal-persona-mind — architecture
+# signal-mind — architecture
 
-*Typed Signal contract for the command-line mind and `persona-mind`.*
+*Typed Signal contract for the command-line mind and `mind`.*
 
 ---
 
 ## 0 · TL;DR
 
-`signal-persona-mind` is the public vocabulary for Persona's central mind. It
+`signal-mind` is the public vocabulary for Persona's central mind. It
 defines the typed request/reply channel used by the `mind` CLI and long-lived
-`persona-mind` daemon.
+`mind` daemon.
 
 ## MUST IMPLEMENT — three-layer migration
 
@@ -54,7 +54,7 @@ streaming Thought commits to a specific subscriber set), they can
 keep domain-local `Watch`/`Unwatch` verbs alongside the mandatory
 observability.
 
-**Layer 2 — Component Commands (persona-mind daemon).** The mind
+**Layer 2 — Component Commands (mind daemon).** The mind
 daemon owns its typed Command enum. Example commands:
 `MindCommand::AssertThought`, `MindCommand::AssertRelation`,
 `MindCommand::ReadThoughtIndex`, `MindCommand::RecordOpening`,
@@ -111,8 +111,8 @@ flowchart LR
 | Side | Component |
 |---|---|
 | Request producer | `mind` CLI and future hosts that speak the same channel. |
-| Request consumer | `persona-mind` daemon. |
-| Reply producer | `persona-mind` daemon. |
+| Request consumer | `mind` daemon. |
+| Reply producer | `mind` daemon. |
 | Reply consumer | the caller that submitted the operation. |
 
 The CLI text surface is one NOTA record in and one NOTA record out. That text
@@ -123,7 +123,7 @@ Rust-to-Rust boundaries use `signal-frame` frames carrying rkyv archives. The
 same typed request/reply vocabulary underlies both the NOTA projection and the
 binary frame projection.
 
-The local transport between CLI and daemon belongs to `persona-mind`, not this
+The local transport between CLI and daemon belongs to `mind`, not this
 contract. The likely first transport is a Unix socket carrying `signal-frame`
 frames.
 
@@ -229,7 +229,7 @@ the same table before accepting a relation. The full endpoint validator also
 checks relation-specific body constraints; `Authored` requires a source Thought
 whose body is `Reference(Identity)`, not just any Reference.
 
-`RecordIdentifier` and `RelationIdentifier` are opaque contract values. `persona-mind` owns
+`RecordIdentifier` and `RelationIdentifier` are opaque contract values. `mind` owns
 their minting, collision handling, durable indices, and short display-id
 projection. The contract owns only the typed records that cross the channel.
 
@@ -256,7 +256,7 @@ the contract does not model a live BEADS backend.
 | `ChannelList` | `ChannelListView` |
 
 These records are the typed working boundary between `persona-router`
-and `persona-mind` for channel choreography observation. Router parks a
+and `mind` for channel choreography observation. Router parks a
 message whose channel is missing or inactive and submits
 `AdjudicationRequest`. Mind records the request and may inspect channel
 views through `ChannelList`. If Mind decides router channel policy
@@ -266,7 +266,7 @@ should change, it orders Orchestrate through
 `owner-signal-persona-router`. Mind does not call Router's owner
 signal directly.
 
-The destination handler set inside `persona-mind` is a stateful
+The destination handler set inside `mind` is a stateful
 `ChoreographyAdjudicator` actor that owns the adjudication log and any
 Mind-side policy reasoning. It does not own the router's live grant
 table. `AdjudicationRequest` and `ChannelList` route to that actor; it
@@ -303,8 +303,8 @@ The contract validates boundary strings before they become wire values.
 | `TaskToken` | raw unbracketed token, non-empty, no whitespace or brackets. |
 | `TimestampNanos` | store-supplied timestamp type; request records do not mint it. |
 | `ActorName` | event/caller identity after infrastructure resolution. |
-| `RecordIdentifier` | opaque durable thought identifier minted by `persona-mind`. |
-| `RelationIdentifier` | opaque durable relation identifier minted by `persona-mind`. |
+| `RecordIdentifier` | opaque durable thought identifier minted by `mind`. |
+| `RelationIdentifier` | opaque durable relation identifier minted by `mind`. |
 | `StableItemIdentifier` | internal work graph identity. |
 | `DisplayIdentifier` | short human identity for work graph references. |
 | `ExternalAlias` | imported or external identifiers. |
@@ -403,7 +403,7 @@ MindUnimplementedReason
   the stream; a typed `Retract SubscriptionRetraction(SubscriptionIdentifier)`
   request closes it; the producer emits `MindReply::SubscriptionRetracted`
   as the final acknowledgement before the stream ends.
-- Channel-choreography requests route inside `persona-mind` to one stateful
+- Channel-choreography requests route inside `mind` to one stateful
   `ChoreographyAdjudicator` actor; this contract closes the Mind-side
   observation vocabulary, and Router owner signal owns grant-state
   authority orders.
@@ -461,7 +461,7 @@ tests/round_trip.rs     frame round trips, NOTA witnesses, and validation tests
 
 ## See Also
 
-- `../persona-mind/ARCHITECTURE.md`
+- `../mind/ARCHITECTURE.md`
 - `../owner-signal-persona-router/ARCHITECTURE.md`
 - `../signal-frame/ARCHITECTURE.md`
 - `../signal-sema/ARCHITECTURE.md`

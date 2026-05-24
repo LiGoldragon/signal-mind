@@ -1,15 +1,15 @@
 [package]
-name         = "signal-persona-mind"
+name         = "signal-mind"
 version      = "0.1.0"
 edition      = "2024"
 rust-version = "1.85"
 license      = "MIT OR Apache-2.0"
-repository   = "https://github.com/LiGoldragon/signal-persona-mind"
-description  = "Signal contract — `mind` CLI ↔ persona-mind channel: typed records for work graph, mind graph, and channel choreography."
+repository   = "https://github.com/LiGoldragon/signal-mind"
+description  = "Signal contract — `mind` CLI ↔ mind channel: typed records for work graph, mind graph, and channel choreography."
 publish      = false
 
 [lib]
-name = "signal_persona_mind"
+name = "signal_mind"
 path = "src/lib.rs"
 
 [dependencies]

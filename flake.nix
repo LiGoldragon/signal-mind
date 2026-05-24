@@ -1,5 +1,5 @@
 {
-  description = "signal-persona-mind — Signal contract for `mind` CLI ↔ persona-mind work graph, mind graph, and channel choreography";
+  description = "signal-mind — Signal contract for `mind` CLI ↔ mind work graph, mind graph, and channel choreography";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -68,7 +68,7 @@
           });
         };
         devShells.default = pkgs.mkShell {
-          name = "signal-persona-mind";
+          name = "signal-mind";
           packages = [ pkgs.jujutsu pkgs.pkg-config toolchain ];
         };
       });

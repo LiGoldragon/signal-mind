@@ -1,5 +1,5 @@
 //! Architectural-truth round-trip tests for the
-//! `signal-persona-mind` channel.
+//! `signal-mind` channel.
 //!
 //! Per `~/primary/skills/architectural-truth-tests.md`,
 //! each variant of both enums has a witness test that
@@ -11,7 +11,7 @@ use signal_core::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalVerb, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
 };
-use signal_persona_mind::*;
+use signal_mind::*;
 use signal_persona_origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
 
 // ─── Helpers ──────────────────────────────────────────────
@@ -101,7 +101,7 @@ where
 }
 
 fn sample_path() -> WirePath {
-    WirePath::from_absolute_path("/git/github.com/LiGoldragon/signal-persona-mind/src/lib.rs")
+    WirePath::from_absolute_path("/git/github.com/LiGoldragon/signal-mind/src/lib.rs")
         .expect("absolute path")
 }
 
@@ -334,13 +334,13 @@ impl MindGraphFixture {
             alternatives: vec![
                 Alternative {
                     id: AlternativeIdentifier::new("contract-first"),
-                    description: TextBody::new("Land signal-persona-mind first."),
+                    description: TextBody::new("Land signal-mind first."),
                     pros: vec![TextBody::new("consumers compile against one vocabulary")],
-                    cons: vec![TextBody::new("persona-mind waits for the pin")],
+                    cons: vec![TextBody::new("mind waits for the pin")],
                 },
                 Alternative {
                     id: AlternativeIdentifier::new("consumer-first"),
-                    description: TextBody::new("Prototype in persona-mind first."),
+                    description: TextBody::new("Prototype in mind first."),
                     pros: vec![TextBody::new("fast local reducer feedback")],
                     cons: vec![TextBody::new("risks a parallel vocabulary")],
                 },
@@ -814,7 +814,7 @@ fn link_request_round_trips_with_external_report_reference() {
         source: ItemReference::Display(DisplayIdentifier::new("aab")),
         kind: EdgeKind::References,
         target: LinkTarget::External(ExternalReference::Report(ReportPath::new(
-            "reports/operator/100-persona-mind-central-rename-plan.md",
+            "reports/operator/100-mind-central-rename-plan.md",
         ))),
         body: Some(TextBody::new("Research basis for this work item.")),
     });
@@ -907,7 +907,7 @@ fn every_external_reference_variant_round_trips_as_a_link_target() {
         ExternalReference::GitCommit(CommitHash::new("7f0bf022")),
         ExternalReference::BeadsTask(BeadsToken::new("primary-aab")),
         ExternalReference::File(ReferencePath::new(
-            "/git/github.com/LiGoldragon/persona-mind/src/lib.rs",
+            "/git/github.com/LiGoldragon/mind/src/lib.rs",
         )),
     ];
 
@@ -1080,7 +1080,7 @@ fn mind_request_exposes_contract_owned_operation_kind() {
                 source: ItemReference::Stable(fixture.item_id.clone()),
                 kind: EdgeKind::References,
                 target: LinkTarget::External(ExternalReference::File(ReferencePath::new(
-                    "/git/github.com/LiGoldragon/signal-persona-mind/src/lib.rs",
+                    "/git/github.com/LiGoldragon/signal-mind/src/lib.rs",
                 ))),
                 body: None,
             }),
@@ -1323,7 +1323,7 @@ fn explicit_variant_lifts_view_into_reply() {
 fn path_scope_round_trips() {
     round_trip_nota(
         ScopeReference::Path(sample_path()),
-        "(Path [/git/github.com/LiGoldragon/signal-persona-mind/src/lib.rs])",
+        "(Path [/git/github.com/LiGoldragon/signal-mind/src/lib.rs])",
     );
 }
 

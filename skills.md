@@ -1,4 +1,4 @@
-# skills — signal-persona-mind
+# skills — signal-mind
 
 *Per-repo agent guide.*
 
@@ -15,11 +15,11 @@ Before changing code in this repo, read:
 - `~/primary/skills/nix-discipline.md` — flake-input rules,
   `nix flake check` is the gate.
 - this repo's `ARCHITECTURE.md`.
-- the consumer's `ARCHITECTURE.md` (`persona-mind/`).
+- the consumer's `ARCHITECTURE.md` (`mind/`).
 
 If your change adds a new request or reply variant, edit
 `src/lib.rs` first, push, then update the consumer
-(`persona-mind`) to handle it.
+(`mind`) to handle it.
 
 ## What this repo owns
 
@@ -58,13 +58,13 @@ If your change adds a new request or reply variant, edit
 ## What this repo does not own
 
 - The state actor or the database — that's
-  `persona-mind`.
+  `mind`.
 - The CLI binary parsing — that's the `mind` bin target inside
-  `persona-mind`.
+  `mind`.
 - Ordinary role claims, role release, handoff, role observation, and activity
   log operations — those live in `signal-persona-orchestrate`.
 - Lock-file projection writing — outside this implementation
-  target; `persona-mind` replaces lock files instead of
+  target; `mind` replaces lock files instead of
   projecting them.
-- Storage tables — those live in `persona-mind`'s
+- Storage tables — those live in `mind`'s
   `src/tables.rs` (typed `sema::Table<K, V>` constants).

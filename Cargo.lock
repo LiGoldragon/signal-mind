@@ -273,7 +273,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "signal-persona-mind"
+name = "signal-mind"
 version = "0.1.0"
 dependencies = [
  "nota-codec",
