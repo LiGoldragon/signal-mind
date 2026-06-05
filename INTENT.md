@@ -1,0 +1,143 @@
+# INTENT — signal-mind
+
+*The wire vocabulary contract for Persona's central mind. Defines the typed
+request/reply/event channel that the `mind` CLI and peer components use to submit
+work-graph and typed-graph operations, query thoughts/relations and memory state,
+observe channel choreography, and subscribe to state changes.
+Companion to `ARCHITECTURE.md` and `Cargo.toml`. Maintenance: `primary/skills/repo-intent.md`.*
+
+## Repo-scope only
+
+This file carries only the intent that is FOR this `signal-mind` contract.
+Workspace-shape intent stays in the primary workspace `primary/INTENT.md`.
+Component daemon intent stays in `mind/INTENT.md`. Owner-only mind policy stays
+in `owner-signal-mind`.
+
+## Why this repo exists
+
+`signal-mind` is the **ordinary peer-callable wire contract** for the `mind`
+daemon — Persona's central state holder. It carries the typed request/reply
+channel used by the `mind` CLI and the long-lived `mind` daemon for three named
+relations: the typed mind graph (Thought / Relation records), the work-and-memory
+graph (openings, notes, links, status, aliases), and channel choreography
+observation. Ordinary role claims, handoffs, observations, and activity-log
+operations belong to `signal-orchestrate`, not here. Runtime actors, the
+`mind.redb` store, choreography decision logic, and authority orders live in
+`mind` and `owner-signal-mind`.
+
+## The channel shape
+
+The Mind channel carries:
+
+- **Typed mind graph:** `SubmitThought`, `SubmitRelation`, `QueryThoughts`,
+  `QueryRelations`, `SubscribeThoughts`, `SubscribeRelations`,
+  `SubscriptionRetraction`.
+- **Work and memory graph:** `Opening`, `NoteSubmission`, `Link`, `StatusChange`,
+  `AliasAssignment`, `Query`.
+- **Channel choreography (read/observe side):** `AdjudicationRequest`,
+  `ChannelList`.
+- **Replies:** the committed/receipt/view records corresponding to each
+  operation (`ThoughtCommitted`, `RelationCommitted`, `ThoughtList`, receipts,
+  `View`, `AdjudicationReceipt`, `ChannelListView`), `Rejection` carrying typed
+  reasons, and `MindRequestUnimplemented` (skeleton honesty).
+- **Events:** a `MindEventStream` delivering `SubscriptionDelta` events for open
+  subscriptions; retraction closes the stream.
+
+The wire vocabulary is contract-local: the daemon lowers these public operations
+into component-local commands; Sema classification happens at observation time,
+not on the wire.
+
+## Channels are closed, boundaries are named
+
+- Wire enums are closed. No `Unknown` escape hatch; unimplemented paths reply
+  `MindRequestUnimplemented`.
+- Request payloads do not mint thought IDs, relation IDs, event sequence,
+  timestamps, or sender identity.
+- `mind` mints those values at the daemon; request records accept submitted
+  thought/relation bodies and metadata only. Graph IDs are compact
+  sequence-derived tokens minted from the store, not content hashes or payload
+  fields.
+- No stringly-typed dispatch. Graph kinds, channel endpoints, and reason fields
+  are typed closed enums.
+
+## Wire vocabulary discipline
+
+Per `primary/skills/contract-repo.md` §"Public contracts use contract-local
+operation verbs":
+
+- Operation roots are domain verbs in verb form: `Submit` (thoughts, relations,
+  notes, links, aliases), `Query` (typed reads), `Adjudicate` (open an
+  adjudication) — not Sema class words.
+- Reply success variants name the outcome of the operation; rejections are
+  `Rejection` carrying a typed reason.
+- Payload record names are domain nouns the operation carries (`Thought`,
+  `Relation`, `Note`, `Opening`, `Query`), not `Request` or generic containers.
+- The legacy `Assert`/`Match`/`Mutate`/`Subscribe`/`Retract`-tagged request
+  variants still present in `src/lib.rs` are a cleanup-track holdover — Sema
+  class words are forbidden on the public wire (per
+  `primary/skills/contract-repo.md` §"What moved below the public contract"); the
+  migration to bare contract-local verbs plus the mandatory `Tap`/`Untap`
+  observability surface is owed.
+- Router channel authority orders (`Grant`, `Extend`, `Revoke`, `Deny`) are NOT
+  ordinary mind working requests; they live in `owner-signal-persona-router` and
+  are issued by orchestrate. Mind decides at the cognitive level and orders
+  through `owner-signal-mind` → orchestrate.
+
+## Constraints
+
+- This crate carries only typed wire vocabulary, NOTA codecs, and round-trip
+  witnesses.
+- No runtime code: no actors, no tokio, no socket binding, no redb, no
+  choreography policy logic.
+- Contract types derive NOTA in this crate. Consumers do not carry shadow types.
+- Every operation, reply, and event variant round-trips through both rkyv frames
+  and NOTA text.
+- Request payloads cannot carry IDs, timestamps, or sequence numbers; the daemon
+  supplies those.
+- Channel choreography observation is read-only in this contract; authority
+  orders live in `owner-signal-mind`.
+
+## Three-layer model
+
+Layer 1 (this crate): contract operations on the wire (`Submit`, `Query`,
+`Adjudicate`).
+Layer 2 (daemon): component-local `MindCommand` enum (e.g. `AssertThought`,
+`AssertRelation`, `RecordOpening`, `ChangeWorkItemStatus`, `ReadChannelList`)
+that the daemon executes.
+Layer 3 (observation): payloadless Sema class labels (`Assert`, `Mutate`,
+`Match`, `Subscribe`) for cross-component introspection.
+
+The contract names the public action at the boundary; the daemon decides what
+internal work and Sema class label each action maps to. Sema classification
+never appears on the wire.
+
+## Code map
+
+```text
+src/lib.rs                     — request/reply/event records, NOTA codecs, signal_channel! invocation
+src/graph.rs                   — typed Thought/Relation graph records and snapshot/delta shapes
+schema/signal-mind.concept.schema — concept-schema source for the contract
+tests/round_trip.rs            — rkyv frame and NOTA round-trip witnesses per operation
+```
+
+## Non-ownership
+
+This crate does not own:
+
+- `mind` daemon runtime, Kameo actors, or component lifecycle;
+- `mind.redb` or any storage tables, graph indices, or choreography state;
+- socket binding, transport, version handshake, or signature validation;
+- choreography policy logic, channel grant execution, or adjudication decisions;
+- ordinary role/activity orchestration (that is `signal-orchestrate`);
+- CLI formatting, audit wrapping, or Nexus record composition.
+
+## See also
+
+- `ARCHITECTURE.md` — detailed channel shape, the three-layer migration, the
+  three relations, and closed-enum discipline.
+- `../mind/INTENT.md` — daemon-side intent (schema-driven planes, actor topology,
+  state schema).
+- `../owner-signal-mind/INTENT.md` — owner-only mind policy contract.
+- `../signal-orchestrate/INTENT.md` — ordinary role/activity orchestration contract.
+- `primary/skills/contract-repo.md` — contract repo discipline and naming rules.
+- `primary/skills/component-triad.md` — repo triad structure and wire layers.
