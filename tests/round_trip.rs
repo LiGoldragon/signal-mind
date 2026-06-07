@@ -7,9 +7,9 @@
 //! length-prefixed Frame.
 
 use nota_codec::{Decoder, Encoder, Error as NotaError, NotaDecode, NotaEncode};
-use signal_core::{
+use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
-    SignalVerb, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
+    SignalOperationHeads, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
 };
 use signal_mind::*;
 use signal_persona_origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
@@ -33,7 +33,6 @@ fn stream_event() -> StreamEventIdentifier {
 }
 
 fn round_trip_request(request: MindRequest) -> MindRequest {
-    let expected_verb = request.signal_verb();
     let frame = MindFrame::new(MindFrameBody::Request {
         exchange: exchange(),
         request: request.into_request(),
@@ -41,11 +40,7 @@ fn round_trip_request(request: MindRequest) -> MindRequest {
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = MindFrame::decode_length_prefixed(&bytes).expect("decode");
     match decoded.into_body() {
-        MindFrameBody::Request { request, .. } => {
-            let operation = request.operations().head();
-            assert_eq!(operation.verb, expected_verb);
-            operation.payload.clone()
-        }
+        MindFrameBody::Request { request, .. } => request.payloads().head().clone(),
         other => panic!("expected request operation, got {other:?}"),
     }
 }
@@ -53,17 +48,14 @@ fn round_trip_request(request: MindRequest) -> MindRequest {
 fn round_trip_reply(reply: MindReply) -> MindReply {
     let frame = MindFrame::new(MindFrameBody::Reply {
         exchange: exchange(),
-        reply: Reply::completed(NonEmpty::single(SubReply::Ok {
-            verb: SignalVerb::Match,
-            payload: reply,
-        })),
+        reply: Reply::committed(NonEmpty::single(SubReply::Ok(reply))),
     });
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = MindFrame::decode_length_prefixed(&bytes).expect("decode");
     match decoded.into_body() {
         MindFrameBody::Reply { reply, .. } => match reply {
             Reply::Accepted { per_operation, .. } => match per_operation.into_head() {
-                SubReply::Ok { payload, .. } => payload,
+                SubReply::Ok(payload) => payload,
                 other => panic!("expected accepted reply payload, got {other:?}"),
             },
             other => panic!("expected accepted reply, got {other:?}"),
@@ -1130,105 +1122,27 @@ fn mind_request_exposes_contract_owned_operation_kind() {
 }
 
 #[test]
-fn mind_graph_request_variants_have_expected_signal_verbs() {
-    let graph = MindGraphFixture::new();
-    let cases = vec![
-        (
-            MindRequest::SubmitThought(SubmitThought {
-                kind: ThoughtKind::Observation,
-                body: graph.observation_body(),
-            }),
-            SignalVerb::Assert,
-        ),
-        (
-            MindRequest::SubmitRelation(SubmitRelation {
-                kind: RelationKind::Implements,
-                source: RecordIdentifier::new("claim-aab"),
-                target: RecordIdentifier::new("goal-aab"),
-                note: None,
-            }),
-            SignalVerb::Assert,
-        ),
-        (
-            MindRequest::QueryThoughts(QueryThoughts {
-                filter: ThoughtFilter::ByKind(ByThoughtKind {
-                    kinds: vec![ThoughtKind::Goal],
-                }),
-                limit: 10,
-            }),
-            SignalVerb::Match,
-        ),
-        (
-            MindRequest::QueryRelations(QueryRelations {
-                filter: RelationFilter::ByKind(ByRelationKind {
-                    kinds: vec![RelationKind::Implements],
-                }),
-                limit: 10,
-            }),
-            SignalVerb::Match,
-        ),
-        (
-            MindRequest::SubscribeThoughts(SubscribeThoughts {
-                filter: ThoughtFilter::ByAuthor(ByThoughtAuthor {
-                    author: ActorName::new("operator"),
-                }),
-            }),
-            SignalVerb::Subscribe,
-        ),
-        (
-            MindRequest::SubscribeRelations(SubscribeRelations {
-                filter: RelationFilter::ByTarget(ByRelationTarget {
-                    target: RecordIdentifier::new("goal-aab"),
-                }),
-            }),
-            SignalVerb::Subscribe,
-        ),
-    ];
-
-    for (request, verb) in cases {
-        assert_eq!(request.signal_verb(), verb);
-    }
-}
-
-#[test]
-fn mind_request_variants_do_not_silently_default_to_assert() {
-    let fixture = MemoryFixture::new();
-    let cases = vec![
-        (
-            MindRequest::QueryThoughts(QueryThoughts {
-                filter: ThoughtFilter::ByKind(ByThoughtKind {
-                    kinds: vec![ThoughtKind::Decision],
-                }),
-                limit: 12,
-            }),
-            SignalVerb::Match,
-        ),
-        (
-            MindRequest::SubscribeRelations(SubscribeRelations {
-                filter: RelationFilter::ByTarget(ByRelationTarget {
-                    target: RecordIdentifier::new("decision-aab"),
-                }),
-            }),
-            SignalVerb::Subscribe,
-        ),
-        (
-            MindRequest::StatusChange(StatusChange {
-                item: ItemReference::Stable(fixture.item_id.clone()),
-                status: ItemStatus::InProgress,
-                body: None,
-            }),
-            SignalVerb::Mutate,
-        ),
-        (
-            MindRequest::ChannelList(ChannelList { filters: vec![] }),
-            SignalVerb::Match,
-        ),
-    ];
-
-    for (request, verb) in cases {
-        assert_eq!(request.signal_verb(), verb);
-        assert_ne!(request.signal_verb(), SignalVerb::Assert);
-    }
+fn mind_request_variants_declare_contract_local_operation_heads() {
+    assert_eq!(
+        <MindRequest as SignalOperationHeads>::HEADS,
+        &[
+            "SubmitThought",
+            "SubmitRelation",
+            "QueryThoughts",
+            "QueryRelations",
+            "SubscribeThoughts",
+            "SubscribeRelations",
+            "SubscriptionRetraction",
+            "Opening",
+            "NoteSubmission",
+            "Link",
+            "StatusChange",
+            "AliasAssignment",
+            "Query",
+            "AdjudicationRequest",
+            "ChannelList",
+        ]
+    );
 }
 
 #[test]
@@ -1351,7 +1265,7 @@ fn wire_path_requires_absolute_normalized_path() {
 
 #[test]
 fn wire_path_nota_decode_uses_boundary_validation() {
-    let mut decoder = Decoder::new("\"relative/path\"");
+    let mut decoder = Decoder::new("[relative/path]");
     let error = WirePath::decode(&mut decoder).expect_err("relative path must fail validation");
     match error {
         NotaError::Validation { type_name, message } => {

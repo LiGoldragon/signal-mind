@@ -10,8 +10,8 @@ Companion to `ARCHITECTURE.md` and `Cargo.toml`. Maintenance: `primary/skills/re
 
 This file carries only the intent that is FOR this `signal-mind` contract.
 Workspace-shape intent stays in the primary workspace `primary/INTENT.md`.
-Component daemon intent stays in `mind/INTENT.md`. Owner-only mind policy stays
-in `owner-signal-mind`.
+Component daemon intent stays in `mind/INTENT.md`. Meta mind policy stays in
+`owner-signal-mind` until the repository rename lands.
 
 ## Why this repo exists
 
@@ -22,7 +22,7 @@ relations: the typed mind graph (Thought / Relation records), the work-and-memor
 graph (openings, notes, links, status, aliases), and channel choreography
 observation. Ordinary role claims, handoffs, observations, and activity-log
 operations belong to `signal-orchestrate`, not here. Runtime actors, the
-`mind.redb` store, choreography decision logic, and authority orders live in
+`mind.sema` store, choreography decision logic, and authority orders live in
 `mind` and `owner-signal-mind`.
 
 ## The channel shape
@@ -72,12 +72,11 @@ operation verbs":
   `Rejection` carrying a typed reason.
 - Payload record names are domain nouns the operation carries (`Thought`,
   `Relation`, `Note`, `Opening`, `Query`), not `Request` or generic containers.
-- The legacy `Assert`/`Match`/`Mutate`/`Subscribe`/`Retract`-tagged request
-  variants still present in `src/lib.rs` are a cleanup-track holdover — Sema
-  class words are forbidden on the public wire (per
-  `primary/skills/contract-repo.md` §"What moved below the public contract"); the
-  migration to bare contract-local verbs plus the mandatory `Tap`/`Untap`
-  observability surface is owed.
+- `src/lib.rs` now declares bare contract-local operation heads on
+  `signal-frame`; the old `Assert`/`Match`/`Mutate`/`Subscribe`/`Retract`
+  request tags are gone from the wire. The remaining follow-up is the mandatory
+  `Tap`/`Untap` observability surface, where it replaces or augments
+  domain-local subscription operations.
 - Router channel authority orders (`Grant`, `Extend`, `Revoke`, `Deny`) are NOT
   ordinary mind working requests; they live in `owner-signal-persona-router` and
   are issued by orchestrate. Mind decides at the cognitive level and orders
@@ -125,7 +124,7 @@ tests/round_trip.rs            — rkyv frame and NOTA round-trip witnesses per 
 This crate does not own:
 
 - `mind` daemon runtime, Kameo actors, or component lifecycle;
-- `mind.redb` or any storage tables, graph indices, or choreography state;
+- `mind.sema` or any storage tables, graph indices, or choreography state;
 - socket binding, transport, version handshake, or signature validation;
 - choreography policy logic, channel grant execution, or adjudication decisions;
 - ordinary role/activity orchestration (that is `signal-orchestrate`);
@@ -137,7 +136,7 @@ This crate does not own:
   three relations, and closed-enum discipline.
 - `../mind/INTENT.md` — daemon-side intent (schema-driven planes, actor topology,
   state schema).
-- `../owner-signal-mind/INTENT.md` — owner-only mind policy contract.
+- `../owner-signal-mind/INTENT.md` — meta mind policy contract (repository rename pending).
 - `../signal-orchestrate/INTENT.md` — ordinary role/activity orchestration contract.
 - `primary/skills/contract-repo.md` — contract repo discipline and naming rules.
 - `primary/skills/component-triad.md` — repo triad structure and wire layers.

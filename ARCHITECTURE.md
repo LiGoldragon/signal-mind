@@ -2,26 +2,23 @@
 
 *Typed Signal contract for the command-line mind and `mind`.*
 
----
-
 ## 0 · TL;DR
 
 `signal-mind` is the public vocabulary for Persona's central mind. It
 defines the typed request/reply channel used by the `mind` CLI and long-lived
 `mind` daemon.
 
-## MUST IMPLEMENT — three-layer migration
+## Three-layer model
 
-This contract is migrating to the three-layer model affirmed
+This contract follows the three-layer model affirmed
 2026-05-20 per
 `primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
 and `primary/reports/designer/248-three-layer-changes-for-operators.md`.
 
-**Layer 1 — Contract Operations on the wire (this crate).** Drop the
-SignalVerb wrappers entirely. The current `MindRequest` enum mixes
-many SignalVerb-tagged variants across three relations (typed mind
-graph; work-and-memory graph; channel choreography). The
-contract-local verbs:
+**Layer 1 — Contract Operations on the wire (this crate).** The wire uses
+`signal-frame` contract-local operations directly; there is no universal
+verb-class wrapper in `MindRequest`. The current operation roots remain
+relation-specific:
 
 - *Typed mind graph relation:* `Submit` (for `SubmitThought`,
   `SubmitRelation` — already verb-form; payloads are `Thought` /
@@ -36,7 +33,7 @@ contract-local verbs:
   adjudication observation and read-side channel views only. Router
   channel authority orders are not ordinary Mind working requests.
   `Grant`, `Extend`, `Revoke`, and `Deny` live in
-  `owner-signal-persona-router`, the router's owner signal, and are
+  `owner-signal-persona-router`, the router's meta signal, and are
   called by Orchestrate. Mind decides at the cognitive level and
   orders Orchestrate through `owner-signal-persona-orchestrate`. The
   remaining Mind-side verbs are `Adjudicate` (open an adjudication for
@@ -69,18 +66,13 @@ not this working signal.
 Command projects to a payloadless `SemaOperation` class via
 `ToSemaOperation`. Cross-component observers filter by class.
 
-**Frame layer.** The dependency on `signal-core` shifts to
-`signal-frame`.
+**Frame layer.** The dependency is `signal-frame`.
 
 References:
 - `primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
 - `primary/reports/designer/248-three-layer-changes-for-operators.md`
 - `primary/skills/component-triad.md` §"Verbs come in three layers"
 - `primary/skills/contract-repo.md` §"Public contracts use contract-local operation verbs"
-
-**Note to remover:** when the refactor lands, remove this section and
-add a `## Migration history — three-layer model (2026-05-XX)`
-paragraph noting the shape change.
 
 > **Scope.** This contract sits on today's stack — `signal-frame` wire,
 > rkyv archives, `sema-db` storage in consumers. The
@@ -134,23 +126,21 @@ The channel is one `signal_channel!` invocation in `src/lib.rs`.
 ```rust
 signal_channel! {
     channel Mind {
-        request MindRequest {
-            Assert SubmitThought(SubmitThought),
-            Assert SubmitRelation(SubmitRelation),
-            Match QueryThoughts(QueryThoughts),
-            Match QueryRelations(QueryRelations),
-            Subscribe SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
-            Subscribe SubscribeRelations(SubscribeRelations) opens MindEventStream,
-            Retract SubscriptionRetraction(SubscriptionIdentifier),
-            Assert Opening(Opening),
-            Assert NoteSubmission(NoteSubmission),
-            Assert Link(Link),
-            Mutate StatusChange(StatusChange),
-            Assert AliasAssignment(AliasAssignment),
-            Match Query(Query),
-            Assert AdjudicationRequest(AdjudicationRequest),
-            Match ChannelList(ChannelList),
-        }
+        operation SubmitThought(SubmitThought),
+        operation SubmitRelation(SubmitRelation),
+        operation QueryThoughts(QueryThoughts),
+        operation QueryRelations(QueryRelations),
+        operation SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
+        operation SubscribeRelations(SubscribeRelations) opens MindEventStream,
+        operation SubscriptionRetraction(SubscriptionIdentifier),
+        operation Opening(Opening),
+        operation NoteSubmission(NoteSubmission),
+        operation Link(Link),
+        operation StatusChange(StatusChange),
+        operation AliasAssignment(AliasAssignment),
+        operation Query(Query),
+        operation AdjudicationRequest(AdjudicationRequest),
+        operation ChannelList(ChannelList),
         reply MindReply {
             ThoughtCommitted(ThoughtCommitted),
             RelationCommitted(RelationCommitted),
@@ -444,7 +434,7 @@ This repo does not own:
 
 - `mind` binary implementation;
 - Kameo actors;
-- `mind.redb`;
+- `mind.sema`;
 - daemon lifecycle and local socket path;
 - `sema` table declarations;
 - caller identity resolution policy;

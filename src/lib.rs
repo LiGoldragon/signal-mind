@@ -20,7 +20,7 @@
 
 use nota_codec::{NotaEnum, NotaRecord, NotaTransparent, NotaTryTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
-use signal_core::signal_channel;
+use signal_frame::signal_channel;
 use signal_persona_origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
 pub use signal_sema::Magnitude;
 use std::fmt;
@@ -846,27 +846,6 @@ pub struct ChannelList {
     pub filters: Vec<ChannelFilter>,
 }
 
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
-)]
-pub enum MindOperationKind {
-    SubmitThought,
-    SubmitRelation,
-    QueryThoughts,
-    QueryRelations,
-    SubscribeThoughts,
-    SubscribeRelations,
-    SubscriptionRetraction,
-    Opening,
-    NoteSubmission,
-    Link,
-    StatusChange,
-    AliasAssignment,
-    Query,
-    AdjudicationRequest,
-    ChannelList,
-}
-
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
 pub enum ChannelFilter {
     Source(ChannelEndpoint),
@@ -892,71 +871,61 @@ pub struct ChannelListView {
 
 signal_channel! {
     channel Mind {
-        request MindRequest {
-            Assert SubmitThought(SubmitThought),
-            Assert SubmitRelation(SubmitRelation),
-            Match QueryThoughts(QueryThoughts),
-            Match QueryRelations(QueryRelations),
-            Subscribe SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
-            Subscribe SubscribeRelations(SubscribeRelations) opens MindEventStream,
-            Retract SubscriptionRetraction(SubscriptionIdentifier),
-            Assert Opening(Opening),
-            Assert NoteSubmission(NoteSubmission),
-            Assert Link(Link),
-            Mutate StatusChange(StatusChange),
-            Assert AliasAssignment(AliasAssignment),
-            Match Query(Query),
-            Assert AdjudicationRequest(AdjudicationRequest),
-            Match ChannelList(ChannelList),
-        }
-        reply MindReply {
-            ThoughtCommitted(ThoughtCommitted),
-            RelationCommitted(RelationCommitted),
-            ThoughtList(ThoughtList),
-            RelationList(RelationList),
-            SubscriptionAccepted(SubscriptionAccepted),
-            SubscriptionRetracted(SubscriptionRetracted),
-            OpeningReceipt(OpeningReceipt),
-            NoteReceipt(NoteReceipt),
-            LinkReceipt(LinkReceipt),
-            StatusReceipt(StatusReceipt),
-            AliasReceipt(AliasReceipt),
-            View(View),
-            Rejection(Rejection),
-            AdjudicationReceipt(AdjudicationReceipt),
-            ChannelListView(ChannelListView),
-            MindRequestUnimplemented(MindRequestUnimplemented),
-        }
-        event MindEvent {
-            SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
-        }
-        stream MindEventStream {
-            token SubscriptionIdentifier;
-            opened SubscriptionAccepted;
-            event SubscriptionDelta;
-            close SubscriptionRetraction;
-        }
+        operation SubmitThought(SubmitThought),
+        operation SubmitRelation(SubmitRelation),
+        operation QueryThoughts(QueryThoughts),
+        operation QueryRelations(QueryRelations),
+        operation SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
+        operation SubscribeRelations(SubscribeRelations) opens MindEventStream,
+        operation SubscriptionRetraction(SubscriptionIdentifier),
+        operation Opening(Opening),
+        operation NoteSubmission(NoteSubmission),
+        operation Link(Link),
+        operation StatusChange(StatusChange),
+        operation AliasAssignment(AliasAssignment),
+        operation Query(Query),
+        operation AdjudicationRequest(AdjudicationRequest),
+        operation ChannelList(ChannelList),
+    }
+    reply MindReply {
+        ThoughtCommitted(ThoughtCommitted),
+        RelationCommitted(RelationCommitted),
+        ThoughtList(ThoughtList),
+        RelationList(RelationList),
+        SubscriptionAccepted(SubscriptionAccepted),
+        SubscriptionRetracted(SubscriptionRetracted),
+        OpeningReceipt(OpeningReceipt),
+        NoteReceipt(NoteReceipt),
+        LinkReceipt(LinkReceipt),
+        StatusReceipt(StatusReceipt),
+        AliasReceipt(AliasReceipt),
+        View(View),
+        Rejection(Rejection),
+        AdjudicationReceipt(AdjudicationReceipt),
+        ChannelListView(ChannelListView),
+        MindRequestUnimplemented(MindRequestUnimplemented),
+    }
+    event MindEvent {
+        SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
+    }
+    stream MindEventStream {
+        token SubscriptionIdentifier;
+        opened SubscriptionAccepted;
+        event SubscriptionDelta;
+        close SubscriptionRetraction;
     }
 }
 
+pub type MindRequest = Operation;
+pub type MindFrame = Frame;
+pub type MindFrameBody = FrameBody;
+pub type MindReplyEnvelope = ReplyEnvelope;
+pub type MindRequestBuilder = RequestBuilder;
+pub type MindOperationKind = OperationKind;
+pub type MindStreamKind = StreamKind;
+
 impl MindRequest {
     pub fn operation_kind(&self) -> MindOperationKind {
-        match self {
-            Self::SubmitThought(_) => MindOperationKind::SubmitThought,
-            Self::SubmitRelation(_) => MindOperationKind::SubmitRelation,
-            Self::QueryThoughts(_) => MindOperationKind::QueryThoughts,
-            Self::QueryRelations(_) => MindOperationKind::QueryRelations,
-            Self::SubscribeThoughts(_) => MindOperationKind::SubscribeThoughts,
-            Self::SubscribeRelations(_) => MindOperationKind::SubscribeRelations,
-            Self::SubscriptionRetraction(_) => MindOperationKind::SubscriptionRetraction,
-            Self::Opening(_) => MindOperationKind::Opening,
-            Self::NoteSubmission(_) => MindOperationKind::NoteSubmission,
-            Self::Link(_) => MindOperationKind::Link,
-            Self::StatusChange(_) => MindOperationKind::StatusChange,
-            Self::AliasAssignment(_) => MindOperationKind::AliasAssignment,
-            Self::Query(_) => MindOperationKind::Query,
-            Self::AdjudicationRequest(_) => MindOperationKind::AdjudicationRequest,
-            Self::ChannelList(_) => MindOperationKind::ChannelList,
-        }
+        self.kind()
     }
 }

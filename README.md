@@ -1,7 +1,7 @@
 # signal-mind
 
 The Signal contract between **`mind`** (the CLI agents invoke per call)
-and **`mind`** (the central state actor that owns `mind.redb`).
+and **`mind`** (the central state actor that owns `mind.sema`).
 
 Read `src/lib.rs` for the public interface — two enums
 (`MindRequest`, `MindReply`) declared via the
@@ -23,7 +23,7 @@ belong to `signal-persona-orchestrate`.
 ## Quick reference
 
 ```rust
-use signal_core::{
+use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, RequestPayload, SessionEpoch,
 };
 use signal_mind::{
@@ -61,7 +61,7 @@ stores a normalized absolute path) and `TaskToken::from_wire_token`.
 - `ARCHITECTURE.md` — channel role + boundaries
 - `~/primary/skills/contract-repo.md` — contract-repo
   discipline
-- `signal-core` — kernel that supplies `Frame`,
+- `signal-frame` — kernel that supplies `Frame`,
   `Request`, `Reply`, `signal_channel!`
 - `mind` — the consumer that implements
   this contract
