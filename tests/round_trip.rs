@@ -6,7 +6,7 @@
 //! proves the macro-emitted type round-trips through a
 //! length-prefixed Frame.
 
-use nota_codec::{Decoder, Encoder, Error as NotaError, NotaDecode, NotaEncode};
+use nota_next::{NotaDecode, NotaEncode, NotaSource};
 use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalOperationHeads, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
@@ -82,13 +82,12 @@ fn round_trip_nota<T>(value: T, expected: &str)
 where
     T: NotaEncode + NotaDecode + PartialEq + std::fmt::Debug,
 {
-    let mut encoder = Encoder::new();
-    value.encode(&mut encoder).expect("encode nota text");
-    let encoded = encoder.into_string();
+    let encoded = value.to_nota();
     assert_eq!(encoded, expected);
 
-    let mut decoder = Decoder::new(&encoded);
-    let recovered = T::decode(&mut decoder).expect("decode nota text");
+    let recovered = NotaSource::new(&encoded)
+        .parse::<T>()
+        .expect("decode nota text");
     assert_eq!(recovered, value);
 }
 
@@ -556,7 +555,7 @@ fn query_thoughts_request_round_trips_with_composite_filter() {
             goal: None,
             memory: None,
         }),
-        limit: 32,
+        limit: QueryLimit::new(32),
     });
 
     assert_eq!(round_trip_request(request.clone()), request);
@@ -568,7 +567,7 @@ fn query_relations_request_round_trips_with_source_filter() {
         filter: RelationFilter::BySource(ByRelationSource {
             source: RecordIdentifier::new("goal-aab"),
         }),
-        limit: 16,
+        limit: QueryLimit::new(16),
     });
 
     assert_eq!(round_trip_request(request.clone()), request);
@@ -990,9 +989,7 @@ fn channel_message_kinds_do_not_model_router_owner_orders() {
     ];
 
     for kind in allowed {
-        let mut encoder = Encoder::new();
-        kind.encode(&mut encoder).expect("encode");
-        let encoded = encoder.into_string();
+        let encoded = kind.to_nota();
         assert!(!forbidden.contains(&encoded.as_str()));
     }
 }
@@ -1022,7 +1019,7 @@ fn mind_request_exposes_contract_owned_operation_kind() {
                 filter: ThoughtFilter::ByKind(ByThoughtKind {
                     kinds: vec![ThoughtKind::Goal],
                 }),
-                limit: 10,
+                limit: QueryLimit::new(10),
             }),
             MindOperationKind::QueryThoughts,
         ),
@@ -1031,7 +1028,7 @@ fn mind_request_exposes_contract_owned_operation_kind() {
                 filter: RelationFilter::ByKind(ByRelationKind {
                     kinds: vec![RelationKind::Implements],
                 }),
-                limit: 10,
+                limit: QueryLimit::new(10),
             }),
             MindOperationKind::QueryRelations,
         ),
@@ -1243,7 +1240,7 @@ fn path_scope_round_trips() {
 
 #[test]
 fn task_scope_round_trips() {
-    round_trip_nota(ScopeReference::Task(sample_task()), "(Task primary-f99)");
+    round_trip_nota(ScopeReference::Task(sample_task()), "(Task [primary-f99])");
 }
 
 // ─── Boundary validation ──────────────────────────────────
@@ -1265,15 +1262,11 @@ fn wire_path_requires_absolute_normalized_path() {
 
 #[test]
 fn wire_path_nota_decode_uses_boundary_validation() {
-    let mut decoder = Decoder::new("[relative/path]");
-    let error = WirePath::decode(&mut decoder).expect_err("relative path must fail validation");
-    match error {
-        NotaError::Validation { type_name, message } => {
-            assert_eq!(type_name, "WirePath");
-            assert!(message.contains("absolute"), "message was: {message}");
-        }
-        other => panic!("expected validation error, got {other:?}"),
-    }
+    let error = NotaSource::new("[relative/path]")
+        .parse::<WirePath>()
+        .expect_err("relative path must fail validation");
+    let message = error.to_string();
+    assert!(message.contains("absolute"), "message was: {message}");
 }
 
 #[test]

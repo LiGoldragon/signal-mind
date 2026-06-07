@@ -18,7 +18,7 @@
 //! boundaries; `~/primary/skills/contract-repo.md` for the
 //! contract-repo discipline this crate follows.
 
-use nota_codec::{NotaEnum, NotaRecord, NotaTransparent, NotaTryTransparent};
+use nota_next::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_frame::signal_channel;
 use signal_persona_origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
@@ -31,7 +31,7 @@ pub use graph::*;
 
 // ─── Error ────────────────────────────────────────────────
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type MindResult<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
@@ -60,7 +60,8 @@ pub enum Error {
     Hash,
     PartialOrd,
     Ord,
-    NotaEnum,
+    NotaEncode,
+    NotaDecode,
 )]
 pub enum RoleName {
     Operator,
@@ -107,7 +108,7 @@ impl RoleName {
         }
     }
 
-    pub fn from_wire_token(role: impl Into<String>) -> Result<Self> {
+    pub fn from_wire_token(role: impl Into<String>) -> MindResult<Self> {
         let role = role.into();
         match role.as_str() {
             "operator" => Ok(Self::Operator),
@@ -135,7 +136,7 @@ impl fmt::Display for RoleName {
 impl FromStr for RoleName {
     type Err = Error;
 
-    fn from_str(role: &str) -> Result<Self> {
+    fn from_str(role: &str) -> MindResult<Self> {
         Self::from_wire_token(role)
     }
 }
@@ -143,7 +144,7 @@ impl FromStr for RoleName {
 impl TryFrom<String> for RoleName {
     type Error = Error;
 
-    fn try_from(role: String) -> Result<Self> {
+    fn try_from(role: String) -> MindResult<Self> {
         Self::from_wire_token(role)
     }
 }
@@ -151,7 +152,7 @@ impl TryFrom<String> for RoleName {
 impl TryFrom<&str> for RoleName {
     type Error = Error;
 
-    fn try_from(role: &str) -> Result<Self> {
+    fn try_from(role: &str) -> MindResult<Self> {
         Self::from_wire_token(role)
     }
 }
@@ -159,7 +160,18 @@ impl TryFrom<&str> for RoleName {
 // ─── Scope reference ──────────────────────────────────────
 
 /// What's being claimed / observed / acted on.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 pub enum ScopeReference {
     /// An absolute file or directory path.
     Path(WirePath),
@@ -173,16 +185,16 @@ pub enum ScopeReference {
 /// §"Newtype the wire form" — `PathBuf` archives
 /// non-deterministically).
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, Debug, Clone, PartialEq, Eq, Hash,
 )]
 pub struct WirePath(String);
 
 impl WirePath {
-    pub fn try_new(path: String) -> Result<Self> {
+    pub fn try_new(path: String) -> MindResult<Self> {
         Self::from_absolute_path(path)
     }
 
-    pub fn from_absolute_path(path: impl Into<String>) -> Result<Self> {
+    pub fn from_absolute_path(path: impl Into<String>) -> MindResult<Self> {
         let path = path.into();
 
         if !path.starts_with('/') || path.split('/').any(|component| component == "..") {
@@ -210,7 +222,7 @@ impl WirePath {
 impl TryFrom<String> for WirePath {
     type Error = Error;
 
-    fn try_from(path: String) -> Result<Self> {
+    fn try_from(path: String) -> MindResult<Self> {
         Self::from_absolute_path(path)
     }
 }
@@ -218,7 +230,7 @@ impl TryFrom<String> for WirePath {
 impl TryFrom<&str> for WirePath {
     type Error = Error;
 
-    fn try_from(path: &str) -> Result<Self> {
+    fn try_from(path: &str) -> MindResult<Self> {
         Self::from_absolute_path(path)
     }
 }
@@ -229,20 +241,27 @@ impl AsRef<str> for WirePath {
     }
 }
 
+impl NotaDecode for WirePath {
+    fn from_nota_block(block: &Block) -> std::result::Result<Self, NotaDecodeError> {
+        let path = NotaBlock::new(block).parse_string()?;
+        Self::from_absolute_path(path).map_err(|error| NotaDecodeError::Parse(error.to_string()))
+    }
+}
+
 /// A bracketed task identifier (stored without brackets).
 /// Bracketed form like `[primary-f99]` is the human surface;
 /// the wire carries the raw token.
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, Debug, Clone, PartialEq, Eq, Hash,
 )]
 pub struct TaskToken(String);
 
 impl TaskToken {
-    pub fn try_new(token: String) -> Result<Self> {
+    pub fn try_new(token: String) -> MindResult<Self> {
         Self::from_wire_token(token)
     }
 
-    pub fn from_wire_token(token: impl Into<String>) -> Result<Self> {
+    pub fn from_wire_token(token: impl Into<String>) -> MindResult<Self> {
         let token = token.into();
         if token.is_empty()
             || token.contains('[')
@@ -263,7 +282,7 @@ impl TaskToken {
 impl TryFrom<String> for TaskToken {
     type Error = Error;
 
-    fn try_from(token: String) -> Result<Self> {
+    fn try_from(token: String) -> MindResult<Self> {
         Self::from_wire_token(token)
     }
 }
@@ -271,7 +290,7 @@ impl TryFrom<String> for TaskToken {
 impl TryFrom<&str> for TaskToken {
     type Error = Error;
 
-    fn try_from(token: &str) -> Result<Self> {
+    fn try_from(token: &str) -> MindResult<Self> {
         Self::from_wire_token(token)
     }
 }
@@ -279,6 +298,13 @@ impl TryFrom<&str> for TaskToken {
 impl AsRef<str> for TaskToken {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+impl NotaDecode for TaskToken {
+    fn from_nota_block(block: &Block) -> std::result::Result<Self, NotaDecodeError> {
+        let token = NotaBlock::new(block).parse_string()?;
+        Self::from_wire_token(token).map_err(|error| NotaDecodeError::Parse(error.to_string()))
     }
 }
 
@@ -298,7 +324,8 @@ impl AsRef<str> for TaskToken {
     Hash,
     PartialOrd,
     Ord,
-    NotaTransparent,
+    NotaEncode,
+    NotaDecode,
 )]
 pub struct TimestampNanos(u64);
 
@@ -315,7 +342,16 @@ impl TimestampNanos {
 // ─── Mind Memory Identity ─────────────────────────────────
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct StableItemIdentifier(String);
 
@@ -330,7 +366,16 @@ impl StableItemIdentifier {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct DisplayIdentifier(String);
 
@@ -345,7 +390,16 @@ impl DisplayIdentifier {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct ExternalAlias(String);
 
@@ -360,7 +414,16 @@ impl ExternalAlias {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct BeadsToken(String);
 
@@ -375,7 +438,16 @@ impl BeadsToken {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct OperationIdentifier(String);
 
@@ -390,7 +462,16 @@ impl OperationIdentifier {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct ActorName(String);
 
@@ -408,13 +489,14 @@ impl ActorName {
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaTransparent,
     Debug,
     Clone,
     Copy,
     PartialEq,
     Eq,
     Hash,
+    NotaEncode,
+    NotaDecode,
 )]
 pub struct EventSeq(u64);
 
@@ -428,18 +510,7 @@ impl EventSeq {
     }
 }
 
-#[derive(
-    Archive,
-    RkyvSerialize,
-    RkyvDeserialize,
-    NotaTransparent,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct QueryLimit(u16);
 
 impl QueryLimit {
@@ -452,9 +523,27 @@ impl QueryLimit {
     }
 }
 
+impl NotaDecode for QueryLimit {
+    fn from_nota_block(block: &Block) -> std::result::Result<Self, NotaDecodeError> {
+        let value = NotaBlock::new(block).parse_integer()?;
+        let value = u16::try_from(value).map_err(|_| NotaDecodeError::InvalidInteger {
+            value: value.to_string(),
+        })?;
+        Ok(Self(value))
+    }
+}
+
+impl NotaEncode for QueryLimit {
+    fn to_nota(&self) -> String {
+        self.0.to_string()
+    }
+}
+
 // ─── Mind Memory Text ─────────────────────────────────────
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Title(String);
 
 impl Title {
@@ -467,7 +556,9 @@ impl Title {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct TextBody(String);
 
 impl TextBody {
@@ -481,7 +572,16 @@ impl TextBody {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct ReportPath(String);
 
@@ -496,7 +596,16 @@ impl ReportPath {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct ReferencePath(String);
 
@@ -511,7 +620,16 @@ impl ReferencePath {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct CommitHash(String);
 
@@ -528,7 +646,17 @@ impl CommitHash {
 // ─── Mind Memory Domain ───────────────────────────────────
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum ItemKind {
     Task,
@@ -540,7 +668,17 @@ pub enum ItemKind {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum ItemStatus {
     Open,
@@ -551,7 +689,17 @@ pub enum ItemStatus {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum EdgeKind {
     DependsOn,
@@ -563,14 +711,36 @@ pub enum EdgeKind {
     References,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 pub enum ItemReference {
     Stable(StableItemIdentifier),
     Display(DisplayIdentifier),
     Alias(ExternalAlias),
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 pub enum ExternalReference {
     Report(ReportPath),
     GitCommit(CommitHash),
@@ -578,13 +748,35 @@ pub enum ExternalReference {
     File(ReferencePath),
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 pub enum LinkTarget {
     Item(ItemReference),
     External(ExternalReference),
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 pub enum EdgeTarget {
     Item(StableItemIdentifier),
     External(ExternalReference),
@@ -592,7 +784,9 @@ pub enum EdgeTarget {
 
 // ─── Mind Memory Requests ─────────────────────────────────
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Opening {
     pub kind: ItemKind,
     pub priority: Magnitude,
@@ -600,13 +794,17 @@ pub struct Opening {
     pub body: TextBody,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct NoteSubmission {
     pub item: ItemReference,
     pub body: TextBody,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Link {
     pub source: ItemReference,
     pub kind: EdgeKind,
@@ -614,26 +812,34 @@ pub struct Link {
     pub body: Option<TextBody>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct StatusChange {
     pub item: ItemReference,
     pub status: ItemStatus,
     pub body: Option<TextBody>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct AliasAssignment {
     pub item: ItemReference,
     pub alias: ExternalAlias,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Query {
     pub kind: QueryKind,
     pub limit: QueryLimit,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum QueryKind {
     Ready,
     Blocked,
@@ -647,7 +853,9 @@ pub enum QueryKind {
 
 // ─── Mind Memory Projections ──────────────────────────────
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Item {
     pub id: StableItemIdentifier,
     pub display_identifier: DisplayIdentifier,
@@ -659,7 +867,9 @@ pub struct Item {
     pub body: TextBody,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Note {
     pub event: EventSeq,
     pub item: StableItemIdentifier,
@@ -667,7 +877,9 @@ pub struct Note {
     pub body: TextBody,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Edge {
     pub event: EventSeq,
     pub source: StableItemIdentifier,
@@ -678,32 +890,42 @@ pub struct Edge {
 
 // ─── Mind Memory Events ───────────────────────────────────
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct EventHeader {
     pub event: EventSeq,
     pub operation: OperationIdentifier,
     pub actor: ActorName,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct ItemOpenedEvent {
     pub header: EventHeader,
     pub item: Item,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct NoteAddedEvent {
     pub header: EventHeader,
     pub note: Note,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct EdgeAddedEvent {
     pub header: EventHeader,
     pub edge: Edge,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct StatusChangedEvent {
     pub header: EventHeader,
     pub item: StableItemIdentifier,
@@ -711,14 +933,18 @@ pub struct StatusChangedEvent {
     pub body: Option<TextBody>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct AliasAddedEvent {
     pub header: EventHeader,
     pub item: StableItemIdentifier,
     pub alias: ExternalAlias,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum Event {
     ItemOpened(ItemOpenedEvent),
     NoteAdded(NoteAddedEvent),
@@ -729,32 +955,44 @@ pub enum Event {
 
 // ─── Mind Memory Replies ──────────────────────────────────
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct OpeningReceipt {
     pub event: ItemOpenedEvent,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct NoteReceipt {
     pub event: NoteAddedEvent,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct LinkReceipt {
     pub event: EdgeAddedEvent,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct StatusReceipt {
     pub event: StatusChangedEvent,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct AliasReceipt {
     pub event: AliasAddedEvent,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct View {
     pub items: Vec<Item>,
     pub edges: Vec<Edge>,
@@ -762,12 +1000,16 @@ pub struct View {
     pub events: Vec<Event>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Rejection {
     pub reason: RejectionReason,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum RejectionReason {
     UnknownItem,
     DuplicateAlias,
@@ -780,7 +1022,16 @@ pub enum RejectionReason {
 // ─── Channel Choreography ─────────────────────────────────
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub struct AdjudicationRequestIdentifier(String);
 
@@ -794,14 +1045,26 @@ impl AdjudicationRequestIdentifier {
     }
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum ChannelEndpoint {
     Internal(ComponentName),
     External(ConnectionClass),
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum ChannelMessageKind {
     MessageIngressSubmission,
@@ -819,7 +1082,17 @@ pub enum ChannelMessageKind {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
 )]
 pub enum ChannelDuration {
     OneShot,
@@ -827,7 +1100,9 @@ pub enum ChannelDuration {
     TimeBound(TimestampNanos),
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct AdjudicationRequest {
     pub request: AdjudicationRequestIdentifier,
     pub origin: MessageOrigin,
@@ -836,24 +1111,32 @@ pub struct AdjudicationRequest {
     pub body_summary: TextBody,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct AdjudicationReceipt {
     pub request: AdjudicationRequestIdentifier,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct ChannelList {
     pub filters: Vec<ChannelFilter>,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum ChannelFilter {
     Source(ChannelEndpoint),
     Destination(ChannelEndpoint),
     Kind(ChannelMessageKind),
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct ChannelView {
     pub channel: ChannelIdentifier,
     pub source: ChannelEndpoint,
@@ -862,7 +1145,9 @@ pub struct ChannelView {
     pub duration: ChannelDuration,
 }
 
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, PartialEq, Eq)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub struct ChannelListView {
     pub channels: Vec<ChannelView>,
 }
