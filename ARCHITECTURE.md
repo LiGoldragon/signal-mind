@@ -8,14 +8,13 @@
 defines the typed request/reply channel used by the `mind` CLI and long-lived
 `mind` daemon.
 
-## Three-layer model
+## Contract/Daemon Boundary
 
-This contract follows the three-layer model affirmed
-2026-05-20 per
-`primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
-and `primary/reports/designer/248-three-layer-changes-for-operators.md`.
+This contract names the public operations a caller sends to Mind. The daemon
+lowers those operations into Nexus commands and SEMA reads or writes behind the
+boundary; database-action classes are not public request roots.
 
-**Layer 1 — Contract Operations on the wire (this crate).** The wire uses
+**Contract operations on the wire (this crate).** The wire uses
 `signal-frame` contract-local operations directly; there is no universal
 verb-class wrapper in `MindRequest`. The current operation roots remain
 relation-specific:
@@ -26,16 +25,15 @@ relation-specific:
   `Query` operation root whose payload names the read target).
 - *Work-and-memory graph:* `Submit` covers `Opening`,
   `NoteSubmission` (rename payload to `Note`), `Link`, and
-  `AliasAssignment` (payload `AliasAssignment`); `Mutate StatusChange`
-  becomes a contract-local verb — likely `ChangeStatus` or
-  `Transition` since `Mutate` is grammatically wrong on a verb.
+  `AliasAssignment` (payload `AliasAssignment`); status changes use the
+  contract-local `StatusChange` operation.
 - *Channel choreography:* this contract keeps Router-to-Mind
   adjudication observation and read-side channel views only. Router
   channel authority orders are not ordinary Mind working requests.
   `Grant`, `Extend`, `Revoke`, and `Deny` live in
-  `owner-signal-persona-router`, the router's meta signal, and are
+  `meta-signal-router`, the router's meta signal, and are
   called by Orchestrate. Mind decides at the cognitive level and
-  orders Orchestrate through `owner-signal-persona-orchestrate`. The
+  orders Orchestrate through `meta-signal-orchestrate`. The
   remaining Mind-side verbs are `Adjudicate` (open an adjudication for
   resolution; replaces `AdjudicationRequest`) and `Query` (read the
   channel list; replaces `ChannelList`).
@@ -51,7 +49,7 @@ streaming Thought commits to a specific subscriber set), they can
 keep domain-local `Watch`/`Unwatch` verbs alongside the mandatory
 observability.
 
-**Layer 2 — Component Commands (mind daemon).** The mind
+**Component commands (mind daemon).** The mind
 daemon owns its typed Command enum. Example commands:
 `MindCommand::AssertThought`, `MindCommand::AssertRelation`,
 `MindCommand::ReadThoughtIndex`, `MindCommand::RecordOpening`,
@@ -59,19 +57,12 @@ daemon owns its typed Command enum. Example commands:
 `MindCommand::RecordAdjudicationRequest`, and
 `MindCommand::ReadChannelList`. Router channel authority commands live
 behind Orchestrate's machinery path:
-`owner-signal-persona-orchestrate` → `owner-signal-persona-router`,
+`meta-signal-orchestrate` → `meta-signal-router`,
 not this working signal.
-
-**Layer 3 — Sema classification (signal-sema).** Each Component
-Command projects to a payloadless `SemaOperation` class via
-`ToSemaOperation`. Cross-component observers filter by class.
 
 **Frame layer.** The dependency is `signal-frame`.
 
 References:
-- `primary/reports/designer/246-v4-bundled-fix-deep-design-with-examples.md`
-- `primary/reports/designer/248-three-layer-changes-for-operators.md`
-- `primary/skills/component-triad.md` §"Verbs come in three layers"
 - `primary/skills/contract-repo.md` §"Public contracts use contract-local operation verbs"
 
 > **Scope.** This contract sits on today's stack — `signal-frame` wire,
@@ -84,10 +75,10 @@ This repo owns records, validation newtypes, rkyv round trips, and channel
 shape. It does not own the CLI binary, actors, database, storage tables,
 transport lifecycle, or lock-file migration.
 
-Each `MindRequest` variant is a contract-local verb in verb form
-(Layer 1). The daemon owns its typed Component Commands (Layer 2)
-and projects them to payloadless Sema class labels (Layer 3) for
-observation — Sema classification does not appear on the wire.
+Each `MindRequest` variant is a contract-local operation. The daemon owns its
+typed component commands, Nexus decisions, and SEMA reads or writes. Database
+action classes do not appear on the wire and this contract has no
+`signal-sema` dependency.
 
 ```mermaid
 flowchart LR
@@ -179,11 +170,9 @@ The request enum exposes one contract-owned discriminant:
 
 - `operation_kind()` names the domain operation for audit and UI surfaces.
 
-Under the three-layer model, Sema classification (Layer 3) lives in
-the daemon's `ToSemaOperation` impl on its Component Command type
-(Layer 2), not in this contract crate. The contract names the
-caller's domain action; the daemon decides what Sema-class label
-to emit for observation.
+The contract names the caller's domain action. The daemon decides what internal
+command, durable read, durable write, effect, rejection, or reply the action
+becomes.
 
 ## 3 · Record Families
 
@@ -251,9 +240,9 @@ message whose channel is missing or inactive and submits
 `AdjudicationRequest`. Mind records the request and may inspect channel
 views through `ChannelList`. If Mind decides router channel policy
 should change, it orders Orchestrate through
-`owner-signal-persona-orchestrate`. Orchestrate then sends `Grant`,
+`meta-signal-orchestrate`. Orchestrate then sends `Grant`,
 `Extend`, `Revoke`, or `Deny` through
-`owner-signal-persona-router`. Mind does not call Router's owner
+`meta-signal-router`. Mind does not call Router's meta
 signal directly.
 
 The destination handler set inside `mind` is a stateful
@@ -276,9 +265,9 @@ The endpoint and kind vocabulary is typed:
   `persona-message-daemon` forwards user-typed messages over. This
   variant must be distinct from the generic delivery kinds so audit and
   choreography can tell message ingress from other internal traffic.
-- Owner-order names such as channel grant, extension, revocation, and
+- Meta-order names such as channel grant, extension, revocation, and
   denial are intentionally absent from `ChannelMessageKind`; those are
-  operations on `owner-signal-persona-router`, not routed message
+  operations on `meta-signal-router`, not routed message
   categories in the Mind working signal.
 - `ChannelDuration` is `OneShot`, `Permanent`, or `TimeBound(TimestampNanos)`.
 
@@ -367,8 +356,7 @@ MindUnimplementedReason
 
 - The channel is one closed `MindRequest` enum and one closed `MindReply`
   enum emitted by `signal_channel!`. All variants are contract-local
-  verbs in verb form; Sema classification is daemon-side projection
-  only.
+  operations; SEMA reads, writes, and classifications are daemon-side only.
 - The architecture's channel declaration matches the implemented
   `signal_channel!` invocation in `src/lib.rs`.
 - `RoleName` covers every workspace coordination role in
@@ -382,20 +370,20 @@ MindUnimplementedReason
 - Channel choreography is closed vocabulary; there is no stringly "kind" or
   catch-all request.
 - Router channel authority orders are absent from this working signal
-  and live in `owner-signal-persona-router`, called by Orchestrate.
-- `ChannelMessageKind` does not contain owner-order names such as
+  and live in `meta-signal-router`, called by Orchestrate.
+- `ChannelMessageKind` does not contain meta-order names such as
   channel grant, extension, revocation, or denial.
 - This contract crate contains no CLI, daemon, actor runtime, database table,
   transport, or migration implementation.
 - The text surface is NOTA projected into these exact records; there is no
   second command language.
-- Subscription close uses the streaming grammar: a `Subscribe` request opens
-  the stream; a typed `Retract SubscriptionRetraction(SubscriptionIdentifier)`
+- Subscription close uses the streaming grammar: a typed subscription request opens
+  the stream; a typed `SubscriptionRetraction(SubscriptionIdentifier)`
   request closes it; the producer emits `MindReply::SubscriptionRetracted`
   as the final acknowledgement before the stream ends.
 - Channel-choreography requests route inside `mind` to one stateful
   `ChoreographyAdjudicator` actor; this contract closes the Mind-side
-  observation vocabulary, and Router owner signal owns grant-state
+  observation vocabulary, and Router meta signal owns grant-state
   authority orders.
 
 ## 8 · Tests
@@ -452,9 +440,8 @@ tests/round_trip.rs     frame round trips, NOTA witnesses, and validation tests
 ## See Also
 
 - `../mind/ARCHITECTURE.md`
-- `../owner-signal-persona-router/ARCHITECTURE.md`
+- `../meta-signal-router/ARCHITECTURE.md`
 - `../signal-frame/ARCHITECTURE.md`
-- `../signal-sema/ARCHITECTURE.md`
 - `~/primary/orchestrate/AGENTS.md`
 - `~/primary/skills/contract-repo.md`
-- `~/primary/skills/component-triad.md` §"Verbs come in three layers".
+- `~/primary/skills/component-triad.md`.

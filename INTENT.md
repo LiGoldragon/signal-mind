@@ -11,7 +11,7 @@ Companion to `ARCHITECTURE.md` and `Cargo.toml`. Maintenance: `primary/skills/re
 This file carries only the intent that is FOR this `signal-mind` contract.
 Workspace-shape intent stays in the primary workspace `primary/INTENT.md`.
 Component daemon intent stays in `mind/INTENT.md`. Meta mind policy stays in
-`owner-signal-mind` until the repository rename lands.
+`meta-signal-mind`.
 
 ## Why this repo exists
 
@@ -23,7 +23,7 @@ graph (openings, notes, links, status, aliases), and channel choreography
 observation. Ordinary role claims, handoffs, observations, and activity-log
 operations belong to `signal-orchestrate`, not here. Runtime actors, the
 `mind.sema` store, choreography decision logic, and authority orders live in
-`mind` and `owner-signal-mind`.
+`mind` and `meta-signal-mind`.
 
 ## The channel shape
 
@@ -44,8 +44,8 @@ The Mind channel carries:
   subscriptions; retraction closes the stream.
 
 The wire vocabulary is contract-local: the daemon lowers these public operations
-into component-local commands; Sema classification happens at observation time,
-not on the wire.
+into component-local Nexus commands and SEMA reads or writes. Database-action
+classification never crosses this public wire.
 
 ## Channels are closed, boundaries are named
 
@@ -78,9 +78,9 @@ operation verbs":
   `Tap`/`Untap` observability surface, where it replaces or augments
   domain-local subscription operations.
 - Router channel authority orders (`Grant`, `Extend`, `Revoke`, `Deny`) are NOT
-  ordinary mind working requests; they live in `owner-signal-persona-router` and
-  are issued by orchestrate. Mind decides at the cognitive level and orders
-  through `owner-signal-mind` → orchestrate.
+  ordinary mind working requests; they live in `meta-signal-router` and are
+  issued by orchestrate. Mind decides at the cognitive level and orders through
+  `meta-signal-mind` → orchestrate.
 
 ## Constraints
 
@@ -94,21 +94,15 @@ operation verbs":
 - Request payloads cannot carry IDs, timestamps, or sequence numbers; the daemon
   supplies those.
 - Channel choreography observation is read-only in this contract; authority
-  orders live in `owner-signal-mind`.
+  orders live in `meta-signal-mind`.
 
-## Three-layer model
+## Daemon lowering boundary
 
-Layer 1 (this crate): contract operations on the wire (`Submit`, `Query`,
-`Adjudicate`).
-Layer 2 (daemon): component-local `MindCommand` enum (e.g. `AssertThought`,
-`AssertRelation`, `RecordOpening`, `ChangeWorkItemStatus`, `ReadChannelList`)
-that the daemon executes.
-Layer 3 (observation): payloadless Sema class labels (`Assert`, `Mutate`,
-`Match`, `Subscribe`) for cross-component introspection.
-
-The contract names the public action at the boundary; the daemon decides what
-internal work and Sema class label each action maps to. Sema classification
-never appears on the wire.
+The contract names the public action at the boundary. The daemon decides what
+internal work, durable read, durable write, effect, rejection, or reply each
+action becomes. Public contracts do not mirror `Assert`, `Mutate`, `Retract`,
+`Match`, `Subscribe`, or `Validate`, and this crate does not depend on
+`signal-sema`.
 
 ## Code map
 
@@ -136,7 +130,7 @@ This crate does not own:
   three relations, and closed-enum discipline.
 - `../mind/INTENT.md` — daemon-side intent (schema-driven planes, actor topology,
   state schema).
-- `../owner-signal-mind/INTENT.md` — meta mind policy contract (repository rename pending).
+- `../meta-signal-mind/INTENT.md` — meta mind policy contract.
 - `../signal-orchestrate/INTENT.md` — ordinary role/activity orchestration contract.
 - `primary/skills/contract-repo.md` — contract repo discipline and naming rules.
 - `primary/skills/component-triad.md` — repo triad structure and wire layers.

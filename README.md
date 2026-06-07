@@ -13,9 +13,7 @@ channel carries:
 - **Typed mind graph:** `SubmitThought`, `SubmitRelation`,
   `QueryThoughts`, `QueryRelations`, `SubscribeThoughts`,
   `SubscribeRelations`, `SubscriptionRetraction`.
-- **Channel choreography:** `AdjudicationRequest`,
-  `ChannelGrant`, `ChannelExtend`, `ChannelRetract`,
-  `AdjudicationDeny`, `ChannelList`.
+- **Channel choreography:** `AdjudicationRequest`, `ChannelList`.
 
 Ordinary role claims, handoffs, observations, and activity log operations
 belong to `signal-persona-orchestrate`.

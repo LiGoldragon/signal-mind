@@ -280,7 +280,6 @@ dependencies = [
  "rkyv",
  "signal-frame",
  "signal-persona-origin",
- "signal-sema",
  "thiserror",
 ]
 
@@ -291,16 +290,6 @@ source = "git+https://github.com/LiGoldragon/signal-persona-origin.git?branch=ma
 dependencies = [
  "nota-next",
  "rkyv",
-]
-
-[[package]]
-name = "signal-sema"
-version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/signal-sema.git?branch=main#4f75d1c31b7481e3f212e1885b98939a5172ce1a"
-dependencies = [
- "nota-next",
- "rkyv",
- "thiserror",
 ]
 
 [[package]]

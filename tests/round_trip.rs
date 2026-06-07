@@ -1143,6 +1143,30 @@ fn mind_request_variants_declare_contract_local_operation_heads() {
 }
 
 #[test]
+fn mind_contract_has_no_sema_classification_dependency_or_roots() {
+    let manifest = include_str!("../Cargo.toml");
+    assert!(
+        !manifest.contains("signal-sema"),
+        "ordinary signal contracts must not depend on signal-sema for public wire vocabulary"
+    );
+
+    let heads = <MindRequest as SignalOperationHeads>::HEADS;
+    for forbidden in [
+        "Assert",
+        "Mutate",
+        "Retract",
+        "Match",
+        "Subscribe",
+        "Validate",
+    ] {
+        assert!(
+            !heads.contains(&forbidden),
+            "Sema classification root {forbidden} must not appear on the public mind wire"
+        );
+    }
+}
+
+#[test]
 fn mind_operation_kind_round_trips_through_nota_text() {
     round_trip_nota(
         MindOperationKind::AdjudicationRequest,

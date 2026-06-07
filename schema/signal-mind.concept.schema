@@ -3,8 +3,8 @@
 [
   (Submit [Thought Relation Note])
   (Query [Thoughts Relations Channels])
-  (Subscribe [Thoughts Relations])
-  (Retract [Subscription])
+  (Watch [Thoughts Relations])
+  (Unwatch [Subscription])
   (Status [Change])
 ]
 
@@ -15,8 +15,8 @@
 {
   Submit [(Thought Thought) (Relation Relation) (Note Note)]
   Query [(Thoughts Thoughts) (Relations Relations) (Channels Channels)]
-  Subscribe [(Thoughts Thoughts) (Relations Relations)]
-  Retract [(Subscription Subscription)]
+  Watch [(Thoughts Thoughts) (Relations Relations)]
+  Unwatch [(Subscription Subscription)]
   Status [(Change Change)]
   Thought (Text)
   Relation (Text)

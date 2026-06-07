@@ -41,15 +41,13 @@ If your change adds a new request or reply variant, edit
   `SubscribeThoughts`, `SubscribeRelations`,
   `SubscriptionRetraction`, `Opening`, `NoteSubmission`,
   `Link`, `StatusChange`, `AliasAssignment`, `Query`,
-  `AdjudicationRequest`, `ChannelGrant`, `ChannelExtend`,
-  `ChannelRetract`, `AdjudicationDeny`, `ChannelList`).
+  `AdjudicationRequest`, `ChannelList`).
 - The closed `MindReply` enum (`ThoughtCommitted`,
   `RelationCommitted`, `ThoughtList`, `RelationList`,
   `SubscriptionAccepted`, `SubscriptionRetracted`,
   `OpeningReceipt`, `NoteReceipt`, `LinkReceipt`,
   `StatusReceipt`, `AliasReceipt`, `View`, `Rejection`,
-  `AdjudicationReceipt`, `ChannelReceipt`,
-  `AdjudicationDenyReceipt`, `ChannelListView`,
+  `AdjudicationReceipt`, `ChannelListView`,
   `MindRequestUnimplemented`).
 - The mind memory/work record vocabulary: `Item`, `Note`, `Edge`,
   `Event`, aliases, references, and ready-query records.
@@ -66,5 +64,7 @@ If your change adds a new request or reply variant, edit
 - Lock-file projection writing — outside this implementation
   target; `mind` replaces lock files instead of
   projecting them.
-- Storage tables — those live in `mind`'s
-  `src/tables.rs` (typed `sema::Table<K, V>` constants).
+- Storage tables — those live in `mind`'s SEMA engine integration.
+- Public Sema-operation mirrors — no `AuthorizedSignalVerb`,
+  `SemaOperation`, `ToSemaOperation`, `signal-sema`, or Sema-class root
+  belongs in this contract.
