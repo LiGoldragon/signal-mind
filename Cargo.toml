@@ -12,6 +12,10 @@ publish      = false
 name = "signal_mind"
 path = "src/lib.rs"
 
+[features]
+default = ["nota-text"]
+nota-text = ["signal-frame/nota-text"]
+
 [dependencies]
 signal-frame        = { git = "https://github.com/LiGoldragon/signal-frame.git", branch = "main" }
 signal-persona-origin = { git = "https://github.com/LiGoldragon/signal-persona-origin.git", branch = "main" }
