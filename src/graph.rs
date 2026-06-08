@@ -1,6 +1,6 @@
 use nota_next::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
-use signal_persona_origin::{
+use signal_persona::origin::{
     ChannelIdentifier, ComponentName, EngineIdentifier, HostName, UnixUserIdentifier,
 };
 

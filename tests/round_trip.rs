@@ -12,7 +12,7 @@ use signal_frame::{
     SignalOperationHeads, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
 };
 use signal_mind::*;
-use signal_persona_origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
+use signal_persona::origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -116,8 +116,8 @@ fn sample_relation() -> RelationIdentifier {
     RelationIdentifier::new("rel-aab")
 }
 
-fn sample_engine() -> signal_persona_origin::EngineIdentifier {
-    signal_persona_origin::EngineIdentifier::new("engine-aab")
+fn sample_engine() -> signal_persona::origin::EngineIdentifier {
+    signal_persona::origin::EngineIdentifier::new("engine-aab")
 }
 
 fn sample_actor() -> ActorName {

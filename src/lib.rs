@@ -21,7 +21,7 @@
 use nota_next::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_frame::signal_channel;
-use signal_persona_origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
+use signal_persona::origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
 use std::fmt;
 use std::str::FromStr;
 
