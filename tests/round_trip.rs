@@ -1258,13 +1258,13 @@ fn explicit_variant_lifts_view_into_reply() {
 fn path_scope_round_trips() {
     round_trip_nota(
         ScopeReference::Path(sample_path()),
-        "(Path [/git/github.com/LiGoldragon/signal-mind/src/lib.rs])",
+        "(Path /git/github.com/LiGoldragon/signal-mind/src/lib.rs)",
     );
 }
 
 #[test]
 fn task_scope_round_trips() {
-    round_trip_nota(ScopeReference::Task(sample_task()), "(Task [primary-f99])");
+    round_trip_nota(ScopeReference::Task(sample_task()), "(Task primary-f99)");
 }
 
 // ─── Boundary validation ──────────────────────────────────
@@ -1286,7 +1286,7 @@ fn wire_path_requires_absolute_normalized_path() {
 
 #[test]
 fn wire_path_nota_decode_uses_boundary_validation() {
-    let error = NotaSource::new("[relative/path]")
+    let error = NotaSource::new("relative/path")
         .parse::<WirePath>()
         .expect_err("relative path must fail validation");
     let message = error.to_string();

@@ -47,11 +47,11 @@
           });
           test-signal-verb-mapping = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test round_trip mind_graph_request_variants_have_expected_signal_verbs";
+            cargoTestExtraArgs = "--test round_trip mind_request_exposes_contract_owned_operation_kind";
           });
           test-no-silent-assert-default = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test round_trip mind_request_variants_do_not_silently_default_to_assert";
+            cargoTestExtraArgs = "--test round_trip mind_contract_has_no_sema_classification_dependency_or_roots";
           });
           test-doc = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
