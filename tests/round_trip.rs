@@ -12,7 +12,9 @@ use signal_frame::{
     SignalOperationHeads, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
 };
 use signal_mind::*;
-use signal_persona::origin::{ChannelIdentifier, ComponentName, ConnectionClass, MessageOrigin};
+use signal_persona::{
+    ChannelIdentifier, ComponentName, ConnectionClass, EngineIdentifier, MessageOrigin,
+};
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -116,12 +118,20 @@ fn sample_relation() -> RelationIdentifier {
     RelationIdentifier::new("rel-aab")
 }
 
-fn sample_engine() -> signal_persona::origin::EngineIdentifier {
-    signal_persona::origin::EngineIdentifier::new("engine-aab")
+fn sample_engine() -> EngineIdentifier {
+    EngineIdentifier::new("engine-aab")
 }
 
 fn sample_actor() -> ActorName {
     ActorName::new("operator")
+}
+
+fn sample_mind_component() -> ComponentName {
+    ComponentName::new("mind")
+}
+
+fn sample_router_component() -> ComponentName {
+    ComponentName::new("router")
 }
 
 fn sample_internal_endpoint(component: ComponentName) -> ChannelEndpoint {
@@ -264,7 +274,7 @@ impl MindGraphFixture {
     fn observation_body(&self) -> ThoughtBody {
         ThoughtBody::Observation(ObservationBody {
             summary: ObservationSummary::ComponentReady(ComponentReady {
-                component: ComponentName::Mind,
+                component: sample_mind_component(),
                 engine: sample_engine(),
             }),
             detail: Some(TextBody::new("mind graph contract ready")),
@@ -346,7 +356,7 @@ impl MindGraphFixture {
         ThoughtBody::Reference(ReferenceBody {
             target: ReferenceTarget::Identity(IdentityReference::Component(ComponentIdentity {
                 engine: sample_engine(),
-                component: ComponentName::Mind,
+                component: sample_mind_component(),
             })),
             sense: Some(TextBody::new("the component whose graph owns this record")),
         })
@@ -916,8 +926,8 @@ fn every_external_reference_variant_round_trips_as_a_link_target() {
 fn adjudication_request_round_trips() {
     let request = MindRequest::AdjudicationRequest(AdjudicationRequest {
         request: sample_adjudication_request(),
-        origin: MessageOrigin::External(ConnectionClass::Owner),
-        destination: sample_internal_endpoint(ComponentName::Router),
+        origin: MessageOrigin::local_connection(ConnectionClass::Owner),
+        destination: sample_internal_endpoint(sample_router_component()),
         kind: ChannelMessageKind::MessageSubmission,
         body_summary: TextBody::new("owner asks router to deliver a prompt"),
     });
@@ -930,15 +940,15 @@ fn channel_choreography_requests_round_trip() {
     let requests = vec![
         MindRequest::AdjudicationRequest(AdjudicationRequest {
             request: sample_adjudication_request(),
-            origin: MessageOrigin::External(ConnectionClass::Owner),
-            destination: sample_internal_endpoint(ComponentName::Router),
+            origin: MessageOrigin::local_connection(ConnectionClass::Owner),
+            destination: sample_internal_endpoint(sample_router_component()),
             kind: ChannelMessageKind::MessageSubmission,
             body_summary: TextBody::new("owner asks router to deliver a prompt"),
         }),
         MindRequest::ChannelList(ChannelList {
             filters: vec![
-                ChannelFilter::Source(sample_internal_endpoint(ComponentName::Mind)),
-                ChannelFilter::Destination(sample_internal_endpoint(ComponentName::Router)),
+                ChannelFilter::Source(sample_internal_endpoint(sample_mind_component())),
+                ChannelFilter::Destination(sample_internal_endpoint(sample_router_component())),
                 ChannelFilter::Kind(ChannelMessageKind::MessageDelivery),
             ],
         }),
@@ -1100,8 +1110,8 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         (
             MindRequest::AdjudicationRequest(AdjudicationRequest {
                 request: sample_adjudication_request(),
-                origin: MessageOrigin::External(ConnectionClass::Owner),
-                destination: sample_internal_endpoint(ComponentName::Router),
+                origin: MessageOrigin::local_connection(ConnectionClass::Owner),
+                destination: sample_internal_endpoint(sample_router_component()),
                 kind: ChannelMessageKind::MessageSubmission,
                 body_summary: TextBody::new("owner request"),
             }),
@@ -1216,8 +1226,8 @@ fn channel_choreography_replies_round_trip() {
         MindReply::ChannelListView(ChannelListView {
             channels: vec![ChannelView {
                 channel: sample_channel(),
-                source: sample_internal_endpoint(ComponentName::Mind),
-                destination: sample_internal_endpoint(ComponentName::Router),
+                source: sample_internal_endpoint(sample_mind_component()),
+                destination: sample_internal_endpoint(sample_router_component()),
                 kinds: vec![
                     ChannelMessageKind::MessageDelivery,
                     ChannelMessageKind::AdjudicationRequest,

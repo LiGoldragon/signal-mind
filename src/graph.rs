@@ -1,6 +1,6 @@
 use nota_next::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
-use signal_persona::origin::{
+use signal_persona::{
     ChannelIdentifier, ComponentName, EngineIdentifier, HostName, UnixUserIdentifier,
 };
 
@@ -721,16 +721,7 @@ pub struct OtherMemory {
 }
 
 #[derive(
-    Archive,
-    RkyvSerialize,
-    RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TimeRange {
     pub start: TimestampNanos,
@@ -922,16 +913,7 @@ pub enum ClaimActivity {
 }
 
 #[derive(
-    Archive,
-    RkyvSerialize,
-    RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ActiveClaim {
     pub started_at: TimestampNanos,
@@ -1035,16 +1017,7 @@ pub enum IdentityReference {
 }
 
 #[derive(
-    Archive,
-    RkyvSerialize,
-    RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct UserIdentity {
     pub uid: UnixUserIdentifier,
