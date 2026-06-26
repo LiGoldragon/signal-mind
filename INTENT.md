@@ -2,8 +2,9 @@
 
 *The wire vocabulary contract for Persona's central mind. Defines the typed
 request/reply/event channel that the `mind` CLI and peer components use to submit
-work-graph and typed-graph operations, query thoughts/relations and memory state,
-observe channel choreography, and subscribe to state changes.
+work-graph, typed-graph, and typed technical dependency memory operations, query
+thoughts/relations and memory state, observe channel choreography, and subscribe
+to state changes.
 Companion to `ARCHITECTURE.md` and `Cargo.toml`. Maintenance: `primary/skills/repo-intent.md`.*
 
 ## Repo-scope only
@@ -17,13 +18,14 @@ Component daemon intent stays in `mind/INTENT.md`. Meta mind policy stays in
 
 `signal-mind` is the **ordinary peer-callable wire contract** for the `mind`
 daemon — Persona's central state holder. It carries the typed request/reply
-channel used by the `mind` CLI and the long-lived `mind` daemon for three named
-relations: the typed mind graph (Thought / Relation records), the work-and-memory
-graph (openings, notes, links, status, aliases), and channel choreography
-observation. Ordinary role claims, handoffs, observations, and activity-log
-operations belong to `signal-orchestrate`, not here. Runtime actors, the
-`mind.sema` store, choreography decision logic, and authority orders live in
-`mind` and `meta-signal-mind`.
+channel used by the `mind` CLI and the long-lived `mind` daemon for four named
+relations: the typed mind graph (Thought / Relation records), typed technical
+dependency memory (TechnicalNode / TechnicalRelation records), the
+work-and-memory graph (openings, notes, links, status, aliases), and channel
+choreography observation. Ordinary role claims, handoffs, observations, and
+activity-log operations belong to `signal-orchestrate`, not here. Runtime
+actors, the `mind.sema` store, choreography decision logic, and authority orders
+live in `mind` and `meta-signal-mind`.
 
 ## The channel shape
 
@@ -32,14 +34,17 @@ The Mind channel carries:
 - **Typed mind graph:** `SubmitThought`, `SubmitRelation`, `QueryThoughts`,
   `QueryRelations`, `SubscribeThoughts`, `SubscribeRelations`,
   `SubscriptionRetraction`.
+- **Typed technical dependency memory:** `SubmitTechnicalNode`,
+  `SubmitTechnicalRelation`, `QueryTechnicalNodes`, `QueryTechnicalRelations`,
+  `SubscribeTechnicalNodes`, `SubscribeTechnicalRelations`.
 - **Work and memory graph:** `Opening`, `NoteSubmission`, `Link`, `StatusChange`,
   `AliasAssignment`, `Query`.
 - **Channel choreography (read/observe side):** `AdjudicationRequest`,
   `ChannelList`.
 - **Replies:** the committed/receipt/view records corresponding to each
-  operation (`ThoughtCommitted`, `RelationCommitted`, `ThoughtList`, receipts,
-  `View`, `AdjudicationReceipt`, `ChannelListView`), `Rejection` carrying typed
-  reasons, and `MindRequestUnimplemented` (skeleton honesty).
+  operation (`ThoughtCommitted`, `RelationCommitted`, technical committed/list
+  replies, receipts, `View`, `AdjudicationReceipt`, `ChannelListView`),
+  typed rejections, and `MindRequestUnimplemented` (skeleton honesty).
 - **Events:** a `MindEventStream` delivering `SubscriptionDelta` events for open
   subscriptions; retraction closes the stream.
 
@@ -51,12 +56,12 @@ classification never crosses this public wire.
 
 - Wire enums are closed. No `Unknown` escape hatch; unimplemented paths reply
   `MindRequestUnimplemented`.
-- Request payloads do not mint thought IDs, relation IDs, event sequence,
-  timestamps, or sender identity.
+- Request payloads do not mint thought IDs, relation IDs, technical node IDs,
+  technical relation IDs, event sequence, timestamps, or sender identity.
 - `mind` mints those values at the daemon; request records accept submitted
-  thought/relation bodies and metadata only. Graph IDs are compact
-  sequence-derived tokens minted from the store, not content hashes or payload
-  fields.
+  thought/relation bodies, technical stable node keys, and metadata only. Graph
+  IDs are compact sequence-derived tokens minted from the store, not content
+  hashes or payload fields.
 - No stringly-typed dispatch. Graph kinds, channel endpoints, and reason fields
   are typed closed enums.
 
@@ -66,8 +71,8 @@ Per `primary/skills/contract-repo.md` §"Public contracts use contract-local
 operation verbs":
 
 - Operation roots are domain verbs in verb form: `Submit` (thoughts, relations,
-  notes, links, aliases), `Query` (typed reads), `Adjudicate` (open an
-  adjudication) — not Sema class words.
+  technical nodes and relations, notes, links, aliases), `Query` (typed reads),
+  `Adjudicate` (open an adjudication) — not Sema class words.
 - Reply success variants name the outcome of the operation; rejections are
   `Rejection` carrying a typed reason.
 - Payload record names are domain nouns the operation carries (`Thought`,
@@ -93,6 +98,11 @@ operation verbs":
   and NOTA text.
 - Request payloads cannot carry IDs, timestamps, or sequence numbers; the daemon
   supplies those.
+- Technical dependency memory uses separate `TechnicalNode` /
+  `TechnicalRelation` records. It is not another `ThoughtBody` variant.
+- `TechnicalNodeKey` is the caller-stable technical identity; compact
+  `TechnicalNodeIdentifier` and `TechnicalRelationIdentifier` values are minted
+  by the daemon.
 - Channel choreography observation is read-only in this contract; authority
   orders live in `meta-signal-mind`.
 
@@ -107,8 +117,9 @@ action becomes. Public contracts do not mirror `Assert`, `Mutate`, `Retract`,
 ## Code map
 
 ```text
-src/lib.rs                     — request/reply/event records, NOTA codecs, signal_channel! invocation
+src/lib.rs                     — shared newtypes, request/reply/event channel, signal_channel! invocation
 src/graph.rs                   — typed Thought/Relation graph records and snapshot/delta shapes
+src/technical.rs               — typed TechnicalNode/TechnicalRelation records, filters, validators, replies
 schema/signal-mind.concept.schema — concept-schema source for the contract
 tests/round_trip.rs            — rkyv frame and NOTA round-trip witnesses per operation
 ```

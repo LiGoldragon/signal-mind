@@ -9,6 +9,10 @@
 //!   closed Thought and Relation records (`Observation`, `Memory`,
 //!   `Belief`, `Goal`, `Claim`, `Decision`, `Reference`) per
 //!   designer/152.
+//! - **Technical dependency memory** — submit/query/subscribe to
+//!   closed TechnicalNode and TechnicalRelation records for stable
+//!   component, repository, crate, contract, work item, artifact,
+//!   report, claim, and witness dependencies.
 //!
 //! The channel is **request/reply** (every operation has a
 //! typed reply). Long-lived subscription delivery uses the stream grammar
@@ -26,7 +30,9 @@ use std::fmt;
 use std::str::FromStr;
 
 mod graph;
+mod technical;
 pub use graph::*;
+pub use technical::*;
 
 // ─── Error ────────────────────────────────────────────────
 
@@ -1254,6 +1260,12 @@ signal_channel! {
         operation Query(Query),
         operation AdjudicationRequest(AdjudicationRequest),
         operation ChannelList(ChannelList),
+        operation SubmitTechnicalNode(SubmitTechnicalNode),
+        operation SubmitTechnicalRelation(SubmitTechnicalRelation),
+        operation QueryTechnicalNodes(QueryTechnicalNodes),
+        operation QueryTechnicalRelations(QueryTechnicalRelations),
+        operation SubscribeTechnicalNodes(SubscribeTechnicalNodes) opens MindEventStream,
+        operation SubscribeTechnicalRelations(SubscribeTechnicalRelations) opens MindEventStream,
     }
     reply MindReply {
         ThoughtCommitted(ThoughtCommitted),
@@ -1272,6 +1284,12 @@ signal_channel! {
         AdjudicationReceipt(AdjudicationReceipt),
         ChannelListView(ChannelListView),
         MindRequestUnimplemented(MindRequestUnimplemented),
+        TechnicalNodeCommitted(TechnicalNodeCommitted),
+        TechnicalRelationCommitted(TechnicalRelationCommitted),
+        TechnicalNodeList(TechnicalNodeList),
+        TechnicalRelationList(TechnicalRelationList),
+        TechnicalNodeRejected(TechnicalNodeRejected),
+        TechnicalRelationRejected(TechnicalRelationRejected),
     }
     event MindEvent {
         SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,

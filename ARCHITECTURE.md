@@ -6,7 +6,9 @@
 
 `signal-mind` is the public vocabulary for Persona's central mind. It
 defines the typed request/reply channel used by the `mind` CLI and long-lived
-`mind` daemon.
+`mind` daemon. The current contract includes the typed mind graph, typed
+technical dependency memory, the work-and-memory graph, and channel
+choreography observation.
 
 ## Contract/Daemon Boundary
 
@@ -23,6 +25,12 @@ relation-specific:
   `SubmitRelation` — already verb-form; payloads are `Thought` /
   `Relation`), `Query` (lift the repeated `Query*` siblings into one
   `Query` operation root whose payload names the read target).
+- *Typed technical dependency memory:* `Submit` covers `TechnicalNode`
+  and `TechnicalRelation`; `Query` and domain-local subscriptions read
+  technical dependency state. `TechnicalNode` / `TechnicalRelation` are
+  separate contract shapes, not `ThoughtBody` variants. Callers provide
+  stable `TechnicalNodeKey` values; `mind` mints compact node and relation
+  identifiers.
 - *Work-and-memory graph:* `Submit` covers `Opening`,
   `NoteSubmission` (rename payload to `Note`), `Link`, and
   `AliasAssignment` (payload `AliasAssignment`); status changes use the
@@ -132,6 +140,12 @@ signal_channel! {
         operation Query(Query),
         operation AdjudicationRequest(AdjudicationRequest),
         operation ChannelList(ChannelList),
+        operation SubmitTechnicalNode(SubmitTechnicalNode),
+        operation SubmitTechnicalRelation(SubmitTechnicalRelation),
+        operation QueryTechnicalNodes(QueryTechnicalNodes),
+        operation QueryTechnicalRelations(QueryTechnicalRelations),
+        operation SubscribeTechnicalNodes(SubscribeTechnicalNodes) opens MindEventStream,
+        operation SubscribeTechnicalRelations(SubscribeTechnicalRelations) opens MindEventStream,
         reply MindReply {
             ThoughtCommitted(ThoughtCommitted),
             RelationCommitted(RelationCommitted),
@@ -149,6 +163,12 @@ signal_channel! {
             AdjudicationReceipt(AdjudicationReceipt),
             ChannelListView(ChannelListView),
             MindRequestUnimplemented(MindRequestUnimplemented),
+            TechnicalNodeCommitted(TechnicalNodeCommitted),
+            TechnicalRelationCommitted(TechnicalRelationCommitted),
+            TechnicalNodeList(TechnicalNodeList),
+            TechnicalRelationList(TechnicalRelationList),
+            TechnicalNodeRejected(TechnicalNodeRejected),
+            TechnicalRelationRejected(TechnicalRelationRejected),
         }
         event MindEvent {
             SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
@@ -227,6 +247,37 @@ These records are the active native replacement for BEADS as a work/memory
 graph. Imported BEADS IDs are represented as aliases or external references;
 the contract does not model a live BEADS backend.
 
+### 3.3 Typed technical dependency memory
+
+| Request | Reply |
+|---|---|
+| `SubmitTechnicalNode` | `TechnicalNodeCommitted` or `TechnicalNodeRejected` |
+| `SubmitTechnicalRelation` | `TechnicalRelationCommitted` or `TechnicalRelationRejected` |
+| `QueryTechnicalNodes` | `TechnicalNodeList` |
+| `QueryTechnicalRelations` | `TechnicalRelationList` |
+| `SubscribeTechnicalNodes` | `SubscriptionAccepted`, then `SubscriptionDelta` events, terminated by `SubscriptionRetracted` |
+| `SubscribeTechnicalRelations` | `SubscriptionAccepted`, then `SubscriptionDelta` events, terminated by `SubscriptionRetracted` |
+
+Technical dependency memory is the first production slice for Mind as a typed
+technical memory sibling to Spirit. It models components, repositories, crates,
+contracts, work items, source artifacts, reports, technical claims, and
+witnesses as `TechnicalNode` records. Dependency edges are `TechnicalRelation`
+records with closed relation kinds: `OwnsRepository`, `DefinesContract`,
+`DefinesCrate`, `DependsOn`, `Blocks`, `Implements`, `UsesContract`,
+`UsesStorage`, `Documents`, `DerivedFrom`, `ClaimsAbout`, `ProvenBy`,
+`Supersedes`, and `LocatedAt`.
+
+`TechnicalNodeKey` is the stable public key callers use to name a technical
+node across submissions and filters. `TechnicalNodeIdentifier` and
+`TechnicalRelationIdentifier` are compact daemon-minted identifiers returned in
+committed records and query results. Submit requests do not carry compact IDs,
+authors, timestamps, or sequence numbers.
+
+`TechnicalNodeKind` owns the body-kind validator. `TechnicalRelationKind` owns
+the domain/range validator for relation endpoints. Rejection reasons are typed:
+kind/body mismatch, duplicate stable node key, duplicate relation, missing
+endpoint, domain/range violation, and persistence rejection.
+
 ### 3.4 Channel choreography
 
 | Request | Reply |
@@ -288,6 +339,9 @@ The contract validates boundary strings before they become wire values.
 | `DisplayIdentifier` | short human identity for work graph references. |
 | `ExternalAlias` | imported or external identifiers. |
 | `AdjudicationRequestIdentifier` | short router-minted identifier for one parked adjudication request. |
+| `TechnicalNodeIdentifier` | compact daemon-minted technical node identifier. |
+| `TechnicalRelationIdentifier` | compact daemon-minted technical relation identifier. |
+| `TechnicalNodeKey` | stable caller-visible technical node key used for submissions and filters. |
 | `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-origin`. |
 | `ChannelMessageKind` | closed set of first-stack route categories. |
 | `ChannelDuration` | channel lifetime requested or emitted by mind choreography. |
@@ -362,7 +416,12 @@ MindUnimplementedReason
 - `RoleName` covers every workspace coordination role in
   `~/primary/orchestrate/AGENTS.md`.
 - Request payloads do not mint `ActorName`, `TimestampNanos`, `EventSeq`,
-  `OperationIdentifier`, stable item IDs, or display IDs.
+  `OperationIdentifier`, stable item IDs, display IDs, compact technical node
+  IDs, or compact technical relation IDs.
+- Technical dependency memory is modeled as `TechnicalNode` /
+  `TechnicalRelation`, not as another `ThoughtBody` variant.
+- `TechnicalNodeKey` is public and stable; compact technical node and relation
+  identifiers are daemon-minted.
 - Lock files and BEADS are represented only as temporary external references or
   aliases, never as live backend protocol.
 - Channel choreography records use `signal-persona-origin` endpoint and origin
@@ -405,6 +464,9 @@ Existing tests in `tests/round_trip.rs` cover:
 - boundary validation, including `WirePath` NOTA decode rejection.
 - workspace role coverage.
 - relation-kind domain/range validation and table coverage.
+- technical node/relation kind NOTA round trips, kind/body validation, relation
+  domain/range validation, request/reply/event frame round trips, and operation
+  head coverage.
 
 Additional architecture guards still worth adding:
 
@@ -433,7 +495,9 @@ This repo does not own:
 ## Code Map
 
 ```text
-src/lib.rs              payload records, NOTA codecs, and signal_channel! declaration
+src/lib.rs              shared newtypes and signal_channel! declaration
+src/graph.rs            Thought/Relation graph records and subscription snapshot/delta shapes
+src/technical.rs        TechnicalNode/TechnicalRelation records, filters, validators, replies
 tests/round_trip.rs     frame round trips, NOTA witnesses, and validation tests
 ```
 

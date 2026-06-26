@@ -363,6 +363,139 @@ impl MindGraphFixture {
     }
 }
 
+struct TechnicalFixture {
+    actor: ActorName,
+    occurred_at: TimestampNanos,
+}
+
+impl TechnicalFixture {
+    fn new() -> Self {
+        Self {
+            actor: sample_actor(),
+            occurred_at: TimestampNanos::new(1_790_000_000_000_000_000),
+        }
+    }
+
+    fn component_key(&self) -> TechnicalNodeKey {
+        TechnicalNodeKey::new("component:mind")
+    }
+
+    fn repository_key(&self) -> TechnicalNodeKey {
+        TechnicalNodeKey::new("repository:signal-mind")
+    }
+
+    fn crate_key(&self) -> TechnicalNodeKey {
+        TechnicalNodeKey::new("crate:signal-mind")
+    }
+
+    fn contract_key(&self) -> TechnicalNodeKey {
+        TechnicalNodeKey::new("contract:signal-mind")
+    }
+
+    fn claim_key(&self) -> TechnicalNodeKey {
+        TechnicalNodeKey::new("claim:technical-memory")
+    }
+
+    fn witness_key(&self) -> TechnicalNodeKey {
+        TechnicalNodeKey::new("witness:round-trip")
+    }
+
+    fn component_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::Component(ComponentNode {
+            component: sample_mind_component(),
+            summary: Some(TextBody::new("central mind daemon")),
+        })
+    }
+
+    fn repository_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::Repository(RepositoryNode {
+            path: WirePath::from_absolute_path("/git/github.com/LiGoldragon/signal-mind")
+                .expect("absolute repository path"),
+            remote: Some(TextBody::new("github:LiGoldragon/signal-mind")),
+        })
+    }
+
+    fn crate_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::Crate(CrateNode {
+            name: TextBody::new("signal-mind"),
+            repository: self.repository_key(),
+        })
+    }
+
+    fn contract_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::Contract(ContractNode {
+            name: TextBody::new("mind technical memory contract"),
+            crate_key: self.crate_key(),
+        })
+    }
+
+    fn work_item_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::WorkItem(WorkItemNode {
+            task: sample_task(),
+            title: TextBody::new("Add signal-mind technical contract types"),
+        })
+    }
+
+    fn source_artifact_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::SourceArtifact(SourceArtifactNode {
+            locator: TechnicalSourceLocator::Path(sample_path()),
+            summary: Some(TextBody::new("technical contract module")),
+        })
+    }
+
+    fn report_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::Report(ReportNode {
+            path: WirePath::from_absolute_path(
+                "/home/li/primary/reports/operator/technical-memory.md",
+            )
+            .expect("absolute report path"),
+            summary: Some(TextBody::new("technical memory design note")),
+        })
+    }
+
+    fn claim_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::TechnicalClaim(TechnicalClaimNode {
+            claim: TextBody::new("technical nodes are separate from ThoughtBody"),
+        })
+    }
+
+    fn witness_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::Witness(WitnessNode {
+            summary: TextBody::new("round-trip tests cover technical memory records"),
+            locator: Some(TechnicalSourceLocator::Path(sample_path())),
+        })
+    }
+
+    fn node(&self) -> TechnicalNode {
+        TechnicalNode {
+            identifier: TechnicalNodeIdentifier::new("tn-aab"),
+            stable_key: self.component_key(),
+            kind: TechnicalNodeKind::Component,
+            body: self.component_body(),
+            author: self.actor.clone(),
+            occurred_at: self.occurred_at,
+        }
+    }
+
+    fn relation(&self) -> TechnicalRelation {
+        TechnicalRelation {
+            identifier: TechnicalRelationIdentifier::new("tr-aab"),
+            kind: TechnicalRelationKind::DefinesContract,
+            source: TechnicalRelationEndpoint {
+                identifier: TechnicalNodeIdentifier::new("tn-crate"),
+                stable_key: self.crate_key(),
+            },
+            target: TechnicalRelationEndpoint {
+                identifier: TechnicalNodeIdentifier::new("tn-contract"),
+                stable_key: self.contract_key(),
+            },
+            author: self.actor.clone(),
+            occurred_at: self.occurred_at,
+            note: Some(TextBody::new("crate defines the public contract")),
+        }
+    }
+}
+
 // ─── Mind graph contract variants ─────────────────────────
 
 #[test]
@@ -675,6 +808,17 @@ fn subscribe_opens_and_subscription_retraction_closes_the_mind_event_stream() {
             target: RecordIdentifier::new("goal-aab"),
         }),
     });
+    let subscribe_technical_nodes = MindRequest::SubscribeTechnicalNodes(SubscribeTechnicalNodes {
+        filter: TechnicalNodeFilter::ByKind(ByTechnicalNodeKind {
+            kinds: vec![TechnicalNodeKind::Component],
+        }),
+    });
+    let subscribe_technical_relations =
+        MindRequest::SubscribeTechnicalRelations(SubscribeTechnicalRelations {
+            filter: TechnicalRelationFilter::ByKind(ByTechnicalRelationKind {
+                kinds: vec![TechnicalRelationKind::DependsOn],
+            }),
+        });
     let retract = MindRequest::SubscriptionRetraction(SubscriptionIdentifier::new("sub-aab"));
 
     assert_eq!(
@@ -683,6 +827,14 @@ fn subscribe_opens_and_subscription_retraction_closes_the_mind_event_stream() {
     );
     assert_eq!(
         subscribe_relations.opened_stream(),
+        Some(MindStreamKind::MindEventStream),
+    );
+    assert_eq!(
+        subscribe_technical_nodes.opened_stream(),
+        Some(MindStreamKind::MindEventStream),
+    );
+    assert_eq!(
+        subscribe_technical_relations.opened_stream(),
         Some(MindStreamKind::MindEventStream),
     );
     assert_eq!(
@@ -732,6 +884,315 @@ fn unimplemented_reply_round_trips_as_typed_reply() {
         assert_eq!(round_trip_reply(reply.clone()), reply);
         round_trip_nota(reply, expected_text);
     }
+}
+
+// ─── Technical dependency memory contract variants ────────
+
+#[test]
+fn every_technical_node_kind_round_trips_through_nota_text() {
+    let cases = [
+        (TechnicalNodeKind::Component, "Component"),
+        (TechnicalNodeKind::Repository, "Repository"),
+        (TechnicalNodeKind::Crate, "Crate"),
+        (TechnicalNodeKind::Contract, "Contract"),
+        (TechnicalNodeKind::WorkItem, "WorkItem"),
+        (TechnicalNodeKind::SourceArtifact, "SourceArtifact"),
+        (TechnicalNodeKind::Report, "Report"),
+        (TechnicalNodeKind::TechnicalClaim, "TechnicalClaim"),
+        (TechnicalNodeKind::Witness, "Witness"),
+    ];
+
+    for (kind, expected) in cases {
+        round_trip_nota(kind, expected);
+    }
+}
+
+#[test]
+fn every_technical_relation_kind_round_trips_through_nota_text() {
+    let cases = [
+        (TechnicalRelationKind::OwnsRepository, "OwnsRepository"),
+        (TechnicalRelationKind::DefinesContract, "DefinesContract"),
+        (TechnicalRelationKind::DefinesCrate, "DefinesCrate"),
+        (TechnicalRelationKind::DependsOn, "DependsOn"),
+        (TechnicalRelationKind::Blocks, "Blocks"),
+        (TechnicalRelationKind::Implements, "Implements"),
+        (TechnicalRelationKind::UsesContract, "UsesContract"),
+        (TechnicalRelationKind::UsesStorage, "UsesStorage"),
+        (TechnicalRelationKind::Documents, "Documents"),
+        (TechnicalRelationKind::DerivedFrom, "DerivedFrom"),
+        (TechnicalRelationKind::ClaimsAbout, "ClaimsAbout"),
+        (TechnicalRelationKind::ProvenBy, "ProvenBy"),
+        (TechnicalRelationKind::Supersedes, "Supersedes"),
+        (TechnicalRelationKind::LocatedAt, "LocatedAt"),
+    ];
+
+    for (kind, expected) in cases {
+        round_trip_nota(kind, expected);
+    }
+}
+
+#[test]
+fn technical_node_body_kind_matches_declared_kind() {
+    let fixture = TechnicalFixture::new();
+    let valid_bodies = vec![
+        (TechnicalNodeKind::Component, fixture.component_body()),
+        (TechnicalNodeKind::Repository, fixture.repository_body()),
+        (TechnicalNodeKind::Crate, fixture.crate_body()),
+        (TechnicalNodeKind::Contract, fixture.contract_body()),
+        (TechnicalNodeKind::WorkItem, fixture.work_item_body()),
+        (
+            TechnicalNodeKind::SourceArtifact,
+            fixture.source_artifact_body(),
+        ),
+        (TechnicalNodeKind::Report, fixture.report_body()),
+        (TechnicalNodeKind::TechnicalClaim, fixture.claim_body()),
+        (TechnicalNodeKind::Witness, fixture.witness_body()),
+    ];
+
+    assert_eq!(TechnicalNodeKind::ALL.len(), valid_bodies.len());
+    for (kind, body) in valid_bodies {
+        kind.validate_body(&body)
+            .unwrap_or_else(|mismatch| panic!("unexpected mismatch: {mismatch:?}"));
+    }
+}
+
+#[test]
+fn technical_node_kind_rejects_body_mismatch() {
+    let fixture = TechnicalFixture::new();
+    let mismatch = TechnicalNodeKind::Repository
+        .validate_body(&fixture.component_body())
+        .expect_err("repository kind cannot carry component body");
+
+    assert_eq!(mismatch.expected_kind, TechnicalNodeKind::Repository);
+    assert_eq!(mismatch.got_body_kind, TechnicalNodeKind::Component);
+}
+
+#[test]
+fn technical_relation_kind_domain_table_covers_every_relation_kind() {
+    let valid_cases = [
+        (
+            TechnicalRelationKind::OwnsRepository,
+            TechnicalNodeKind::Component,
+            TechnicalNodeKind::Repository,
+        ),
+        (
+            TechnicalRelationKind::DefinesContract,
+            TechnicalNodeKind::Crate,
+            TechnicalNodeKind::Contract,
+        ),
+        (
+            TechnicalRelationKind::DefinesCrate,
+            TechnicalNodeKind::Repository,
+            TechnicalNodeKind::Crate,
+        ),
+        (
+            TechnicalRelationKind::DependsOn,
+            TechnicalNodeKind::Crate,
+            TechnicalNodeKind::Contract,
+        ),
+        (
+            TechnicalRelationKind::Blocks,
+            TechnicalNodeKind::WorkItem,
+            TechnicalNodeKind::WorkItem,
+        ),
+        (
+            TechnicalRelationKind::Implements,
+            TechnicalNodeKind::SourceArtifact,
+            TechnicalNodeKind::TechnicalClaim,
+        ),
+        (
+            TechnicalRelationKind::UsesContract,
+            TechnicalNodeKind::Component,
+            TechnicalNodeKind::Contract,
+        ),
+        (
+            TechnicalRelationKind::UsesStorage,
+            TechnicalNodeKind::Crate,
+            TechnicalNodeKind::TechnicalClaim,
+        ),
+        (
+            TechnicalRelationKind::Documents,
+            TechnicalNodeKind::Report,
+            TechnicalNodeKind::Component,
+        ),
+        (
+            TechnicalRelationKind::DerivedFrom,
+            TechnicalNodeKind::TechnicalClaim,
+            TechnicalNodeKind::Report,
+        ),
+        (
+            TechnicalRelationKind::ClaimsAbout,
+            TechnicalNodeKind::TechnicalClaim,
+            TechnicalNodeKind::Contract,
+        ),
+        (
+            TechnicalRelationKind::ProvenBy,
+            TechnicalNodeKind::TechnicalClaim,
+            TechnicalNodeKind::Witness,
+        ),
+        (
+            TechnicalRelationKind::Supersedes,
+            TechnicalNodeKind::Report,
+            TechnicalNodeKind::Report,
+        ),
+        (
+            TechnicalRelationKind::LocatedAt,
+            TechnicalNodeKind::Crate,
+            TechnicalNodeKind::SourceArtifact,
+        ),
+    ];
+
+    for relation in TechnicalRelationKind::ALL {
+        assert!(
+            valid_cases
+                .iter()
+                .any(|(candidate, _, _)| *candidate == relation),
+            "{relation:?} must have at least one valid witness case",
+        );
+    }
+
+    for (relation, source, target) in valid_cases {
+        relation
+            .validate_endpoint_kinds(source, target)
+            .unwrap_or_else(|mismatch| panic!("unexpected mismatch: {mismatch:?}"));
+    }
+}
+
+#[test]
+fn technical_relation_kind_rejects_wrong_domain() {
+    let mismatch = TechnicalRelationKind::OwnsRepository
+        .validate_endpoint_kinds(TechnicalNodeKind::Report, TechnicalNodeKind::Repository)
+        .expect_err("reports cannot own repositories");
+
+    assert_eq!(mismatch.relation, TechnicalRelationKind::OwnsRepository);
+    assert_eq!(
+        mismatch.expected_source_kinds,
+        vec![TechnicalNodeKind::Component]
+    );
+    assert_eq!(
+        mismatch.expected_target_kinds,
+        vec![TechnicalNodeKind::Repository]
+    );
+    assert_eq!(mismatch.got_source_kind, TechnicalNodeKind::Report);
+    assert_eq!(mismatch.got_target_kind, TechnicalNodeKind::Repository);
+}
+
+#[test]
+fn technical_node_requests_round_trip() {
+    let fixture = TechnicalFixture::new();
+    let requests = vec![
+        MindRequest::SubmitTechnicalNode(SubmitTechnicalNode {
+            stable_key: fixture.component_key(),
+            kind: TechnicalNodeKind::Component,
+            body: fixture.component_body(),
+        }),
+        MindRequest::QueryTechnicalNodes(QueryTechnicalNodes {
+            filter: TechnicalNodeFilter::Composite(CompositeTechnicalNodeFilter {
+                kinds: vec![TechnicalNodeKind::Component, TechnicalNodeKind::Crate],
+                stable_key: Some(fixture.component_key()),
+                source_locator: Some(TechnicalSourceLocator::Path(sample_path())),
+            }),
+            limit: QueryLimit::new(25),
+        }),
+        MindRequest::SubscribeTechnicalNodes(SubscribeTechnicalNodes {
+            filter: TechnicalNodeFilter::BySourceLocator(ByTechnicalSourceLocator {
+                locator: TechnicalSourceLocator::Repository(fixture.repository_key()),
+            }),
+        }),
+    ];
+
+    for request in requests {
+        assert_eq!(round_trip_request(request.clone()), request);
+    }
+}
+
+#[test]
+fn technical_relation_requests_round_trip() {
+    let fixture = TechnicalFixture::new();
+    let requests = vec![
+        MindRequest::SubmitTechnicalRelation(SubmitTechnicalRelation {
+            kind: TechnicalRelationKind::DefinesContract,
+            source: fixture.crate_key(),
+            target: fixture.contract_key(),
+            note: Some(TextBody::new("crate defines the public contract")),
+        }),
+        MindRequest::QueryTechnicalRelations(QueryTechnicalRelations {
+            filter: TechnicalRelationFilter::BetweenEndpoints(ByTechnicalRelationEndpoints {
+                source: fixture.crate_key(),
+                target: fixture.contract_key(),
+            }),
+            limit: QueryLimit::new(10),
+        }),
+        MindRequest::SubscribeTechnicalRelations(SubscribeTechnicalRelations {
+            filter: TechnicalRelationFilter::Composite(CompositeTechnicalRelationFilter {
+                kinds: vec![
+                    TechnicalRelationKind::DependsOn,
+                    TechnicalRelationKind::Blocks,
+                ],
+                source: Some(fixture.claim_key()),
+                target: Some(fixture.witness_key()),
+            }),
+        }),
+    ];
+
+    for request in requests {
+        assert_eq!(round_trip_request(request.clone()), request);
+    }
+}
+
+#[test]
+fn technical_replies_and_events_round_trip() {
+    let fixture = TechnicalFixture::new();
+    let node = fixture.node();
+    let relation = fixture.relation();
+    let replies = vec![
+        MindReply::TechnicalNodeCommitted(TechnicalNodeCommitted { node: node.clone() }),
+        MindReply::TechnicalRelationCommitted(TechnicalRelationCommitted {
+            relation: relation.clone(),
+        }),
+        MindReply::TechnicalNodeList(TechnicalNodeList {
+            nodes: vec![node.clone()],
+            has_more: false,
+        }),
+        MindReply::TechnicalRelationList(TechnicalRelationList {
+            relations: vec![relation.clone()],
+            has_more: false,
+        }),
+        MindReply::TechnicalNodeRejected(TechnicalNodeRejected {
+            reason: TechnicalNodeRejectionReason::DuplicateStableNodeKey(fixture.component_key()),
+        }),
+        MindReply::TechnicalRelationRejected(TechnicalRelationRejected {
+            reason: TechnicalRelationRejectionReason::DomainRangeViolation(
+                TechnicalRelationKindMismatch {
+                    relation: TechnicalRelationKind::OwnsRepository,
+                    expected_source_kinds: vec![TechnicalNodeKind::Component],
+                    expected_target_kinds: vec![TechnicalNodeKind::Repository],
+                    got_source_kind: TechnicalNodeKind::Report,
+                    got_target_kind: TechnicalNodeKind::Repository,
+                },
+            ),
+        }),
+    ];
+
+    for reply in replies {
+        assert_eq!(round_trip_reply(reply.clone()), reply);
+    }
+
+    let accepted = MindReply::SubscriptionAccepted(SubscriptionAccepted {
+        subscription: SubscriptionIdentifier::new("sub-technical"),
+        initial_snapshot: vec![
+            MindSnapshot::TechnicalNode(node.clone()),
+            MindSnapshot::TechnicalRelation(relation.clone()),
+        ],
+    });
+    let event = MindEvent::SubscriptionDelta(SubscriptionEvent {
+        subscription: SubscriptionIdentifier::new("sub-technical"),
+        delta: MindDelta::TechnicalNodeCommitted(node),
+    });
+
+    assert_eq!(round_trip_reply(accepted.clone()), accepted);
+    assert_eq!(round_trip_event(event.clone()), event);
+    assert_eq!(event.stream_kind(), MindStreamKind::MindEventStream);
 }
 
 // ─── Request variants ─────────────────────────────────────
@@ -1121,6 +1582,57 @@ fn mind_request_exposes_contract_owned_operation_kind() {
             MindRequest::ChannelList(ChannelList { filters: vec![] }),
             MindOperationKind::ChannelList,
         ),
+        (
+            MindRequest::SubmitTechnicalNode(SubmitTechnicalNode {
+                stable_key: TechnicalNodeKey::new("component:mind"),
+                kind: TechnicalNodeKind::Component,
+                body: TechnicalFixture::new().component_body(),
+            }),
+            MindOperationKind::SubmitTechnicalNode,
+        ),
+        (
+            MindRequest::SubmitTechnicalRelation(SubmitTechnicalRelation {
+                kind: TechnicalRelationKind::DefinesContract,
+                source: TechnicalNodeKey::new("crate:signal-mind"),
+                target: TechnicalNodeKey::new("contract:signal-mind"),
+                note: None,
+            }),
+            MindOperationKind::SubmitTechnicalRelation,
+        ),
+        (
+            MindRequest::QueryTechnicalNodes(QueryTechnicalNodes {
+                filter: TechnicalNodeFilter::ByKind(ByTechnicalNodeKind {
+                    kinds: vec![TechnicalNodeKind::Component],
+                }),
+                limit: QueryLimit::new(10),
+            }),
+            MindOperationKind::QueryTechnicalNodes,
+        ),
+        (
+            MindRequest::QueryTechnicalRelations(QueryTechnicalRelations {
+                filter: TechnicalRelationFilter::ByKind(ByTechnicalRelationKind {
+                    kinds: vec![TechnicalRelationKind::DependsOn],
+                }),
+                limit: QueryLimit::new(10),
+            }),
+            MindOperationKind::QueryTechnicalRelations,
+        ),
+        (
+            MindRequest::SubscribeTechnicalNodes(SubscribeTechnicalNodes {
+                filter: TechnicalNodeFilter::ByStableKey(ByTechnicalNodeStableKey {
+                    stable_key: TechnicalNodeKey::new("component:mind"),
+                }),
+            }),
+            MindOperationKind::SubscribeTechnicalNodes,
+        ),
+        (
+            MindRequest::SubscribeTechnicalRelations(SubscribeTechnicalRelations {
+                filter: TechnicalRelationFilter::BySource(ByTechnicalRelationSource {
+                    source: TechnicalNodeKey::new("component:mind"),
+                }),
+            }),
+            MindOperationKind::SubscribeTechnicalRelations,
+        ),
     ];
 
     for (request, operation) in cases {
@@ -1148,6 +1660,12 @@ fn mind_request_variants_declare_contract_local_operation_heads() {
             "Query",
             "AdjudicationRequest",
             "ChannelList",
+            "SubmitTechnicalNode",
+            "SubmitTechnicalRelation",
+            "QueryTechnicalNodes",
+            "QueryTechnicalRelations",
+            "SubscribeTechnicalNodes",
+            "SubscribeTechnicalRelations",
         ]
     );
 }

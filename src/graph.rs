@@ -5,7 +5,8 @@ use signal_persona::{
 };
 
 use crate::{
-    ActorName, DisplayIdentifier, RoleName, ScopeReference, TextBody, TimestampNanos, WirePath,
+    ActorName, DisplayIdentifier, RoleName, ScopeReference, TechnicalNode, TechnicalRelation,
+    TextBody, TimestampNanos, WirePath,
 };
 
 #[derive(
@@ -1280,6 +1281,8 @@ pub struct RelationList {
 pub enum MindSnapshot {
     Thought(Thought),
     Relation(Relation),
+    TechnicalNode(TechnicalNode),
+    TechnicalRelation(TechnicalRelation),
 }
 
 #[derive(
@@ -1296,6 +1299,8 @@ pub struct SubscriptionAccepted {
 pub enum MindDelta {
     ThoughtCommitted(Thought),
     RelationCommitted(Relation),
+    TechnicalNodeCommitted(TechnicalNode),
+    TechnicalRelationCommitted(TechnicalRelation),
 }
 
 #[derive(
