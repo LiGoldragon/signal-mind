@@ -812,7 +812,7 @@ pub struct SubmitTechnicalRelation {
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct QueryTechnicalNodes {
-    pub filter: TechnicalNodeFilter,
+    pub query: TechnicalNodeQuery,
     pub limit: QueryLimit,
 }
 
@@ -840,6 +840,58 @@ pub struct SubscribeTechnicalRelations {
     pub filter: TechnicalRelationFilter,
     pub resume_after: Option<SubscriptionCursor>,
     pub initial_demand: SubscriptionDemandCredit,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub enum TechnicalNodeQuery {
+    Filter(TechnicalNodeFilter),
+    About(AboutTechnicalNode),
+    RelationNeighborhood(TechnicalRelationNeighborhoodQuery),
+    DependencyClosure(TechnicalDependencyClosureQuery),
+    ProvenanceChain(TechnicalProvenanceChainQuery),
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct AboutTechnicalNode {
+    pub stable_key: TechnicalNodeKey,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalRelationNeighborhoodQuery {
+    pub stable_key: TechnicalNodeKey,
+    pub direction: TechnicalRelationNeighborhoodDirection,
+    pub kinds: Vec<TechnicalRelationKind>,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub enum TechnicalRelationNeighborhoodDirection {
+    Incoming,
+    Outgoing,
+    Both,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalDependencyClosureQuery {
+    pub stable_key: TechnicalNodeKey,
+    pub kinds: Vec<TechnicalRelationKind>,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalProvenanceChainQuery {
+    pub stable_key: TechnicalNodeKey,
+    pub kinds: Vec<TechnicalRelationKind>,
 }
 
 #[derive(
@@ -957,6 +1009,36 @@ pub struct TechnicalNodeList {
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalRelationList {
+    pub relations: Vec<TechnicalRelation>,
+    pub has_more: bool,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalNodeNeighborhood {
+    pub center: Option<TechnicalNode>,
+    pub incoming: Vec<TechnicalRelation>,
+    pub outgoing: Vec<TechnicalRelation>,
+    pub has_more: bool,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalDependencyClosure {
+    pub root: Option<TechnicalNode>,
+    pub nodes: Vec<TechnicalNode>,
+    pub relations: Vec<TechnicalRelation>,
+    pub has_more: bool,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalProvenanceChain {
+    pub root: Option<TechnicalNode>,
+    pub nodes: Vec<TechnicalNode>,
     pub relations: Vec<TechnicalRelation>,
     pub has_more: bool,
 }

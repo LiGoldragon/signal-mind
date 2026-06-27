@@ -1293,6 +1293,9 @@ signal_channel! {
         TechnicalRelationCommitted(TechnicalRelationCommitted),
         TechnicalNodeList(TechnicalNodeList),
         TechnicalRelationList(TechnicalRelationList),
+        TechnicalNodeNeighborhood(TechnicalNodeNeighborhood),
+        TechnicalDependencyClosure(TechnicalDependencyClosure),
+        TechnicalProvenanceChain(TechnicalProvenanceChain),
         TechnicalNodeRejected(TechnicalNodeRejected),
         TechnicalRelationRejected(TechnicalRelationRejected),
     }
