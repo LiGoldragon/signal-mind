@@ -260,23 +260,41 @@ the contract does not model a live BEADS backend.
 
 Technical dependency memory is the first production slice for Mind as a typed
 technical memory sibling to Spirit. It models components, repositories, crates,
-contracts, work items, source artifacts, reports, technical claims, and
-witnesses as `TechnicalNode` records. Dependency edges are `TechnicalRelation`
-records with closed relation kinds: `OwnsRepository`, `DefinesContract`,
-`DefinesCrate`, `DependsOn`, `Blocks`, `Implements`, `UsesContract`,
-`UsesStorage`, `Documents`, `DerivedFrom`, `ClaimsAbout`, `ProvenBy`,
-`Supersedes`, and `LocatedAt`.
+contracts, work items, source artifacts, reports, technical claims, witnesses,
+storage resources, schema families, and tables as `TechnicalNode` records.
+Dependency edges are `TechnicalRelation` records with closed relation kinds:
+`OwnsRepository`, `DefinesContract`, `DefinesCrate`, `BuildDependency`,
+`RuntimeDependency`, `WireDependency`, `StorageDependency`, `TaskDependency`,
+`ProvenanceDependency`, `Blocks`, `Implements`, `Documents`, `ClaimsAbout`,
+`ProvenBy`, `Supersedes`, and `LocatedAt`.
 
 `TechnicalNodeKey` is the stable public key callers use to name a technical
-node across submissions and filters. `TechnicalNodeIdentifier` and
-`TechnicalRelationIdentifier` are compact daemon-minted identifiers returned in
-committed records and query results. Submit requests do not carry compact IDs,
-authors, timestamps, or sequence numbers.
+node across submissions and filters. It is a validated canonical family key,
+not an arbitrary string. Accepted families are:
+`component:<name>`, `repo:<name>`, `crate:<name>`,
+`contract:<crate>:<surface>`, `task:<token>`, `artifact:<name>`,
+`report:<name>`, `claim:<name>`, `witness:<name>`,
+`storage:<component>:<name>`, `schema:<component>:<name>`, and
+`table:<component>:<name>`. Key segments are lowercase ASCII letters, digits,
+hyphen, underscore, or dot. Invalid shapes are rejected by
+`TechnicalNodeKey` decoding and are representable as
+`TechnicalNodeRejectionReason::InvalidStableNodeKey`.
+
+`TechnicalNodeIdentifier` and `TechnicalRelationIdentifier` are compact
+daemon-minted identifiers returned in committed records and query results.
+Submit requests do not carry compact IDs, authors, timestamps, or sequence
+numbers.
 
 `TechnicalNodeKind` owns the body-kind validator. `TechnicalRelationKind` owns
-the domain/range validator for relation endpoints. Rejection reasons are typed:
-kind/body mismatch, duplicate stable node key, duplicate relation, missing
-endpoint, domain/range violation, and persistence rejection.
+the domain/range validator for relation endpoints. Storage dependencies are
+graph facts: a component, crate, contract, storage resource, schema family, or
+table can point at the storage/schema/table node it depends on through
+`StorageDependency`. Contract ownership is relation-owned:
+`ContractNode` carries the contract surface (`Ordinary`, `Meta`, or
+`Introspection`), while `DefinesContract` connects the crate or repository to
+the contract. Rejection reasons are typed: invalid stable node key, kind/body
+mismatch, duplicate stable node key, duplicate relation, missing endpoint,
+domain/range violation, and persistence rejection.
 
 ### 3.4 Channel choreography
 
@@ -341,7 +359,7 @@ The contract validates boundary strings before they become wire values.
 | `AdjudicationRequestIdentifier` | short router-minted identifier for one parked adjudication request. |
 | `TechnicalNodeIdentifier` | compact daemon-minted technical node identifier. |
 | `TechnicalRelationIdentifier` | compact daemon-minted technical relation identifier. |
-| `TechnicalNodeKey` | stable caller-visible technical node key used for submissions and filters. |
+| `TechnicalNodeKey` | validated caller-visible technical node key used for submissions and filters; canonical families include `component:mind`, `repo:signal-mind`, and `contract:signal-mind:ordinary`. |
 | `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-origin`. |
 | `ChannelMessageKind` | closed set of first-stack route categories. |
 | `ChannelDuration` | channel lifetime requested or emitted by mind choreography. |
@@ -420,8 +438,13 @@ MindUnimplementedReason
   IDs, or compact technical relation IDs.
 - Technical dependency memory is modeled as `TechnicalNode` /
   `TechnicalRelation`, not as another `ThoughtBody` variant.
-- `TechnicalNodeKey` is public and stable; compact technical node and relation
-  identifiers are daemon-minted.
+- `TechnicalNodeKey` is public, stable, and validated as a canonical typed key;
+  compact technical node and relation identifiers are daemon-minted.
+- Storage resources, schema families, and tables are first-class technical
+  nodes; storage dependencies are `TechnicalRelation` facts, not prose claims.
+- Technical dependency relations use explicit build, runtime, wire, storage,
+  task, and provenance dependency kinds. `DependsOn` is not part of the
+  technical-memory relation vocabulary.
 - Lock files and BEADS are represented only as temporary external references or
   aliases, never as live backend protocol.
 - Channel choreography records use `signal-persona-origin` endpoint and origin
@@ -464,9 +487,10 @@ Existing tests in `tests/round_trip.rs` cover:
 - boundary validation, including `WirePath` NOTA decode rejection.
 - workspace role coverage.
 - relation-kind domain/range validation and table coverage.
-- technical node/relation kind NOTA round trips, kind/body validation, relation
-  domain/range validation, request/reply/event frame round trips, and operation
-  head coverage.
+- technical key validation and invalid-key rejection reasons.
+- technical node/relation kind NOTA round trips, kind/body validation, storage
+  node bodies, split dependency relation domain/range validation,
+  request/reply/event frame round trips, and operation head coverage.
 
 Additional architecture guards still worth adding:
 

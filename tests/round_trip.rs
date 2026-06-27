@@ -126,6 +126,10 @@ fn sample_actor() -> ActorName {
     ActorName::new("operator")
 }
 
+fn sample_technical_key(value: &str) -> TechnicalNodeKey {
+    TechnicalNodeKey::from_canonical(value).expect("canonical technical node key")
+}
+
 fn sample_mind_component() -> ComponentName {
     ComponentName::new("mind")
 }
@@ -377,27 +381,35 @@ impl TechnicalFixture {
     }
 
     fn component_key(&self) -> TechnicalNodeKey {
-        TechnicalNodeKey::new("component:mind")
+        sample_technical_key("component:mind")
     }
 
     fn repository_key(&self) -> TechnicalNodeKey {
-        TechnicalNodeKey::new("repository:signal-mind")
+        sample_technical_key("repo:signal-mind")
     }
 
     fn crate_key(&self) -> TechnicalNodeKey {
-        TechnicalNodeKey::new("crate:signal-mind")
+        sample_technical_key("crate:signal-mind")
     }
 
     fn contract_key(&self) -> TechnicalNodeKey {
-        TechnicalNodeKey::new("contract:signal-mind")
+        sample_technical_key("contract:signal-mind:ordinary")
     }
 
     fn claim_key(&self) -> TechnicalNodeKey {
-        TechnicalNodeKey::new("claim:technical-memory")
+        sample_technical_key("claim:technical-memory")
     }
 
     fn witness_key(&self) -> TechnicalNodeKey {
-        TechnicalNodeKey::new("witness:round-trip")
+        sample_technical_key("witness:round-trip")
+    }
+
+    fn storage_key(&self) -> TechnicalNodeKey {
+        sample_technical_key("storage:mind:sema")
+    }
+
+    fn schema_key(&self) -> TechnicalNodeKey {
+        sample_technical_key("schema:mind:technical")
     }
 
     fn component_body(&self) -> TechnicalNodeBody {
@@ -425,7 +437,7 @@ impl TechnicalFixture {
     fn contract_body(&self) -> TechnicalNodeBody {
         TechnicalNodeBody::Contract(ContractNode {
             name: TextBody::new("mind technical memory contract"),
-            crate_key: self.crate_key(),
+            surface: ContractSurface::Ordinary,
         })
     }
 
@@ -463,6 +475,33 @@ impl TechnicalFixture {
         TechnicalNodeBody::Witness(WitnessNode {
             summary: TextBody::new("round-trip tests cover technical memory records"),
             locator: Some(TechnicalSourceLocator::Path(sample_path())),
+        })
+    }
+
+    fn storage_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::StorageResource(StorageResourceNode {
+            owner: self.component_key(),
+            name: TextBody::new("mind sema store"),
+            path: Some(
+                WirePath::from_absolute_path("/home/li/.local/state/mind/mind.sema")
+                    .expect("absolute storage path"),
+            ),
+        })
+    }
+
+    fn schema_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::SchemaFamily(SchemaFamilyNode {
+            owner: self.component_key(),
+            name: TextBody::new("technical dependency memory"),
+            version: Some(TextBody::new("2")),
+        })
+    }
+
+    fn table_body(&self) -> TechnicalNodeBody {
+        TechnicalNodeBody::Table(TableNode {
+            storage: self.storage_key(),
+            name: TextBody::new("technical_nodes"),
+            schema_family: Some(self.schema_key()),
         })
     }
 
@@ -816,7 +855,7 @@ fn subscribe_opens_and_subscription_retraction_closes_the_mind_event_stream() {
     let subscribe_technical_relations =
         MindRequest::SubscribeTechnicalRelations(SubscribeTechnicalRelations {
             filter: TechnicalRelationFilter::ByKind(ByTechnicalRelationKind {
-                kinds: vec![TechnicalRelationKind::DependsOn],
+                kinds: vec![TechnicalRelationKind::BuildDependency],
             }),
         });
     let retract = MindRequest::SubscriptionRetraction(SubscriptionIdentifier::new("sub-aab"));
@@ -900,6 +939,9 @@ fn every_technical_node_kind_round_trips_through_nota_text() {
         (TechnicalNodeKind::Report, "Report"),
         (TechnicalNodeKind::TechnicalClaim, "TechnicalClaim"),
         (TechnicalNodeKind::Witness, "Witness"),
+        (TechnicalNodeKind::StorageResource, "StorageResource"),
+        (TechnicalNodeKind::SchemaFamily, "SchemaFamily"),
+        (TechnicalNodeKind::Table, "Table"),
     ];
 
     for (kind, expected) in cases {
@@ -913,13 +955,24 @@ fn every_technical_relation_kind_round_trips_through_nota_text() {
         (TechnicalRelationKind::OwnsRepository, "OwnsRepository"),
         (TechnicalRelationKind::DefinesContract, "DefinesContract"),
         (TechnicalRelationKind::DefinesCrate, "DefinesCrate"),
-        (TechnicalRelationKind::DependsOn, "DependsOn"),
+        (TechnicalRelationKind::BuildDependency, "BuildDependency"),
+        (
+            TechnicalRelationKind::RuntimeDependency,
+            "RuntimeDependency",
+        ),
+        (TechnicalRelationKind::WireDependency, "WireDependency"),
+        (
+            TechnicalRelationKind::StorageDependency,
+            "StorageDependency",
+        ),
+        (TechnicalRelationKind::TaskDependency, "TaskDependency"),
+        (
+            TechnicalRelationKind::ProvenanceDependency,
+            "ProvenanceDependency",
+        ),
         (TechnicalRelationKind::Blocks, "Blocks"),
         (TechnicalRelationKind::Implements, "Implements"),
-        (TechnicalRelationKind::UsesContract, "UsesContract"),
-        (TechnicalRelationKind::UsesStorage, "UsesStorage"),
         (TechnicalRelationKind::Documents, "Documents"),
-        (TechnicalRelationKind::DerivedFrom, "DerivedFrom"),
         (TechnicalRelationKind::ClaimsAbout, "ClaimsAbout"),
         (TechnicalRelationKind::ProvenBy, "ProvenBy"),
         (TechnicalRelationKind::Supersedes, "Supersedes"),
@@ -947,6 +1000,9 @@ fn technical_node_body_kind_matches_declared_kind() {
         (TechnicalNodeKind::Report, fixture.report_body()),
         (TechnicalNodeKind::TechnicalClaim, fixture.claim_body()),
         (TechnicalNodeKind::Witness, fixture.witness_body()),
+        (TechnicalNodeKind::StorageResource, fixture.storage_body()),
+        (TechnicalNodeKind::SchemaFamily, fixture.schema_body()),
+        (TechnicalNodeKind::Table, fixture.table_body()),
     ];
 
     assert_eq!(TechnicalNodeKind::ALL.len(), valid_bodies.len());
@@ -968,6 +1024,79 @@ fn technical_node_kind_rejects_body_mismatch() {
 }
 
 #[test]
+fn technical_node_key_accepts_canonical_typed_families() {
+    let cases = [
+        (
+            "component:mind",
+            TechnicalNodeKeyFamily::Component,
+            TechnicalNodeKind::Component,
+        ),
+        (
+            "repo:signal-mind",
+            TechnicalNodeKeyFamily::Repository,
+            TechnicalNodeKind::Repository,
+        ),
+        (
+            "contract:signal-mind:ordinary",
+            TechnicalNodeKeyFamily::Contract,
+            TechnicalNodeKind::Contract,
+        ),
+        (
+            "storage:mind:sema",
+            TechnicalNodeKeyFamily::StorageResource,
+            TechnicalNodeKind::StorageResource,
+        ),
+        (
+            "schema:mind:technical",
+            TechnicalNodeKeyFamily::SchemaFamily,
+            TechnicalNodeKind::SchemaFamily,
+        ),
+        (
+            "table:mind:technical_nodes",
+            TechnicalNodeKeyFamily::Table,
+            TechnicalNodeKind::Table,
+        ),
+    ];
+
+    for (text, family, node_kind) in cases {
+        let key = TechnicalNodeKey::from_canonical(text).expect("canonical key");
+        assert_eq!(key.as_str(), text);
+        assert_eq!(key.family(), family);
+        assert_eq!(key.expected_node_kind(), node_kind);
+        round_trip_nota(key, text);
+    }
+}
+
+#[test]
+fn technical_node_key_rejects_invalid_canonical_shapes() {
+    let cases = [
+        (
+            "mind",
+            TechnicalNodeKeyRejectionReason::MissingFamilySeparator,
+        ),
+        (
+            "repository:signal-mind",
+            TechnicalNodeKeyRejectionReason::UnknownFamily,
+        ),
+        ("component:", TechnicalNodeKeyRejectionReason::EmptySegment),
+        (
+            "component:Mind",
+            TechnicalNodeKeyRejectionReason::InvalidSegmentCharacter,
+        ),
+        (
+            "contract:signal-mind",
+            TechnicalNodeKeyRejectionReason::WrongSegmentCount,
+        ),
+    ];
+
+    for (text, reason) in cases {
+        let rejection = TechnicalNodeKey::from_canonical(text).expect_err("invalid key rejected");
+        assert_eq!(rejection.supplied_key.as_str(), text);
+        assert_eq!(rejection.reason, reason);
+    }
+}
+
+#[test]
 fn technical_relation_kind_domain_table_covers_every_relation_kind() {
     let valid_cases = [
         (
@@ -986,9 +1115,34 @@ fn technical_relation_kind_domain_table_covers_every_relation_kind() {
             TechnicalNodeKind::Crate,
         ),
         (
-            TechnicalRelationKind::DependsOn,
+            TechnicalRelationKind::BuildDependency,
             TechnicalNodeKind::Crate,
             TechnicalNodeKind::Contract,
+        ),
+        (
+            TechnicalRelationKind::RuntimeDependency,
+            TechnicalNodeKind::Component,
+            TechnicalNodeKind::StorageResource,
+        ),
+        (
+            TechnicalRelationKind::WireDependency,
+            TechnicalNodeKind::Component,
+            TechnicalNodeKind::Contract,
+        ),
+        (
+            TechnicalRelationKind::StorageDependency,
+            TechnicalNodeKind::Component,
+            TechnicalNodeKind::Table,
+        ),
+        (
+            TechnicalRelationKind::TaskDependency,
+            TechnicalNodeKind::WorkItem,
+            TechnicalNodeKind::WorkItem,
+        ),
+        (
+            TechnicalRelationKind::ProvenanceDependency,
+            TechnicalNodeKind::TechnicalClaim,
+            TechnicalNodeKind::Report,
         ),
         (
             TechnicalRelationKind::Blocks,
@@ -1001,24 +1155,9 @@ fn technical_relation_kind_domain_table_covers_every_relation_kind() {
             TechnicalNodeKind::TechnicalClaim,
         ),
         (
-            TechnicalRelationKind::UsesContract,
-            TechnicalNodeKind::Component,
-            TechnicalNodeKind::Contract,
-        ),
-        (
-            TechnicalRelationKind::UsesStorage,
-            TechnicalNodeKind::Crate,
-            TechnicalNodeKind::TechnicalClaim,
-        ),
-        (
             TechnicalRelationKind::Documents,
             TechnicalNodeKind::Report,
             TechnicalNodeKind::Component,
-        ),
-        (
-            TechnicalRelationKind::DerivedFrom,
-            TechnicalNodeKind::TechnicalClaim,
-            TechnicalNodeKind::Report,
         ),
         (
             TechnicalRelationKind::ClaimsAbout,
@@ -1126,7 +1265,7 @@ fn technical_relation_requests_round_trip() {
         MindRequest::SubscribeTechnicalRelations(SubscribeTechnicalRelations {
             filter: TechnicalRelationFilter::Composite(CompositeTechnicalRelationFilter {
                 kinds: vec![
-                    TechnicalRelationKind::DependsOn,
+                    TechnicalRelationKind::ProvenanceDependency,
                     TechnicalRelationKind::Blocks,
                 ],
                 source: Some(fixture.claim_key()),
@@ -1160,6 +1299,14 @@ fn technical_replies_and_events_round_trip() {
         }),
         MindReply::TechnicalNodeRejected(TechnicalNodeRejected {
             reason: TechnicalNodeRejectionReason::DuplicateStableNodeKey(fixture.component_key()),
+        }),
+        MindReply::TechnicalNodeRejected(TechnicalNodeRejected {
+            reason: TechnicalNodeRejectionReason::InvalidStableNodeKey(
+                TechnicalNodeKeyRejection::new(
+                    "component:Mind",
+                    TechnicalNodeKeyRejectionReason::InvalidSegmentCharacter,
+                ),
+            ),
         }),
         MindReply::TechnicalRelationRejected(TechnicalRelationRejected {
             reason: TechnicalRelationRejectionReason::DomainRangeViolation(
@@ -1584,7 +1731,7 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         ),
         (
             MindRequest::SubmitTechnicalNode(SubmitTechnicalNode {
-                stable_key: TechnicalNodeKey::new("component:mind"),
+                stable_key: sample_technical_key("component:mind"),
                 kind: TechnicalNodeKind::Component,
                 body: TechnicalFixture::new().component_body(),
             }),
@@ -1593,8 +1740,8 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         (
             MindRequest::SubmitTechnicalRelation(SubmitTechnicalRelation {
                 kind: TechnicalRelationKind::DefinesContract,
-                source: TechnicalNodeKey::new("crate:signal-mind"),
-                target: TechnicalNodeKey::new("contract:signal-mind"),
+                source: sample_technical_key("crate:signal-mind"),
+                target: sample_technical_key("contract:signal-mind:ordinary"),
                 note: None,
             }),
             MindOperationKind::SubmitTechnicalRelation,
@@ -1611,7 +1758,7 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         (
             MindRequest::QueryTechnicalRelations(QueryTechnicalRelations {
                 filter: TechnicalRelationFilter::ByKind(ByTechnicalRelationKind {
-                    kinds: vec![TechnicalRelationKind::DependsOn],
+                    kinds: vec![TechnicalRelationKind::BuildDependency],
                 }),
                 limit: QueryLimit::new(10),
             }),
@@ -1620,7 +1767,7 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         (
             MindRequest::SubscribeTechnicalNodes(SubscribeTechnicalNodes {
                 filter: TechnicalNodeFilter::ByStableKey(ByTechnicalNodeStableKey {
-                    stable_key: TechnicalNodeKey::new("component:mind"),
+                    stable_key: sample_technical_key("component:mind"),
                 }),
             }),
             MindOperationKind::SubscribeTechnicalNodes,
@@ -1628,7 +1775,7 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         (
             MindRequest::SubscribeTechnicalRelations(SubscribeTechnicalRelations {
                 filter: TechnicalRelationFilter::BySource(ByTechnicalRelationSource {
-                    source: TechnicalNodeKey::new("component:mind"),
+                    source: sample_technical_key("component:mind"),
                 }),
             }),
             MindOperationKind::SubscribeTechnicalRelations,

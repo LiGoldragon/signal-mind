@@ -36,7 +36,10 @@ The Mind channel carries:
   `SubscriptionRetraction`.
 - **Typed technical dependency memory:** `SubmitTechnicalNode`,
   `SubmitTechnicalRelation`, `QueryTechnicalNodes`, `QueryTechnicalRelations`,
-  `SubscribeTechnicalNodes`, `SubscribeTechnicalRelations`.
+  `SubscribeTechnicalNodes`, `SubscribeTechnicalRelations`. Technical node keys
+  are validated canonical family keys such as `component:mind`,
+  `repo:signal-mind`, and `contract:signal-mind:ordinary`; storage resources,
+  schema families, and tables are first-class technical nodes.
 - **Work and memory graph:** `Opening`, `NoteSubmission`, `Link`, `StatusChange`,
   `AliasAssignment`, `Query`.
 - **Channel choreography (read/observe side):** `AdjudicationRequest`,
@@ -103,6 +106,9 @@ operation verbs":
 - `TechnicalNodeKey` is the caller-stable technical identity; compact
   `TechnicalNodeIdentifier` and `TechnicalRelationIdentifier` values are minted
   by the daemon.
+- Technical dependency relations distinguish build, runtime, wire, storage,
+  task, and provenance dependencies; storage dependencies point at storage,
+  schema, or table nodes as graph facts.
 - Channel choreography observation is read-only in this contract; authority
   orders live in `meta-signal-mind`.
 

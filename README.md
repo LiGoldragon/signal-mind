@@ -13,6 +13,11 @@ channel carries:
 - **Typed mind graph:** `SubmitThought`, `SubmitRelation`,
   `QueryThoughts`, `QueryRelations`, `SubscribeThoughts`,
   `SubscribeRelations`, `SubscriptionRetraction`.
+- **Typed technical dependency graph:** `SubmitTechnicalNode`,
+  `SubmitTechnicalRelation`, `QueryTechnicalNodes`,
+  `QueryTechnicalRelations`, and technical subscriptions. Stable public
+  technical keys are canonical family keys such as `component:mind`,
+  `repo:signal-mind`, and `contract:signal-mind:ordinary`.
 - **Channel choreography:** `AdjudicationRequest`, `ChannelList`.
 
 Ordinary role claims, handoffs, observations, and activity log operations

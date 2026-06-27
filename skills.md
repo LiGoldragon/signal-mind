@@ -36,6 +36,12 @@ If your change adds a new request or reply variant, edit
   `RelationKind`, `Thought`, `Relation`, `RecordIdentifier`, `RelationIdentifier`,
   thought/relation filters, subscription records, and graph
   commit/list replies.
+- The typed technical dependency substrate: canonical `TechnicalNodeKey`
+  families (`component`, `repo`, `crate`, `contract`, `task`, `artifact`,
+  `report`, `claim`, `witness`, `storage`, `schema`, `table`), technical node
+  bodies including storage/schema/table nodes, and split technical dependency
+  relations (`BuildDependency`, `RuntimeDependency`, `WireDependency`,
+  `StorageDependency`, `TaskDependency`, `ProvenanceDependency`).
 - The closed `MindRequest` enum (`SubmitThought`,
   `SubmitRelation`, `QueryThoughts`, `QueryRelations`,
   `SubscribeThoughts`, `SubscribeRelations`,
@@ -64,7 +70,9 @@ If your change adds a new request or reply variant, edit
 - Lock-file projection writing — outside this implementation
   target; `mind` replaces lock files instead of
   projecting them.
-- Storage tables — those live in `mind`'s SEMA engine integration.
+- Runtime storage tables — those live in `mind`'s SEMA engine integration.
+  This contract owns only the typed vocabulary for storage/schema/table nodes
+  and dependency facts about them.
 - Public Sema-operation mirrors — no `AuthorizedSignalVerb`,
   `SemaOperation`, `ToSemaOperation`, `signal-sema`, or Sema-class root
   belongs in this contract.

@@ -12,7 +12,8 @@
 //! - **Technical dependency memory** — submit/query/subscribe to
 //!   closed TechnicalNode and TechnicalRelation records for stable
 //!   component, repository, crate, contract, work item, artifact,
-//!   report, claim, and witness dependencies.
+//!   report, claim, witness, storage resource, schema family, and
+//!   table dependencies.
 //!
 //! The channel is **request/reply** (every operation has a
 //! typed reply). Long-lived subscription delivery uses the stream grammar
@@ -44,6 +45,8 @@ pub enum Error {
     InvalidWirePath { path: String },
     #[error("task token must be non-empty, unbracketed, and contain no whitespace: {token}")]
     InvalidTaskToken { token: String },
+    #[error("invalid technical node key {key}: {reason}")]
+    InvalidTechnicalNodeKey { key: String, reason: String },
     #[error("unknown workspace role token: {role}")]
     UnknownRoleName { role: String },
 }

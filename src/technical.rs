@@ -1,8 +1,12 @@
-use nota::{NotaDecode, NotaEncode};
+use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_persona::ComponentName;
+use std::fmt;
+use std::str::FromStr;
 
-use crate::{ActorName, QueryLimit, TaskToken, TextBody, TimestampNanos, WirePath};
+use crate::{
+    ActorName, Error, MindResult, QueryLimit, TaskToken, TextBody, TimestampNanos, WirePath,
+};
 
 #[derive(
     Archive,
@@ -53,6 +57,129 @@ impl TechnicalRelationIdentifier {
 }
 
 #[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, Debug, Clone, PartialEq, Eq, Hash,
+)]
+pub struct TechnicalNodeKey(String);
+
+impl TechnicalNodeKey {
+    pub fn try_new(value: String) -> MindResult<Self> {
+        Self::from_canonical(value).map_err(|rejection| Error::InvalidTechnicalNodeKey {
+            key: rejection.supplied_key.as_str().to_string(),
+            reason: rejection.reason.to_string(),
+        })
+    }
+
+    pub fn from_canonical(
+        value: impl Into<String>,
+    ) -> std::result::Result<Self, TechnicalNodeKeyRejection> {
+        let value = value.into();
+        let parts = value.split(':').collect::<Vec<_>>();
+        if parts.len() < 2 {
+            return Err(TechnicalNodeKeyRejection::new(
+                value,
+                TechnicalNodeKeyRejectionReason::MissingFamilySeparator,
+            ));
+        }
+
+        let family = match TechnicalNodeKeyFamily::from_prefix(parts[0]) {
+            Some(family) => family,
+            None => {
+                return Err(TechnicalNodeKeyRejection::new(
+                    value,
+                    TechnicalNodeKeyRejectionReason::UnknownFamily,
+                ));
+            }
+        };
+
+        if parts.len() != family.segment_count() + 1 {
+            return Err(TechnicalNodeKeyRejection::new(
+                value,
+                TechnicalNodeKeyRejectionReason::WrongSegmentCount,
+            ));
+        }
+
+        if parts[1..].iter().any(|segment| segment.is_empty()) {
+            return Err(TechnicalNodeKeyRejection::new(
+                value,
+                TechnicalNodeKeyRejectionReason::EmptySegment,
+            ));
+        }
+
+        if parts[1..]
+            .iter()
+            .flat_map(|segment| segment.chars())
+            .any(|character| {
+                !(character.is_ascii_lowercase()
+                    || character.is_ascii_digit()
+                    || matches!(character, '-' | '_' | '.'))
+            })
+        {
+            return Err(TechnicalNodeKeyRejection::new(
+                value,
+                TechnicalNodeKeyRejectionReason::InvalidSegmentCharacter,
+            ));
+        }
+
+        Ok(Self(value))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn family(&self) -> TechnicalNodeKeyFamily {
+        let family = self
+            .0
+            .split(':')
+            .next()
+            .expect("validated technical node key has a family prefix");
+        TechnicalNodeKeyFamily::from_prefix(family)
+            .expect("validated technical node key has a known family prefix")
+    }
+
+    pub fn expected_node_kind(&self) -> TechnicalNodeKind {
+        self.family().node_kind()
+    }
+}
+
+impl TryFrom<String> for TechnicalNodeKey {
+    type Error = Error;
+
+    fn try_from(value: String) -> MindResult<Self> {
+        Self::try_new(value)
+    }
+}
+
+impl TryFrom<&str> for TechnicalNodeKey {
+    type Error = Error;
+
+    fn try_from(value: &str) -> MindResult<Self> {
+        Self::try_new(value.to_string())
+    }
+}
+
+impl FromStr for TechnicalNodeKey {
+    type Err = Error;
+
+    fn from_str(value: &str) -> MindResult<Self> {
+        Self::try_from(value)
+    }
+}
+
+impl AsRef<str> for TechnicalNodeKey {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl NotaDecode for TechnicalNodeKey {
+    fn from_nota_block(block: &Block) -> std::result::Result<Self, NotaDecodeError> {
+        let key = NotaBlock::new(block).parse_string()?;
+        Self::from_canonical(key).map_err(|rejection| NotaDecodeError::Parse(rejection.to_string()))
+    }
+}
+
+#[derive(
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
@@ -60,19 +187,162 @@ impl TechnicalRelationIdentifier {
     NotaDecode,
     Debug,
     Clone,
+    Copy,
     PartialEq,
     Eq,
     Hash,
 )]
-pub struct TechnicalNodeKey(String);
+pub enum TechnicalNodeKeyFamily {
+    Component,
+    Repository,
+    Crate,
+    Contract,
+    WorkItem,
+    SourceArtifact,
+    Report,
+    TechnicalClaim,
+    Witness,
+    StorageResource,
+    SchemaFamily,
+    Table,
+}
 
-impl TechnicalNodeKey {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
+impl TechnicalNodeKeyFamily {
+    pub const ALL: [Self; 12] = [
+        Self::Component,
+        Self::Repository,
+        Self::Crate,
+        Self::Contract,
+        Self::WorkItem,
+        Self::SourceArtifact,
+        Self::Report,
+        Self::TechnicalClaim,
+        Self::Witness,
+        Self::StorageResource,
+        Self::SchemaFamily,
+        Self::Table,
+    ];
+
+    pub const fn prefix(self) -> &'static str {
+        match self {
+            Self::Component => "component",
+            Self::Repository => "repo",
+            Self::Crate => "crate",
+            Self::Contract => "contract",
+            Self::WorkItem => "task",
+            Self::SourceArtifact => "artifact",
+            Self::Report => "report",
+            Self::TechnicalClaim => "claim",
+            Self::Witness => "witness",
+            Self::StorageResource => "storage",
+            Self::SchemaFamily => "schema",
+            Self::Table => "table",
+        }
     }
 
-    pub fn as_str(&self) -> &str {
-        &self.0
+    pub fn from_prefix(prefix: &str) -> Option<Self> {
+        match prefix {
+            "component" => Some(Self::Component),
+            "repo" => Some(Self::Repository),
+            "crate" => Some(Self::Crate),
+            "contract" => Some(Self::Contract),
+            "task" => Some(Self::WorkItem),
+            "artifact" => Some(Self::SourceArtifact),
+            "report" => Some(Self::Report),
+            "claim" => Some(Self::TechnicalClaim),
+            "witness" => Some(Self::Witness),
+            "storage" => Some(Self::StorageResource),
+            "schema" => Some(Self::SchemaFamily),
+            "table" => Some(Self::Table),
+            _ => None,
+        }
+    }
+
+    pub const fn segment_count(self) -> usize {
+        match self {
+            Self::Contract | Self::StorageResource | Self::SchemaFamily | Self::Table => 2,
+            Self::Component
+            | Self::Repository
+            | Self::Crate
+            | Self::WorkItem
+            | Self::SourceArtifact
+            | Self::Report
+            | Self::TechnicalClaim
+            | Self::Witness => 1,
+        }
+    }
+
+    pub const fn node_kind(self) -> TechnicalNodeKind {
+        match self {
+            Self::Component => TechnicalNodeKind::Component,
+            Self::Repository => TechnicalNodeKind::Repository,
+            Self::Crate => TechnicalNodeKind::Crate,
+            Self::Contract => TechnicalNodeKind::Contract,
+            Self::WorkItem => TechnicalNodeKind::WorkItem,
+            Self::SourceArtifact => TechnicalNodeKind::SourceArtifact,
+            Self::Report => TechnicalNodeKind::Report,
+            Self::TechnicalClaim => TechnicalNodeKind::TechnicalClaim,
+            Self::Witness => TechnicalNodeKind::Witness,
+            Self::StorageResource => TechnicalNodeKind::StorageResource,
+            Self::SchemaFamily => TechnicalNodeKind::SchemaFamily,
+            Self::Table => TechnicalNodeKind::Table,
+        }
+    }
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalNodeKeyRejection {
+    pub supplied_key: TextBody,
+    pub reason: TechnicalNodeKeyRejectionReason,
+}
+
+impl TechnicalNodeKeyRejection {
+    pub fn new(supplied_key: impl Into<String>, reason: TechnicalNodeKeyRejectionReason) -> Self {
+        Self {
+            supplied_key: TextBody::new(supplied_key),
+            reason,
+        }
+    }
+}
+
+impl fmt::Display for TechnicalNodeKeyRejection {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}: {}", self.supplied_key.as_str(), self.reason)
+    }
+}
+
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+)]
+pub enum TechnicalNodeKeyRejectionReason {
+    MissingFamilySeparator,
+    UnknownFamily,
+    WrongSegmentCount,
+    EmptySegment,
+    InvalidSegmentCharacter,
+}
+
+impl fmt::Display for TechnicalNodeKeyRejectionReason {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::MissingFamilySeparator => "missing family separator",
+            Self::UnknownFamily => "unknown family",
+            Self::WrongSegmentCount => "wrong segment count",
+            Self::EmptySegment => "empty segment",
+            Self::InvalidSegmentCharacter => "invalid segment character",
+        })
     }
 }
 
@@ -99,10 +369,13 @@ pub enum TechnicalNodeKind {
     Report,
     TechnicalClaim,
     Witness,
+    StorageResource,
+    SchemaFamily,
+    Table,
 }
 
 impl TechnicalNodeKind {
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 12] = [
         Self::Component,
         Self::Repository,
         Self::Crate,
@@ -112,6 +385,9 @@ impl TechnicalNodeKind {
         Self::Report,
         Self::TechnicalClaim,
         Self::Witness,
+        Self::StorageResource,
+        Self::SchemaFamily,
+        Self::Table,
     ];
 
     pub fn validate_body(
@@ -151,6 +427,9 @@ pub enum TechnicalNodeBody {
     Report(ReportNode),
     TechnicalClaim(TechnicalClaimNode),
     Witness(WitnessNode),
+    StorageResource(StorageResourceNode),
+    SchemaFamily(SchemaFamilyNode),
+    Table(TableNode),
 }
 
 impl TechnicalNodeBody {
@@ -165,6 +444,9 @@ impl TechnicalNodeBody {
             Self::Report(_) => TechnicalNodeKind::Report,
             Self::TechnicalClaim(_) => TechnicalNodeKind::TechnicalClaim,
             Self::Witness(_) => TechnicalNodeKind::Witness,
+            Self::StorageResource(_) => TechnicalNodeKind::StorageResource,
+            Self::SchemaFamily(_) => TechnicalNodeKind::SchemaFamily,
+            Self::Table(_) => TechnicalNodeKind::Table,
         }
     }
 }
@@ -198,7 +480,26 @@ pub struct CrateNode {
 )]
 pub struct ContractNode {
     pub name: TextBody,
-    pub crate_key: TechnicalNodeKey,
+    pub surface: ContractSurface,
+}
+
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+)]
+pub enum ContractSurface {
+    Ordinary,
+    Meta,
+    Introspection,
 }
 
 #[derive(
@@ -243,6 +544,33 @@ pub struct WitnessNode {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
+pub struct StorageResourceNode {
+    pub owner: TechnicalNodeKey,
+    pub name: TextBody,
+    pub path: Option<WirePath>,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct SchemaFamilyNode {
+    pub owner: TechnicalNodeKey,
+    pub name: TextBody,
+    pub version: Option<TextBody>,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TableNode {
+    pub storage: TechnicalNodeKey,
+    pub name: TextBody,
+    pub schema_family: Option<TechnicalNodeKey>,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum TechnicalSourceLocator {
     Path(WirePath),
     Repository(TechnicalNodeKey),
@@ -281,13 +609,15 @@ pub enum TechnicalRelationKind {
     OwnsRepository,
     DefinesContract,
     DefinesCrate,
-    DependsOn,
+    BuildDependency,
+    RuntimeDependency,
+    WireDependency,
+    StorageDependency,
+    TaskDependency,
+    ProvenanceDependency,
     Blocks,
     Implements,
-    UsesContract,
-    UsesStorage,
     Documents,
-    DerivedFrom,
     ClaimsAbout,
     ProvenBy,
     Supersedes,
@@ -295,17 +625,19 @@ pub enum TechnicalRelationKind {
 }
 
 impl TechnicalRelationKind {
-    pub const ALL: [Self; 14] = [
+    pub const ALL: [Self; 16] = [
         Self::OwnsRepository,
         Self::DefinesContract,
         Self::DefinesCrate,
-        Self::DependsOn,
+        Self::BuildDependency,
+        Self::RuntimeDependency,
+        Self::WireDependency,
+        Self::StorageDependency,
+        Self::TaskDependency,
+        Self::ProvenanceDependency,
         Self::Blocks,
         Self::Implements,
-        Self::UsesContract,
-        Self::UsesStorage,
         Self::Documents,
-        Self::DerivedFrom,
         Self::ClaimsAbout,
         Self::ProvenBy,
         Self::Supersedes,
@@ -337,27 +669,44 @@ impl TechnicalRelationKind {
             Self::OwnsRepository => vec![TechnicalNodeKind::Component],
             Self::DefinesContract => vec![TechnicalNodeKind::Repository, TechnicalNodeKind::Crate],
             Self::DefinesCrate => vec![TechnicalNodeKind::Repository],
-            Self::DependsOn => vec![
+            Self::BuildDependency => vec![
                 TechnicalNodeKind::Component,
                 TechnicalNodeKind::Repository,
                 TechnicalNodeKind::Crate,
                 TechnicalNodeKind::Contract,
-                TechnicalNodeKind::WorkItem,
+                TechnicalNodeKind::SchemaFamily,
             ],
-            Self::Blocks => vec![TechnicalNodeKind::WorkItem],
+            Self::RuntimeDependency | Self::WireDependency => vec![
+                TechnicalNodeKind::Component,
+                TechnicalNodeKind::Crate,
+                TechnicalNodeKind::Contract,
+            ],
+            Self::StorageDependency => vec![
+                TechnicalNodeKind::Component,
+                TechnicalNodeKind::Crate,
+                TechnicalNodeKind::Contract,
+                TechnicalNodeKind::StorageResource,
+                TechnicalNodeKind::SchemaFamily,
+                TechnicalNodeKind::Table,
+            ],
+            Self::TaskDependency | Self::Blocks => vec![TechnicalNodeKind::WorkItem],
+            Self::ProvenanceDependency => vec![
+                TechnicalNodeKind::WorkItem,
+                TechnicalNodeKind::SourceArtifact,
+                TechnicalNodeKind::Report,
+                TechnicalNodeKind::TechnicalClaim,
+                TechnicalNodeKind::Witness,
+            ],
             Self::Implements => vec![
                 TechnicalNodeKind::Component,
                 TechnicalNodeKind::Crate,
                 TechnicalNodeKind::SourceArtifact,
                 TechnicalNodeKind::WorkItem,
             ],
-            Self::UsesContract | Self::UsesStorage => {
-                vec![TechnicalNodeKind::Component, TechnicalNodeKind::Crate]
-            }
             Self::Documents => vec![TechnicalNodeKind::Report, TechnicalNodeKind::SourceArtifact],
-            Self::DerivedFrom | Self::Supersedes => TechnicalNodeKind::ALL.to_vec(),
             Self::ClaimsAbout => vec![TechnicalNodeKind::TechnicalClaim],
             Self::ProvenBy => vec![TechnicalNodeKind::TechnicalClaim],
+            Self::Supersedes => TechnicalNodeKind::ALL.to_vec(),
             Self::LocatedAt => TechnicalNodeKind::ALL.to_vec(),
         }
     }
@@ -367,22 +716,38 @@ impl TechnicalRelationKind {
             Self::OwnsRepository => vec![TechnicalNodeKind::Repository],
             Self::DefinesContract => vec![TechnicalNodeKind::Contract],
             Self::DefinesCrate => vec![TechnicalNodeKind::Crate],
-            Self::DependsOn => vec![
-                TechnicalNodeKind::Component,
+            Self::BuildDependency => vec![
                 TechnicalNodeKind::Repository,
                 TechnicalNodeKind::Crate,
                 TechnicalNodeKind::Contract,
-                TechnicalNodeKind::WorkItem,
+                TechnicalNodeKind::SourceArtifact,
+                TechnicalNodeKind::SchemaFamily,
             ],
-            Self::Blocks => vec![TechnicalNodeKind::WorkItem],
+            Self::RuntimeDependency => vec![
+                TechnicalNodeKind::Component,
+                TechnicalNodeKind::Crate,
+                TechnicalNodeKind::Contract,
+                TechnicalNodeKind::StorageResource,
+            ],
+            Self::WireDependency => vec![TechnicalNodeKind::Contract],
+            Self::StorageDependency => vec![
+                TechnicalNodeKind::StorageResource,
+                TechnicalNodeKind::SchemaFamily,
+                TechnicalNodeKind::Table,
+            ],
+            Self::TaskDependency | Self::Blocks => vec![TechnicalNodeKind::WorkItem],
+            Self::ProvenanceDependency => vec![
+                TechnicalNodeKind::WorkItem,
+                TechnicalNodeKind::SourceArtifact,
+                TechnicalNodeKind::Report,
+                TechnicalNodeKind::TechnicalClaim,
+                TechnicalNodeKind::Witness,
+            ],
             Self::Implements => vec![
                 TechnicalNodeKind::TechnicalClaim,
                 TechnicalNodeKind::Contract,
             ],
-            Self::UsesContract => vec![TechnicalNodeKind::Contract],
-            Self::UsesStorage => vec![TechnicalNodeKind::TechnicalClaim],
             Self::Documents => TechnicalNodeKind::ALL.to_vec(),
-            Self::DerivedFrom => vec![TechnicalNodeKind::SourceArtifact, TechnicalNodeKind::Report],
             Self::ClaimsAbout => TechnicalNodeKind::ALL.to_vec(),
             Self::ProvenBy => vec![TechnicalNodeKind::Witness],
             Self::Supersedes => vec![source],
@@ -602,6 +967,7 @@ pub struct TechnicalNodeRejected {
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum TechnicalNodeRejectionReason {
+    InvalidStableNodeKey(TechnicalNodeKeyRejection),
     KindBodyMismatch(TechnicalNodeKindMismatch),
     DuplicateStableNodeKey(TechnicalNodeKey),
     PersistenceRejected,
