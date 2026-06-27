@@ -132,6 +132,7 @@ signal_channel! {
         operation SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
         operation SubscribeRelations(SubscribeRelations) opens MindEventStream,
         operation SubscriptionRetraction(SubscriptionIdentifier),
+        operation SubscriptionDemand(SubscriptionDemand),
         operation Opening(Opening),
         operation NoteSubmission(NoteSubmission),
         operation Link(Link),
@@ -153,6 +154,7 @@ signal_channel! {
             RelationList(RelationList),
             SubscriptionAccepted(SubscriptionAccepted),
             SubscriptionRetracted(SubscriptionRetracted),
+            SubscriptionDemandAccepted(SubscriptionDemandAccepted),
             OpeningReceipt(OpeningReceipt),
             NoteReceipt(NoteReceipt),
             LinkReceipt(LinkReceipt),
@@ -204,8 +206,8 @@ becomes.
 | `SubmitRelation` | `RelationCommitted` |
 | `QueryThoughts` | `ThoughtList` |
 | `QueryRelations` | `RelationList` |
-| `SubscribeThoughts` | `SubscriptionAccepted`, then `SubscriptionDelta` events, terminated by `SubscriptionRetracted` |
-| `SubscribeRelations` | `SubscriptionAccepted`, then `SubscriptionDelta` events, terminated by `SubscriptionRetracted` |
+| `SubscribeThoughts` | typed `SubscriptionAccepted::Thoughts`, then `SubscriptionDelta::ThoughtCommitted` events, terminated by `SubscriptionRetracted` |
+| `SubscribeRelations` | typed `SubscriptionAccepted::Relations`, then `SubscriptionDelta::RelationCommitted` events, terminated by `SubscriptionRetracted` |
 
 Subscription close follows the `signal_channel!` streaming grammar. The
 `Subscribe` request opens the stream; the consumer sends a typed
@@ -214,6 +216,14 @@ the producer emits `MindReply::SubscriptionRetracted` as the final
 acknowledgement before the stream ends. Both the retract request and the
 retracted reply are first-class — `signal_channel!` derives the
 `MindRequest::closed_stream()` discriminant from this pairing.
+
+Each subscription request carries `resume_after: Option<SubscriptionCursor>` and
+`initial_demand: SubscriptionDemandCredit`. The opened reply carries a typed
+accepted stream payload with the stream family, current cursor, bounded
+producer-side buffer, and initial snapshot. Each pushed event carries the next
+cursor inside a family-typed event payload. Additional capacity is signalled by
+`MindRequest::SubscriptionDemand(SubscriptionDemand)` and acknowledged by
+`MindReply::SubscriptionDemandAccepted`.
 
 The graph surface is the first typed substrate for replacing BEADS and later
 rendering reports/architecture/skills from mind state. The closed node family
@@ -255,8 +265,8 @@ the contract does not model a live BEADS backend.
 | `SubmitTechnicalRelation` | `TechnicalRelationCommitted` or `TechnicalRelationRejected` |
 | `QueryTechnicalNodes` | `TechnicalNodeList` |
 | `QueryTechnicalRelations` | `TechnicalRelationList` |
-| `SubscribeTechnicalNodes` | `SubscriptionAccepted`, then `SubscriptionDelta` events, terminated by `SubscriptionRetracted` |
-| `SubscribeTechnicalRelations` | `SubscriptionAccepted`, then `SubscriptionDelta` events, terminated by `SubscriptionRetracted` |
+| `SubscribeTechnicalNodes` | typed `SubscriptionAccepted::TechnicalNodes`, then `SubscriptionDelta::TechnicalNodeCommitted` events, terminated by `SubscriptionRetracted` |
+| `SubscribeTechnicalRelations` | typed `SubscriptionAccepted::TechnicalRelations`, then `SubscriptionDelta::TechnicalRelationCommitted` events, terminated by `SubscriptionRetracted` |
 
 Technical dependency memory is the first production slice for Mind as a typed
 technical memory sibling to Spirit. It models components, repositories, crates,
@@ -463,6 +473,16 @@ MindUnimplementedReason
   the stream; a typed `SubscriptionRetraction(SubscriptionIdentifier)`
   request closes it; the producer emits `MindReply::SubscriptionRetracted`
   as the final acknowledgement before the stream ends.
+- Subscription opens and deltas are family-typed: a technical-node subscriber
+  receives `TechnicalNodeStreamAccepted` snapshots and
+  `TechnicalNodeSubscriptionEvent` deltas, not relation or thought payloads in
+  an untyped snapshot vector.
+- Subscription messages carry `SubscriptionCursor` values sufficient for ordered
+  reconnect, and subscribe requests may echo a prior cursor through
+  `resume_after`.
+- Subscription delivery is demand-shaped: open requests carry initial demand,
+  additional capacity uses `SubscriptionDemand`, and accepted stream metadata
+  carries the bounded producer-side buffer.
 - Channel-choreography requests route inside `mind` to one stateful
   `ChoreographyAdjudicator` actor; this contract closes the Mind-side
   observation vocabulary, and Router meta signal owns grant-state
@@ -491,6 +511,8 @@ Existing tests in `tests/round_trip.rs` cover:
 - technical node/relation kind NOTA round trips, kind/body validation, storage
   node bodies, split dependency relation domain/range validation,
   request/reply/event frame round trips, and operation head coverage.
+- subscription retract/retracted stream grammar, typed accepted/event family
+  payloads, resume cursors, and demand request/reply round trips.
 
 Additional architecture guards still worth adding:
 
@@ -498,9 +520,8 @@ Additional architecture guards still worth adding:
 |---|---|
 | `nota_projection_rejects_cli_only_command` | no second command language. |
 | `request_payload_cannot_carry_timestamp` | store mints time. |
-| `request_payload_cannot_carry_event_sequence` | store mints sequence. |
+| `request_payload_cannot_mint_event_sequence` | store mints sequence; callers may only echo producer-issued resume cursors. |
 | `contract_crate_cannot_spawn_actor_runtime` | contract crate stays behavior-free. |
-| `subscription_retracted_round_trips_as_reply` | Path A reply-side close is wired in `MindReply` and `MindEventStream::close`. |
 
 ## 9 · Non-ownership
 

@@ -126,6 +126,14 @@ fn sample_actor() -> ActorName {
     ActorName::new("operator")
 }
 
+fn sample_subscription_demand() -> SubscriptionDemandCredit {
+    SubscriptionDemandCredit::new(8)
+}
+
+fn sample_subscription_bound() -> SubscriptionBufferBound {
+    SubscriptionBufferBound::new(32)
+}
+
 fn sample_technical_key(value: &str) -> TechnicalNodeKey {
     TechnicalNodeKey::from_canonical(value).expect("canonical technical node key")
 }
@@ -761,11 +769,15 @@ fn subscribe_requests_round_trip() {
         filter: ThoughtFilter::InMemory(InMemory {
             memory: RecordIdentifier::new("memory-aab"),
         }),
+        resume_after: Some(SubscriptionCursor::new(41)),
+        initial_demand: sample_subscription_demand(),
     });
     let relations = MindRequest::SubscribeRelations(SubscribeRelations {
         filter: RelationFilter::ByTarget(ByRelationTarget {
             target: RecordIdentifier::new("goal-aab"),
         }),
+        resume_after: None,
+        initial_demand: sample_subscription_demand(),
     });
 
     assert_eq!(round_trip_request(thoughts.clone()), thoughts);
@@ -805,27 +817,105 @@ fn subscription_replies_round_trip() {
     let fixture = MindGraphFixture::new();
     let accepted = MindReply::SubscriptionAccepted(SubscriptionAccepted {
         subscription: SubscriptionIdentifier::new("sub-aab"),
-        initial_snapshot: vec![
-            MindSnapshot::Thought(fixture.thought()),
-            MindSnapshot::Relation(fixture.relation()),
-        ],
+        stream: AcceptedSubscriptionStream::Thoughts(ThoughtStreamAccepted {
+            cursor: SubscriptionCursor::new(7),
+            buffer_bound: sample_subscription_bound(),
+            snapshot: vec![fixture.thought()],
+        }),
     });
     let retracted = MindReply::SubscriptionRetracted(SubscriptionRetracted {
         subscription: SubscriptionIdentifier::new("sub-aab"),
+        stream: SubscriptionStreamKind::Thoughts,
+        last_cursor: SubscriptionCursor::new(8),
+    });
+    let demand = MindRequest::SubscriptionDemand(SubscriptionDemand {
+        subscription: SubscriptionIdentifier::new("sub-aab"),
+        credit: SubscriptionDemandCredit::new(3),
+    });
+    let demand_accepted = MindReply::SubscriptionDemandAccepted(SubscriptionDemandAccepted {
+        subscription: SubscriptionIdentifier::new("sub-aab"),
+        accepted: SubscriptionDemandCredit::new(3),
     });
     let event = MindEvent::SubscriptionDelta(SubscriptionEvent {
         subscription: SubscriptionIdentifier::new("sub-aab"),
-        delta: MindDelta::ThoughtCommitted(Thought {
-            body: fixture.decision_body(),
-            kind: ThoughtKind::Decision,
-            ..fixture.thought()
+        event: SubscriptionStreamEvent::ThoughtCommitted(ThoughtSubscriptionEvent {
+            cursor: SubscriptionCursor::new(8),
+            thought: Thought {
+                body: fixture.decision_body(),
+                kind: ThoughtKind::Decision,
+                ..fixture.thought()
+            },
         }),
     });
 
     assert_eq!(round_trip_reply(accepted.clone()), accepted);
     assert_eq!(round_trip_reply(retracted.clone()), retracted);
+    assert_eq!(round_trip_request(demand.clone()), demand);
+    assert_eq!(round_trip_reply(demand_accepted.clone()), demand_accepted);
     assert_eq!(round_trip_event(event.clone()), event);
     assert_eq!(event.stream_kind(), MindStreamKind::MindEventStream);
+}
+
+#[test]
+fn subscription_stream_payloads_are_typed_by_family() {
+    let fixture = MindGraphFixture::new();
+    let technical = TechnicalFixture::new();
+    let accepted = [
+        AcceptedSubscriptionStream::Thoughts(ThoughtStreamAccepted {
+            cursor: SubscriptionCursor::new(1),
+            buffer_bound: sample_subscription_bound(),
+            snapshot: vec![fixture.thought()],
+        }),
+        AcceptedSubscriptionStream::Relations(RelationStreamAccepted {
+            cursor: SubscriptionCursor::new(2),
+            buffer_bound: sample_subscription_bound(),
+            snapshot: vec![fixture.relation()],
+        }),
+        AcceptedSubscriptionStream::TechnicalNodes(TechnicalNodeStreamAccepted {
+            cursor: SubscriptionCursor::new(3),
+            buffer_bound: sample_subscription_bound(),
+            snapshot: vec![technical.node()],
+        }),
+        AcceptedSubscriptionStream::TechnicalRelations(TechnicalRelationStreamAccepted {
+            cursor: SubscriptionCursor::new(4),
+            buffer_bound: sample_subscription_bound(),
+            snapshot: vec![technical.relation()],
+        }),
+    ];
+    let events = [
+        SubscriptionStreamEvent::ThoughtCommitted(ThoughtSubscriptionEvent {
+            cursor: SubscriptionCursor::new(5),
+            thought: fixture.thought(),
+        }),
+        SubscriptionStreamEvent::RelationCommitted(RelationSubscriptionEvent {
+            cursor: SubscriptionCursor::new(6),
+            relation: fixture.relation(),
+        }),
+        SubscriptionStreamEvent::TechnicalNodeCommitted(TechnicalNodeSubscriptionEvent {
+            cursor: SubscriptionCursor::new(7),
+            node: technical.node(),
+        }),
+        SubscriptionStreamEvent::TechnicalRelationCommitted(TechnicalRelationSubscriptionEvent {
+            cursor: SubscriptionCursor::new(8),
+            relation: technical.relation(),
+        }),
+    ];
+
+    for (index, stream) in accepted.into_iter().enumerate() {
+        let reply = MindReply::SubscriptionAccepted(SubscriptionAccepted {
+            subscription: SubscriptionIdentifier::new(format!("sub-accepted-{index}")),
+            stream,
+        });
+        assert_eq!(round_trip_reply(reply.clone()), reply);
+    }
+
+    for (index, event) in events.into_iter().enumerate() {
+        let event = MindEvent::SubscriptionDelta(SubscriptionEvent {
+            subscription: SubscriptionIdentifier::new(format!("sub-event-{index}")),
+            event,
+        });
+        assert_eq!(round_trip_event(event.clone()), event);
+    }
 }
 
 /// The streaming subscription contract pairs `Subscribe*` (opens) with
@@ -841,22 +931,30 @@ fn subscribe_opens_and_subscription_retraction_closes_the_mind_event_stream() {
         filter: ThoughtFilter::InMemory(InMemory {
             memory: RecordIdentifier::new("memory-aab"),
         }),
+        resume_after: Some(SubscriptionCursor::new(9)),
+        initial_demand: sample_subscription_demand(),
     });
     let subscribe_relations = MindRequest::SubscribeRelations(SubscribeRelations {
         filter: RelationFilter::ByTarget(ByRelationTarget {
             target: RecordIdentifier::new("goal-aab"),
         }),
+        resume_after: None,
+        initial_demand: sample_subscription_demand(),
     });
     let subscribe_technical_nodes = MindRequest::SubscribeTechnicalNodes(SubscribeTechnicalNodes {
         filter: TechnicalNodeFilter::ByKind(ByTechnicalNodeKind {
             kinds: vec![TechnicalNodeKind::Component],
         }),
+        resume_after: Some(SubscriptionCursor::new(11)),
+        initial_demand: sample_subscription_demand(),
     });
     let subscribe_technical_relations =
         MindRequest::SubscribeTechnicalRelations(SubscribeTechnicalRelations {
             filter: TechnicalRelationFilter::ByKind(ByTechnicalRelationKind {
                 kinds: vec![TechnicalRelationKind::BuildDependency],
             }),
+            resume_after: None,
+            initial_demand: sample_subscription_demand(),
         });
     let retract = MindRequest::SubscriptionRetraction(SubscriptionIdentifier::new("sub-aab"));
 
@@ -1237,6 +1335,8 @@ fn technical_node_requests_round_trip() {
             filter: TechnicalNodeFilter::BySourceLocator(ByTechnicalSourceLocator {
                 locator: TechnicalSourceLocator::Repository(fixture.repository_key()),
             }),
+            resume_after: Some(SubscriptionCursor::new(13)),
+            initial_demand: sample_subscription_demand(),
         }),
     ];
 
@@ -1271,6 +1371,8 @@ fn technical_relation_requests_round_trip() {
                 source: Some(fixture.claim_key()),
                 target: Some(fixture.witness_key()),
             }),
+            resume_after: None,
+            initial_demand: sample_subscription_demand(),
         }),
     ];
 
@@ -1327,14 +1429,18 @@ fn technical_replies_and_events_round_trip() {
 
     let accepted = MindReply::SubscriptionAccepted(SubscriptionAccepted {
         subscription: SubscriptionIdentifier::new("sub-technical"),
-        initial_snapshot: vec![
-            MindSnapshot::TechnicalNode(node.clone()),
-            MindSnapshot::TechnicalRelation(relation.clone()),
-        ],
+        stream: AcceptedSubscriptionStream::TechnicalNodes(TechnicalNodeStreamAccepted {
+            cursor: SubscriptionCursor::new(17),
+            buffer_bound: sample_subscription_bound(),
+            snapshot: vec![node.clone()],
+        }),
     });
     let event = MindEvent::SubscriptionDelta(SubscriptionEvent {
         subscription: SubscriptionIdentifier::new("sub-technical"),
-        delta: MindDelta::TechnicalNodeCommitted(node),
+        event: SubscriptionStreamEvent::TechnicalNodeCommitted(TechnicalNodeSubscriptionEvent {
+            cursor: SubscriptionCursor::new(18),
+            node,
+        }),
     });
 
     assert_eq!(round_trip_reply(accepted.clone()), accepted);
@@ -1655,6 +1761,8 @@ fn mind_request_exposes_contract_owned_operation_kind() {
                 filter: ThoughtFilter::ByAuthor(ByThoughtAuthor {
                     author: ActorName::new("operator"),
                 }),
+                resume_after: None,
+                initial_demand: sample_subscription_demand(),
             }),
             MindOperationKind::SubscribeThoughts,
         ),
@@ -1663,8 +1771,17 @@ fn mind_request_exposes_contract_owned_operation_kind() {
                 filter: RelationFilter::ByTarget(ByRelationTarget {
                     target: RecordIdentifier::new("goal-aab"),
                 }),
+                resume_after: Some(SubscriptionCursor::new(21)),
+                initial_demand: sample_subscription_demand(),
             }),
             MindOperationKind::SubscribeRelations,
+        ),
+        (
+            MindRequest::SubscriptionDemand(SubscriptionDemand {
+                subscription: SubscriptionIdentifier::new("sub-aab"),
+                credit: SubscriptionDemandCredit::new(5),
+            }),
+            MindOperationKind::SubscriptionDemand,
         ),
         (
             MindRequest::Opening(Opening {
@@ -1769,6 +1886,8 @@ fn mind_request_exposes_contract_owned_operation_kind() {
                 filter: TechnicalNodeFilter::ByStableKey(ByTechnicalNodeStableKey {
                     stable_key: sample_technical_key("component:mind"),
                 }),
+                resume_after: None,
+                initial_demand: sample_subscription_demand(),
             }),
             MindOperationKind::SubscribeTechnicalNodes,
         ),
@@ -1777,6 +1896,8 @@ fn mind_request_exposes_contract_owned_operation_kind() {
                 filter: TechnicalRelationFilter::BySource(ByTechnicalRelationSource {
                     source: sample_technical_key("component:mind"),
                 }),
+                resume_after: Some(SubscriptionCursor::new(23)),
+                initial_demand: sample_subscription_demand(),
             }),
             MindOperationKind::SubscribeTechnicalRelations,
         ),
@@ -1799,6 +1920,7 @@ fn mind_request_variants_declare_contract_local_operation_heads() {
             "SubscribeThoughts",
             "SubscribeRelations",
             "SubscriptionRetraction",
+            "SubscriptionDemand",
             "Opening",
             "NoteSubmission",
             "Link",

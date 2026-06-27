@@ -5,7 +5,8 @@ use std::fmt;
 use std::str::FromStr;
 
 use crate::{
-    ActorName, Error, MindResult, QueryLimit, TaskToken, TextBody, TimestampNanos, WirePath,
+    ActorName, Error, MindResult, QueryLimit, SubscriptionCursor, SubscriptionDemandCredit,
+    TaskToken, TextBody, TimestampNanos, WirePath,
 };
 
 #[derive(
@@ -828,6 +829,8 @@ pub struct QueryTechnicalRelations {
 )]
 pub struct SubscribeTechnicalNodes {
     pub filter: TechnicalNodeFilter,
+    pub resume_after: Option<SubscriptionCursor>,
+    pub initial_demand: SubscriptionDemandCredit,
 }
 
 #[derive(
@@ -835,6 +838,8 @@ pub struct SubscribeTechnicalNodes {
 )]
 pub struct SubscribeTechnicalRelations {
     pub filter: TechnicalRelationFilter,
+    pub resume_after: Option<SubscriptionCursor>,
+    pub initial_demand: SubscriptionDemandCredit,
 }
 
 #[derive(

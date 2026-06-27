@@ -89,6 +89,107 @@ impl SubscriptionIdentifier {
     NotaDecode,
     Debug,
     Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+)]
+pub struct SubscriptionCursor(u64);
+
+impl SubscriptionCursor {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn initial() -> Self {
+        Self(0)
+    }
+
+    pub const fn into_u64(self) -> u64 {
+        self.0
+    }
+}
+
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+)]
+pub struct SubscriptionDemandCredit(u16);
+
+impl SubscriptionDemandCredit {
+    pub const fn new(value: u16) -> Self {
+        Self(value)
+    }
+
+    pub const fn into_u16(self) -> u16 {
+        self.0
+    }
+}
+
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+)]
+pub struct SubscriptionBufferBound(u16);
+
+impl SubscriptionBufferBound {
+    pub const fn new(value: u16) -> Self {
+        Self(value)
+    }
+
+    pub const fn into_u16(self) -> u16 {
+        self.0
+    }
+}
+
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+)]
+pub enum SubscriptionStreamKind {
+    Thoughts,
+    Relations,
+    TechnicalNodes,
+    TechnicalRelations,
+}
+
+#[derive(
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
     PartialEq,
     Eq,
     Hash,
@@ -1125,6 +1226,8 @@ pub struct QueryRelations {
 )]
 pub struct SubscribeThoughts {
     pub filter: ThoughtFilter,
+    pub resume_after: Option<SubscriptionCursor>,
+    pub initial_demand: SubscriptionDemandCredit,
 }
 
 #[derive(
@@ -1132,6 +1235,8 @@ pub struct SubscribeThoughts {
 )]
 pub struct SubscribeRelations {
     pub filter: RelationFilter,
+    pub resume_after: Option<SubscriptionCursor>,
+    pub initial_demand: SubscriptionDemandCredit,
 }
 
 #[derive(
@@ -1278,11 +1383,47 @@ pub struct RelationList {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
-pub enum MindSnapshot {
-    Thought(Thought),
-    Relation(Relation),
-    TechnicalNode(TechnicalNode),
-    TechnicalRelation(TechnicalRelation),
+pub struct ThoughtStreamAccepted {
+    pub cursor: SubscriptionCursor,
+    pub buffer_bound: SubscriptionBufferBound,
+    pub snapshot: Vec<Thought>,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct RelationStreamAccepted {
+    pub cursor: SubscriptionCursor,
+    pub buffer_bound: SubscriptionBufferBound,
+    pub snapshot: Vec<Relation>,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalNodeStreamAccepted {
+    pub cursor: SubscriptionCursor,
+    pub buffer_bound: SubscriptionBufferBound,
+    pub snapshot: Vec<TechnicalNode>,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalRelationStreamAccepted {
+    pub cursor: SubscriptionCursor,
+    pub buffer_bound: SubscriptionBufferBound,
+    pub snapshot: Vec<TechnicalRelation>,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub enum AcceptedSubscriptionStream {
+    Thoughts(ThoughtStreamAccepted),
+    Relations(RelationStreamAccepted),
+    TechnicalNodes(TechnicalNodeStreamAccepted),
+    TechnicalRelations(TechnicalRelationStreamAccepted),
 }
 
 #[derive(
@@ -1290,17 +1431,49 @@ pub enum MindSnapshot {
 )]
 pub struct SubscriptionAccepted {
     pub subscription: SubscriptionIdentifier,
-    pub initial_snapshot: Vec<MindSnapshot>,
+    pub stream: AcceptedSubscriptionStream,
 }
 
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
-pub enum MindDelta {
-    ThoughtCommitted(Thought),
-    RelationCommitted(Relation),
-    TechnicalNodeCommitted(TechnicalNode),
-    TechnicalRelationCommitted(TechnicalRelation),
+pub struct ThoughtSubscriptionEvent {
+    pub cursor: SubscriptionCursor,
+    pub thought: Thought,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct RelationSubscriptionEvent {
+    pub cursor: SubscriptionCursor,
+    pub relation: Relation,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalNodeSubscriptionEvent {
+    pub cursor: SubscriptionCursor,
+    pub node: TechnicalNode,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct TechnicalRelationSubscriptionEvent {
+    pub cursor: SubscriptionCursor,
+    pub relation: TechnicalRelation,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub enum SubscriptionStreamEvent {
+    ThoughtCommitted(ThoughtSubscriptionEvent),
+    RelationCommitted(RelationSubscriptionEvent),
+    TechnicalNodeCommitted(TechnicalNodeSubscriptionEvent),
+    TechnicalRelationCommitted(TechnicalRelationSubscriptionEvent),
 }
 
 #[derive(
@@ -1308,7 +1481,23 @@ pub enum MindDelta {
 )]
 pub struct SubscriptionEvent {
     pub subscription: SubscriptionIdentifier,
-    pub delta: MindDelta,
+    pub event: SubscriptionStreamEvent,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct SubscriptionDemand {
+    pub subscription: SubscriptionIdentifier,
+    pub credit: SubscriptionDemandCredit,
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct SubscriptionDemandAccepted {
+    pub subscription: SubscriptionIdentifier,
+    pub accepted: SubscriptionDemandCredit,
 }
 
 /// Typed acknowledgement that a mind-graph subscription has been retracted.
@@ -1322,6 +1511,8 @@ pub struct SubscriptionEvent {
 )]
 pub struct SubscriptionRetracted {
     pub subscription: SubscriptionIdentifier,
+    pub stream: SubscriptionStreamKind,
+    pub last_cursor: SubscriptionCursor,
 }
 
 #[derive(

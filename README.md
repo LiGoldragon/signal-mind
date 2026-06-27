@@ -12,10 +12,11 @@ channel carries:
   `StatusChange`, `AliasAssignment`, `Query`.
 - **Typed mind graph:** `SubmitThought`, `SubmitRelation`,
   `QueryThoughts`, `QueryRelations`, `SubscribeThoughts`,
-  `SubscribeRelations`, `SubscriptionRetraction`.
+  `SubscribeRelations`, `SubscriptionRetraction`, `SubscriptionDemand`.
 - **Typed technical dependency graph:** `SubmitTechnicalNode`,
   `SubmitTechnicalRelation`, `QueryTechnicalNodes`,
-  `QueryTechnicalRelations`, and technical subscriptions. Stable public
+  `QueryTechnicalRelations`, and technical subscriptions. Subscription opens
+  and deltas are family-typed and carry resume cursors. Stable public
   technical keys are canonical family keys such as `component:mind`,
   `repo:signal-mind`, and `contract:signal-mind:ordinary`.
 - **Channel choreography:** `AdjudicationRequest`, `ChannelList`.

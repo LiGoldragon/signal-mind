@@ -45,13 +45,13 @@ If your change adds a new request or reply variant, edit
 - The closed `MindRequest` enum (`SubmitThought`,
   `SubmitRelation`, `QueryThoughts`, `QueryRelations`,
   `SubscribeThoughts`, `SubscribeRelations`,
-  `SubscriptionRetraction`, `Opening`, `NoteSubmission`,
+  `SubscriptionRetraction`, `SubscriptionDemand`, `Opening`, `NoteSubmission`,
   `Link`, `StatusChange`, `AliasAssignment`, `Query`,
   `AdjudicationRequest`, `ChannelList`).
 - The closed `MindReply` enum (`ThoughtCommitted`,
   `RelationCommitted`, `ThoughtList`, `RelationList`,
   `SubscriptionAccepted`, `SubscriptionRetracted`,
-  `OpeningReceipt`, `NoteReceipt`, `LinkReceipt`,
+  `SubscriptionDemandAccepted`, `OpeningReceipt`, `NoteReceipt`, `LinkReceipt`,
   `StatusReceipt`, `AliasReceipt`, `View`, `Rejection`,
   `AdjudicationReceipt`, `ChannelListView`,
   `MindRequestUnimplemented`).

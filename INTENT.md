@@ -33,13 +33,15 @@ The Mind channel carries:
 
 - **Typed mind graph:** `SubmitThought`, `SubmitRelation`, `QueryThoughts`,
   `QueryRelations`, `SubscribeThoughts`, `SubscribeRelations`,
-  `SubscriptionRetraction`.
+  `SubscriptionRetraction`, `SubscriptionDemand`.
 - **Typed technical dependency memory:** `SubmitTechnicalNode`,
   `SubmitTechnicalRelation`, `QueryTechnicalNodes`, `QueryTechnicalRelations`,
-  `SubscribeTechnicalNodes`, `SubscribeTechnicalRelations`. Technical node keys
-  are validated canonical family keys such as `component:mind`,
-  `repo:signal-mind`, and `contract:signal-mind:ordinary`; storage resources,
-  schema families, and tables are first-class technical nodes.
+  `SubscribeTechnicalNodes`, `SubscribeTechnicalRelations`. Subscription opens
+  and deltas are family-typed, carry resume cursors, and expose demand-shaped
+  bounded delivery. Technical node keys are validated canonical family keys such
+  as `component:mind`, `repo:signal-mind`, and
+  `contract:signal-mind:ordinary`; storage resources, schema families, and
+  tables are first-class technical nodes.
 - **Work and memory graph:** `Opening`, `NoteSubmission`, `Link`, `StatusChange`,
   `AliasAssignment`, `Query`.
 - **Channel choreography (read/observe side):** `AdjudicationRequest`,
@@ -48,8 +50,9 @@ The Mind channel carries:
   operation (`ThoughtCommitted`, `RelationCommitted`, technical committed/list
   replies, receipts, `View`, `AdjudicationReceipt`, `ChannelListView`),
   typed rejections, and `MindRequestUnimplemented` (skeleton honesty).
-- **Events:** a `MindEventStream` delivering `SubscriptionDelta` events for open
-  subscriptions; retraction closes the stream.
+- **Events:** a `MindEventStream` delivering family-typed `SubscriptionDelta`
+  events for open subscriptions; retraction closes the stream, and
+  `SubscriptionDemand` signals additional delivery capacity.
 
 The wire vocabulary is contract-local: the daemon lowers these public operations
 into component-local Nexus commands and SEMA reads or writes. Database-action
