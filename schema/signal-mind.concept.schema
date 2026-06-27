@@ -1,7 +1,7 @@
 ;; signal-mind current concept schema.
 ;;
 ;; This is the hand-maintained concept source for the contract shipped as
-;; signal-mind 0.4.0. It documents the current Rust contract; it is not yet
+;; signal-mind 0.5.0. It documents the current Rust contract; it is not yet
 ;; the generator source for src/*.rs.
 ;;
 ;; Request operation heads are still relation-specific. SubmitTechnicalNode,
@@ -58,6 +58,9 @@
   TechnicalRelationCommitted
   TechnicalNodeList
   TechnicalRelationList
+  TechnicalNodeNeighborhood
+  TechnicalDependencyClosure
+  TechnicalProvenanceChain
   TechnicalNodeRejected
   TechnicalRelationRejected
 ]
@@ -118,9 +121,18 @@
   TechnicalSourceLocator [(Path WirePath) (Repository TechnicalNodeKey) (Task TaskToken) (Url TextBody) (Report WirePath) (Symbol TextBody)]
   TechnicalNode (TechnicalNodeIdentifier TechnicalNodeKey TechnicalNodeKind TechnicalNodeBody ActorName TimestampNanos)
   SubmitTechnicalNode (TechnicalNodeKey TechnicalNodeKind TechnicalNodeBody)
-  QueryTechnicalNodes (TechnicalNodeFilter QueryLimit)
+  QueryTechnicalNodes (TechnicalNodeQuery QueryLimit)
   SubscribeTechnicalNodes (TechnicalNodeFilter (Option SubscriptionCursor) SubscriptionDemandCredit)
   TechnicalNodeFilter [(ByKind ByTechnicalNodeKind) (ByStableKey ByTechnicalNodeStableKey) (BySourceLocator ByTechnicalSourceLocator) (Composite CompositeTechnicalNodeFilter)]
+  TechnicalNodeQuery [(Filter TechnicalNodeFilter) (About AboutTechnicalNode) (RelationNeighborhood TechnicalRelationNeighborhoodQuery) (DependencyClosure TechnicalDependencyClosureQuery) (ProvenanceChain TechnicalProvenanceChainQuery)]
+  AboutTechnicalNode (TechnicalNodeKey)
+  TechnicalRelationNeighborhoodQuery (TechnicalNodeKey TechnicalRelationNeighborhoodDirection (Vec TechnicalRelationKind))
+  TechnicalRelationNeighborhoodDirection [Incoming Outgoing Both]
+  TechnicalDependencyClosureQuery (TechnicalNodeKey (Vec TechnicalRelationKind))
+  TechnicalProvenanceChainQuery (TechnicalNodeKey (Vec TechnicalRelationKind))
+  TechnicalNodeNeighborhood ((Option TechnicalNode) (Vec TechnicalRelation) (Vec TechnicalRelation) bool)
+  TechnicalDependencyClosure ((Option TechnicalNode) (Vec TechnicalNode) (Vec TechnicalRelation) bool)
+  TechnicalProvenanceChain ((Option TechnicalNode) (Vec TechnicalNode) (Vec TechnicalRelation) bool)
 
   TechnicalRelationKind [OwnsRepository DefinesContract DefinesCrate BuildDependency RuntimeDependency WireDependency StorageDependency TaskDependency ProvenanceDependency Blocks Implements Documents ClaimsAbout ProvenBy Supersedes LocatedAt]
   TechnicalRelationEndpoint (TechnicalNodeIdentifier TechnicalNodeKey)
@@ -163,6 +175,6 @@
 }
 
 [
-  (Version 0 4 0)
+  (Version 0 5 0)
   (Status CurrentConcept)
 ]

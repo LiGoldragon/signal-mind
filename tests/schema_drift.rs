@@ -90,6 +90,36 @@ fn concept_schema_declares_split_technical_relation_roots() {
 }
 
 #[test]
+fn concept_schema_declares_technical_graph_query_shapes() {
+    let technical_node_query_line = declaration_line("TechnicalNodeQuery ");
+    for variant in [
+        "Filter",
+        "About",
+        "RelationNeighborhood",
+        "DependencyClosure",
+        "ProvenanceChain",
+    ] {
+        assert!(
+            technical_node_query_line.contains(variant),
+            "concept schema must include TechnicalNodeQuery::{variant}"
+        );
+    }
+
+    for type_name in [
+        "AboutTechnicalNode ",
+        "TechnicalRelationNeighborhoodQuery ",
+        "TechnicalRelationNeighborhoodDirection ",
+        "TechnicalDependencyClosureQuery ",
+        "TechnicalProvenanceChainQuery ",
+        "TechnicalNodeNeighborhood ",
+        "TechnicalDependencyClosure ",
+        "TechnicalProvenanceChain ",
+    ] {
+        declaration_line(type_name);
+    }
+}
+
+#[test]
 fn concept_schema_documents_subscription_lifecycle_bounds() {
     for required in [
         "SubscriptionRetraction is the typed close request",

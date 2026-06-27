@@ -271,7 +271,7 @@ the contract does not model a live BEADS backend.
 |---|---|
 | `SubmitTechnicalNode` | `TechnicalNodeCommitted` or `TechnicalNodeRejected` |
 | `SubmitTechnicalRelation` | `TechnicalRelationCommitted` or `TechnicalRelationRejected` |
-| `QueryTechnicalNodes` | `TechnicalNodeList` |
+| `QueryTechnicalNodes` | `TechnicalNodeList`, `TechnicalNodeNeighborhood`, `TechnicalDependencyClosure`, or `TechnicalProvenanceChain` |
 | `QueryTechnicalRelations` | `TechnicalRelationList` |
 | `SubscribeTechnicalNodes` | typed `SubscriptionAccepted::TechnicalNodes`, then `SubscriptionDelta::TechnicalNodeCommitted` events, terminated by `SubscriptionRetracted` |
 | `SubscribeTechnicalRelations` | typed `SubscriptionAccepted::TechnicalRelations`, then `SubscriptionDelta::TechnicalRelationCommitted` events, terminated by `SubscriptionRetracted` |
@@ -302,6 +302,14 @@ hyphen, underscore, or dot. Invalid shapes are rejected by
 daemon-minted identifiers returned in committed records and query results.
 Submit requests do not carry compact IDs, authors, timestamps, or sequence
 numbers.
+
+`QueryTechnicalNodes` carries a typed `TechnicalNodeQuery`: `Filter` preserves
+the original list query, `About` returns the node plus incoming/outgoing
+relations, `RelationNeighborhood` selects incoming/outgoing/both directions
+with optional relation-kind narrowing, `DependencyClosure` follows split
+build/runtime/wire/storage/task dependency relations, and `ProvenanceChain`
+follows typed provenance/proof links. Implementations may scan the technical
+node and relation families; secondary indexes are not part of this contract.
 
 `TechnicalNodeKind` owns the body-kind validator. `TechnicalRelationKind` owns
 the domain/range validator for relation endpoints. Storage dependencies are
@@ -463,6 +471,9 @@ MindUnimplementedReason
 - Technical dependency relations use explicit build, runtime, wire, storage,
   task, and provenance dependency kinds. `DependsOn` is not part of the
   technical-memory relation vocabulary.
+- Technical node queries expose about-node neighborhoods, incoming/outgoing
+  relation neighborhoods, dependency closure, and provenance chain reply shapes
+  over canonical `TechnicalNodeKey` values.
 - Lock files and BEADS are represented only as temporary external references or
   aliases, never as live backend protocol.
 - Channel choreography records use `signal-persona-origin` endpoint and origin
@@ -524,6 +535,8 @@ Existing tests in `tests/round_trip.rs` cover:
 - technical node/relation kind NOTA round trips, kind/body validation, storage
   node bodies, split dependency relation domain/range validation,
   request/reply/event frame round trips, and operation head coverage.
+- technical about-node, relation-neighborhood, dependency-closure, and
+  provenance-chain request/reply round trips.
 - subscription retract/retracted stream grammar, typed accepted/event family
   payloads, resume cursors, and demand request/reply round trips.
 - schema/docs drift witness for live operation heads, package version,
