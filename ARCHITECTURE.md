@@ -225,6 +225,14 @@ cursor inside a family-typed event payload. Additional capacity is signalled by
 `MindRequest::SubscriptionDemand(SubscriptionDemand)` and acknowledged by
 `MindReply::SubscriptionDemandAccepted`.
 
+The 0.4.0 contract records cursors, family-typed snapshots, demand credits, and
+the producer-side buffer bound; it does not define or imply a durable outbox.
+When a producer cannot retain replay state, `resume_after` is only a typed
+anchor the daemon can reject or re-anchor from a new snapshot. Overflow behavior
+is bounded by demand and `SubscriptionBufferBound`: the producer must wait,
+fail the slow subscription, or otherwise reply through a typed daemon policy;
+silent unbounded buffering is outside this contract.
+
 The graph surface is the first typed substrate for replacing BEADS and later
 rendering reports/architecture/skills from mind state. The closed node family
 is `ThoughtKind`: `Observation`, `Memory`, `Belief`, `Goal`, `Claim`,
@@ -483,6 +491,11 @@ MindUnimplementedReason
 - Subscription delivery is demand-shaped: open requests carry initial demand,
   additional capacity uses `SubscriptionDemand`, and accepted stream metadata
   carries the bounded producer-side buffer.
+- The contract does not promise a durable subscription outbox; replay after a
+  dropped connection is only available if the daemon/storage layer explicitly
+  implements it.
+- Subscription overflow is bounded by `SubscriptionBufferBound` and typed
+  demand; silent unbounded buffering is forbidden.
 - Channel-choreography requests route inside `mind` to one stateful
   `ChoreographyAdjudicator` actor; this contract closes the Mind-side
   observation vocabulary, and Router meta signal owns grant-state
@@ -513,6 +526,9 @@ Existing tests in `tests/round_trip.rs` cover:
   request/reply/event frame round trips, and operation head coverage.
 - subscription retract/retracted stream grammar, typed accepted/event family
   payloads, resume cursors, and demand request/reply round trips.
+- schema/docs drift witness for live operation heads, package version,
+  technical roots, split technical relations, canonical key examples, and
+  subscription lifecycle bounds.
 
 Additional architecture guards still worth adding:
 

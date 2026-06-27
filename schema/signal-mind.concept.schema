@@ -1,40 +1,168 @@
+;; signal-mind current concept schema.
+;;
+;; This is the hand-maintained concept source for the contract shipped as
+;; signal-mind 0.4.0. It documents the current Rust contract; it is not yet
+;; the generator source for src/*.rs.
+;;
+;; Request operation heads are still relation-specific. SubmitTechnicalNode,
+;; QueryTechnicalNodes, and their siblings are transitional heads on the path
+;; toward a future unified Submit / Query / Tap surface; this file records what
+;; is live today rather than redesigning that surface.
+
 {}
 
 [
-  (Submit [Thought Relation Note])
-  (Query [Thoughts Relations Channels])
-  (Watch [Thoughts Relations])
-  (Unwatch [Subscription])
-  (Status [Change])
+  (SubmitThought Thought)
+  (SubmitRelation Relation)
+  (QueryThoughts QueryThoughts)
+  (QueryRelations QueryRelations)
+  (SubscribeThoughts SubscribeThoughts)
+  (SubscribeRelations SubscribeRelations)
+  (SubscriptionRetraction SubscriptionIdentifier)
+  (SubscriptionDemand SubscriptionDemand)
+  (Opening Opening)
+  (NoteSubmission NoteSubmission)
+  (Link Link)
+  (StatusChange StatusChange)
+  (AliasAssignment AliasAssignment)
+  (Query Query)
+  (AdjudicationRequest AdjudicationRequest)
+  (ChannelList ChannelList)
+  (SubmitTechnicalNode SubmitTechnicalNode)
+  (SubmitTechnicalRelation SubmitTechnicalRelation)
+  (QueryTechnicalNodes QueryTechnicalNodes)
+  (QueryTechnicalRelations QueryTechnicalRelations)
+  (SubscribeTechnicalNodes SubscribeTechnicalNodes)
+  (SubscribeTechnicalRelations SubscribeTechnicalRelations)
 ]
 
-[]
+[
+  ThoughtCommitted
+  RelationCommitted
+  ThoughtList
+  RelationList
+  SubscriptionAccepted
+  SubscriptionRetracted
+  SubscriptionDemandAccepted
+  OpeningReceipt
+  NoteReceipt
+  LinkReceipt
+  StatusReceipt
+  AliasReceipt
+  View
+  Rejection
+  AdjudicationReceipt
+  ChannelListView
+  MindRequestUnimplemented
+  TechnicalNodeCommitted
+  TechnicalRelationCommitted
+  TechnicalNodeList
+  TechnicalRelationList
+  TechnicalNodeRejected
+  TechnicalRelationRejected
+]
 
-[]
+[
+  (SubscriptionDelta SubscriptionEvent)
+]
+
+[
+  (MindEventStream SubscriptionIdentifier SubscriptionAccepted SubscriptionDelta SubscriptionRetraction)
+]
 
 {
-  Submit [(Thought Thought) (Relation Relation) (Note Note)]
-  Query [(Thoughts Thoughts) (Relations Relations) (Channels Channels)]
-  Watch [(Thoughts Thoughts) (Relations Relations)]
-  Unwatch [(Subscription Subscription)]
-  Status [(Change Change)]
-  Thought (Text)
-  Relation (Text)
-  Note (Text)
-  Thoughts (Text)
-  Relations (Text)
-  Channels (Text)
-  Subscription (Identifier)
-  Change (Text)
-  Policy (Text)
-  State (Text)
-  Text (String)
-  Identifier (u64)
-  Name (String)
-  Path (String)
+  ;; Subscription lifecycle.
+  ;;
+  ;; Subscribe* opens MindEventStream and returns SubscriptionAccepted with a
+  ;; family-typed snapshot. SubscriptionRetraction is the typed close request.
+  ;; SubscriptionRetracted is the final acknowledgement. SubscriptionDemand
+  ;; grants additional delivery credit. The contract carries cursors, initial
+  ;; demand, and bounded buffer metadata; it does not promise a durable outbox.
+  SubscriptionIdentifier (String)
+  SubscriptionCursor (u64)
+  SubscriptionDemandCredit (u16)
+  SubscriptionBufferBound (u16)
+  SubscriptionStreamKind [Thoughts Relations TechnicalNodes TechnicalRelations]
+
+  ;; Typed mind graph vocabulary.
+  ThoughtKind [Observation Memory Belief Goal Claim Decision Reference]
+  RelationKind [Implements Realizes Requires Supports Refutes Supersedes Authored References Decides Considered Belongs]
+  Thought (RecordIdentifier ThoughtKind ThoughtBody ActorName TimestampNanos)
+  Relation (RelationIdentifier RelationKind RecordIdentifier RecordIdentifier (Option TextBody))
+  ThoughtFilter [(ByKind ByThoughtKind) (ByAuthor ByThoughtAuthor) (Composite CompositeThoughtFilter)]
+  RelationFilter [(ByKind ByRelationKind) (BySource ByRelationSource) (ByTarget ByRelationTarget) (Composite CompositeRelationFilter)]
+
+  ;; Typed technical dependency memory vocabulary v2.
+  ;;
+  ;; TechnicalNodeKey is caller-stable and canonical. Accepted key examples:
+  ;; component:mind, repo:signal-mind, crate:signal-mind,
+  ;; contract:signal-mind:ordinary, storage:mind:sema,
+  ;; schema:mind:technical, table:mind:technical_nodes.
+  TechnicalNodeKey (String)
+  TechnicalNodeKeyFamily [Component Repository Crate Contract WorkItem SourceArtifact Report TechnicalClaim Witness StorageResource SchemaFamily Table]
+  TechnicalNodeKind [Component Repository Crate Contract WorkItem SourceArtifact Report TechnicalClaim Witness StorageResource SchemaFamily Table]
+  TechnicalNodeBody [(Component ComponentNode) (Repository RepositoryNode) (Crate CrateNode) (Contract ContractNode) (WorkItem WorkItemNode) (SourceArtifact SourceArtifactNode) (Report ReportNode) (TechnicalClaim TechnicalClaimNode) (Witness WitnessNode) (StorageResource StorageResourceNode) (SchemaFamily SchemaFamilyNode) (Table TableNode)]
+  ContractSurface [Ordinary Meta Introspection]
+  ComponentNode (ComponentName (Option TextBody))
+  RepositoryNode (WirePath (Option TextBody))
+  CrateNode (TextBody TechnicalNodeKey)
+  ContractNode (TextBody ContractSurface)
+  WorkItemNode (TaskToken TextBody)
+  SourceArtifactNode (TechnicalSourceLocator (Option TextBody))
+  ReportNode (WirePath (Option TextBody))
+  TechnicalClaimNode (TextBody)
+  WitnessNode (TextBody (Option TechnicalSourceLocator))
+  StorageResourceNode (TechnicalNodeKey TextBody (Option WirePath))
+  SchemaFamilyNode (TechnicalNodeKey TextBody (Option TextBody))
+  TableNode (TechnicalNodeKey TextBody (Option TechnicalNodeKey))
+  TechnicalSourceLocator [(Path WirePath) (Repository TechnicalNodeKey) (Task TaskToken) (Url TextBody) (Report WirePath) (Symbol TextBody)]
+  TechnicalNode (TechnicalNodeIdentifier TechnicalNodeKey TechnicalNodeKind TechnicalNodeBody ActorName TimestampNanos)
+  SubmitTechnicalNode (TechnicalNodeKey TechnicalNodeKind TechnicalNodeBody)
+  QueryTechnicalNodes (TechnicalNodeFilter QueryLimit)
+  SubscribeTechnicalNodes (TechnicalNodeFilter (Option SubscriptionCursor) SubscriptionDemandCredit)
+  TechnicalNodeFilter [(ByKind ByTechnicalNodeKind) (ByStableKey ByTechnicalNodeStableKey) (BySourceLocator ByTechnicalSourceLocator) (Composite CompositeTechnicalNodeFilter)]
+
+  TechnicalRelationKind [OwnsRepository DefinesContract DefinesCrate BuildDependency RuntimeDependency WireDependency StorageDependency TaskDependency ProvenanceDependency Blocks Implements Documents ClaimsAbout ProvenBy Supersedes LocatedAt]
+  TechnicalRelationEndpoint (TechnicalNodeIdentifier TechnicalNodeKey)
+  TechnicalRelation (TechnicalRelationIdentifier TechnicalRelationKind TechnicalRelationEndpoint TechnicalRelationEndpoint ActorName TimestampNanos (Option TextBody))
+  SubmitTechnicalRelation (TechnicalRelationKind TechnicalNodeKey TechnicalNodeKey (Option TextBody))
+  QueryTechnicalRelations (TechnicalRelationFilter QueryLimit)
+  SubscribeTechnicalRelations (TechnicalRelationFilter (Option SubscriptionCursor) SubscriptionDemandCredit)
+  TechnicalRelationFilter [(ByKind ByTechnicalRelationKind) (BySource ByTechnicalRelationSource) (ByTarget ByTechnicalRelationTarget) (BetweenEndpoints ByTechnicalRelationEndpoints) (Composite CompositeTechnicalRelationFilter)]
+
+  ;; Work and memory graph.
+  Opening (ItemKind Magnitude Title TextBody)
+  NoteSubmission (ItemReference TextBody)
+  Link (ItemReference EdgeKind LinkTarget (Option TextBody))
+  StatusChange (ItemReference ItemStatus (Option TextBody))
+  AliasAssignment (ItemReference ExternalAlias)
+  Query (QueryKind QueryLimit)
+
+  ;; Channel choreography observation.
+  AdjudicationRequest (AdjudicationRequestIdentifier MessageOrigin ChannelEndpoint ChannelMessageKind TextBody)
+  ChannelList (Vec ChannelFilter)
+  ChannelEndpoint [(Internal ComponentName) (External ConnectionClass)]
+  ChannelMessageKind [MessageIngressSubmission MessageSubmission InboxQuery FocusObservation PromptBufferObservation MessageDelivery TerminalInput TerminalCapture TerminalResize TranscriptEvent AdjudicationRequest DeliveryNotification]
+  ChannelDuration [OneShot Permanent (TimeBound TimestampNanos)]
+
+  ;; Shared boundary values.
+  ActorName (String)
+  ComponentName (String)
+  ConnectionClass (String)
+  MessageOrigin (String)
+  RecordIdentifier (String)
+  RelationIdentifier (String)
+  TechnicalNodeIdentifier (String)
+  TechnicalRelationIdentifier (String)
+  WirePath (String)
+  TaskToken (String)
+  TimestampNanos (u64)
+  QueryLimit (u16)
+  TextBody (String)
+  Title (String)
 }
 
 [
-  (Version 0 1)
-  (Status Concept)
+  (Version 0 4 0)
+  (Status CurrentConcept)
 ]

@@ -16,9 +16,12 @@ channel carries:
 - **Typed technical dependency graph:** `SubmitTechnicalNode`,
   `SubmitTechnicalRelation`, `QueryTechnicalNodes`,
   `QueryTechnicalRelations`, and technical subscriptions. Subscription opens
-  and deltas are family-typed and carry resume cursors. Stable public
-  technical keys are canonical family keys such as `component:mind`,
-  `repo:signal-mind`, and `contract:signal-mind:ordinary`.
+  and deltas are family-typed, carry resume cursors, and advertise bounded
+  producer-side buffers. This contract does not promise a durable outbox;
+  reconnect completeness is a daemon/storage behavior above the wire shape.
+  Stable public technical keys are canonical family keys such as
+  `component:mind`, `repo:signal-mind`, and
+  `contract:signal-mind:ordinary`.
 - **Channel choreography:** `AdjudicationRequest`, `ChannelList`.
 
 Ordinary role claims, handoffs, observations, and activity log operations

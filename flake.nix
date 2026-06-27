@@ -20,7 +20,11 @@
         };
 
         inherit (rust) craneLib toolchain;
-        src = rust.cleanCargoSource ./.;
+        schemaFilter = path: type: type == "regular" && pkgs.lib.hasSuffix ".schema" path;
+        src = rust.cleanSource {
+          root = ./.;
+          extraFilters = [ schemaFilter ];
+        };
         commonArgs = { inherit src; strictDeps = true; };
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
       in
@@ -32,6 +36,10 @@
           test-round-trip = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
             cargoTestExtraArgs = "--test round_trip";
+          });
+          test-schema-doc-drift = craneLib.cargoTest (commonArgs // {
+            inherit cargoArtifacts;
+            cargoTestExtraArgs = "--test schema_drift";
           });
           test-relation-kind-domain-table-covers-every-relation-kind = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
