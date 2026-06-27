@@ -1324,10 +1324,49 @@ fn technical_node_requests_round_trip() {
             body: fixture.component_body(),
         }),
         MindRequest::QueryTechnicalNodes(QueryTechnicalNodes {
-            filter: TechnicalNodeFilter::Composite(CompositeTechnicalNodeFilter {
-                kinds: vec![TechnicalNodeKind::Component, TechnicalNodeKind::Crate],
-                stable_key: Some(fixture.component_key()),
-                source_locator: Some(TechnicalSourceLocator::Path(sample_path())),
+            query: TechnicalNodeQuery::Filter(TechnicalNodeFilter::Composite(
+                CompositeTechnicalNodeFilter {
+                    kinds: vec![TechnicalNodeKind::Component, TechnicalNodeKind::Crate],
+                    stable_key: Some(fixture.component_key()),
+                    source_locator: Some(TechnicalSourceLocator::Path(sample_path())),
+                },
+            )),
+            limit: QueryLimit::new(25),
+        }),
+        MindRequest::QueryTechnicalNodes(QueryTechnicalNodes {
+            query: TechnicalNodeQuery::About(AboutTechnicalNode {
+                stable_key: fixture.component_key(),
+            }),
+            limit: QueryLimit::new(25),
+        }),
+        MindRequest::QueryTechnicalNodes(QueryTechnicalNodes {
+            query: TechnicalNodeQuery::RelationNeighborhood(TechnicalRelationNeighborhoodQuery {
+                stable_key: fixture.component_key(),
+                direction: TechnicalRelationNeighborhoodDirection::Both,
+                kinds: vec![TechnicalRelationKind::RuntimeDependency],
+            }),
+            limit: QueryLimit::new(25),
+        }),
+        MindRequest::QueryTechnicalNodes(QueryTechnicalNodes {
+            query: TechnicalNodeQuery::DependencyClosure(TechnicalDependencyClosureQuery {
+                stable_key: fixture.component_key(),
+                kinds: vec![
+                    TechnicalRelationKind::BuildDependency,
+                    TechnicalRelationKind::RuntimeDependency,
+                    TechnicalRelationKind::WireDependency,
+                    TechnicalRelationKind::StorageDependency,
+                    TechnicalRelationKind::TaskDependency,
+                ],
+            }),
+            limit: QueryLimit::new(25),
+        }),
+        MindRequest::QueryTechnicalNodes(QueryTechnicalNodes {
+            query: TechnicalNodeQuery::ProvenanceChain(TechnicalProvenanceChainQuery {
+                stable_key: fixture.claim_key(),
+                kinds: vec![
+                    TechnicalRelationKind::ProvenanceDependency,
+                    TechnicalRelationKind::ProvenBy,
+                ],
             }),
             limit: QueryLimit::new(25),
         }),
@@ -1396,6 +1435,24 @@ fn technical_replies_and_events_round_trip() {
             has_more: false,
         }),
         MindReply::TechnicalRelationList(TechnicalRelationList {
+            relations: vec![relation.clone()],
+            has_more: false,
+        }),
+        MindReply::TechnicalNodeNeighborhood(TechnicalNodeNeighborhood {
+            center: Some(node.clone()),
+            incoming: vec![],
+            outgoing: vec![relation.clone()],
+            has_more: false,
+        }),
+        MindReply::TechnicalDependencyClosure(TechnicalDependencyClosure {
+            root: Some(node.clone()),
+            nodes: vec![node.clone()],
+            relations: vec![relation.clone()],
+            has_more: false,
+        }),
+        MindReply::TechnicalProvenanceChain(TechnicalProvenanceChain {
+            root: Some(node.clone()),
+            nodes: vec![node.clone()],
             relations: vec![relation.clone()],
             has_more: false,
         }),
@@ -1865,9 +1922,11 @@ fn mind_request_exposes_contract_owned_operation_kind() {
         ),
         (
             MindRequest::QueryTechnicalNodes(QueryTechnicalNodes {
-                filter: TechnicalNodeFilter::ByKind(ByTechnicalNodeKind {
-                    kinds: vec![TechnicalNodeKind::Component],
-                }),
+                query: TechnicalNodeQuery::Filter(TechnicalNodeFilter::ByKind(
+                    ByTechnicalNodeKind {
+                        kinds: vec![TechnicalNodeKind::Component],
+                    },
+                )),
                 limit: QueryLimit::new(10),
             }),
             MindOperationKind::QueryTechnicalNodes,
