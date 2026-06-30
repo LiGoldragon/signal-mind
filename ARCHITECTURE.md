@@ -83,6 +83,13 @@ This repo owns records, validation newtypes, rkyv round trips, and channel
 shape. It does not own the CLI binary, actors, database, storage tables,
 transport lifecycle, or lock-file migration.
 
+Ordinary role claims, handoffs, observations, and activity-log operations are
+not part of this contract; they belong to `signal-orchestrate`. `signal-mind`
+carries the cognitive-state channel (typed mind graph, technical dependency
+memory, work-and-memory graph, and channel choreography observation), and Mind
+orders Orchestrate through `meta-signal-mind` rather than performing role or
+activity orchestration on this working signal.
+
 Each `MindRequest` variant is a contract-local operation. The daemon owns its
 typed component commands, Nexus decisions, and SEMA reads or writes. Database
 action classes do not appear on the wire and this contract has no
@@ -564,7 +571,8 @@ This repo does not own:
 - caller identity resolution policy;
 - time/ID minting policy;
 - lock-file migration workflow;
-- BEADS import code.
+- BEADS import code;
+- ordinary role/activity orchestration — that is `signal-orchestrate`.
 
 ## Code Map
 
@@ -578,7 +586,9 @@ tests/round_trip.rs     frame round trips, NOTA witnesses, and validation tests
 ## See Also
 
 - `../mind/ARCHITECTURE.md`
+- `../meta-signal-mind/ARCHITECTURE.md`
 - `../meta-signal-router/ARCHITECTURE.md`
+- `../signal-orchestrate/ARCHITECTURE.md` — ordinary role/activity orchestration.
 - `../signal-frame/ARCHITECTURE.md`
 - `~/primary/orchestrate/AGENTS.md`
 - `~/primary/skills/contract-repo.md`
