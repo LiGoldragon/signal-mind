@@ -7,8 +7,8 @@
 `signal-mind` is the public vocabulary for Persona's central mind. It
 defines the typed request/reply channel used by the `mind` CLI and long-lived
 `mind` daemon. The current contract includes the typed mind graph, typed
-technical dependency memory, the work-and-memory graph, and channel
-choreography observation.
+technical dependency memory, accepted knowledge contract v1, the
+work-and-memory graph, and channel choreography observation.
 
 ## Contract/Daemon Boundary
 
@@ -77,7 +77,7 @@ References:
 > rkyv archives, `sema-db` storage in consumers. The
 > eventually-self-hosting stack is Sema-on-Sema, in which signal-*
 > as a separate vocabulary layer collapses. Today's contract is a
-> realization step. See `~/primary/ESSENCE.md` §"Today and eventually".
+> realization step. See `~/primary/ARCHITECTURE.md` §"Workspace vision and intent".
 
 This repo owns records, validation newtypes, rkyv round trips, and channel
 shape. It does not own the CLI binary, actors, database, storage tables,
@@ -154,6 +154,8 @@ signal_channel! {
         operation QueryTechnicalRelations(QueryTechnicalRelations),
         operation SubscribeTechnicalNodes(SubscribeTechnicalNodes) opens MindEventStream,
         operation SubscribeTechnicalRelations(SubscribeTechnicalRelations) opens MindEventStream,
+        operation SubmitKnowledge(KnowledgeSubmission),
+        operation QueryKnowledge(KnowledgeQuery),
         reply MindReply {
             ThoughtCommitted(ThoughtCommitted),
             RelationCommitted(RelationCommitted),
@@ -178,6 +180,9 @@ signal_channel! {
             TechnicalRelationList(TechnicalRelationList),
             TechnicalNodeRejected(TechnicalNodeRejected),
             TechnicalRelationRejected(TechnicalRelationRejected),
+            KnowledgeAccepted(KnowledgeAccepted),
+            KnowledgeRejected(KnowledgeRejection),
+            KnowledgeList(KnowledgeList),
         }
         event MindEvent {
             SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
@@ -331,6 +336,46 @@ domain/range violation, and persistence rejection.
 
 ### 3.4 Channel choreography
 
+### 3.4 Accepted knowledge contract v1
+
+| Request | Reply |
+|---|---|
+| `SubmitKnowledge` | `KnowledgeAccepted` or `KnowledgeRejected` |
+| `QueryKnowledge` | `KnowledgeList` |
+
+Accepted knowledge is Mind's non-Spirit knowledge substrate. The durable root
+noun is `AcceptedKnowledge`, with closed variants `Entity`, `Statement`,
+`Relation`, `Domain`, and `Source`. V1 is contract-only and fixture-driven:
+semantic judgment crosses the typed `KnowledgeJudgePacket` /
+`KnowledgeJudgeVerdict` boundary, while deterministic code owns structure,
+routing, verdict application, and `KnowledgeRelationKind` domain/range
+validation.
+
+Rejected candidates are represented only as `KnowledgeRejected` replies and
+are not stored as accepted knowledge. Accepted admission receipts are not a
+record family. Source/provenance is optional; if source matters, it is accepted
+knowledge itself via `KnowledgeSource` and relations such as `References` or
+`SupportedBy`.
+
+Mind-local `KnowledgeDomain` and `KnowledgeDomainKey` intentionally stand in
+for any future shared Spirit/Mind subject-domain extraction. V1 keys include
+fixtures such as `domain:component`, `domain:contract`, `component:mind`,
+`repo:signal-mind`, and `contract:signal-mind:ordinary`.
+
+`KnowledgeRelationKind` is closed in v1: `ClassifiedAs`, `BroaderThan`,
+`NarrowerThan`, `RelatedTo`, `References`, `SupportedBy`, `Contradicts`,
+`Supersedes`, `Defines`, `Implements`, and `DependsOn`. The enum owns the
+deterministic relation domain/range table over `KnowledgeRecordKind`. The table
+validates record families only; it does not infer truth, contradiction,
+duplicates, support, or supersession from text.
+
+`KnowledgeQuery` reads accepted state by identifier, stable key, record kind,
+domain selector, or relation selector. `CurrentView` is closed as
+`CurrentOnly` or `IncludeSuperseded` so callers must choose whether
+superseded accepted records are visible.
+
+### 3.5 Channel choreography
+
 | Request | Reply |
 |---|---|
 | `AdjudicationRequest` | `AdjudicationReceipt` |
@@ -393,6 +438,9 @@ The contract validates boundary strings before they become wire values.
 | `TechnicalNodeIdentifier` | compact daemon-minted technical node identifier. |
 | `TechnicalRelationIdentifier` | compact daemon-minted technical relation identifier. |
 | `TechnicalNodeKey` | validated caller-visible technical node key used for submissions and filters; canonical families include `component:mind`, `repo:signal-mind`, and `contract:signal-mind:ordinary`. |
+| `KnowledgeIdentifier` | daemon-minted identifier for an accepted knowledge record. |
+| `KnowledgeStableKey` | optional caller-visible stable key for accepted knowledge with external identity, such as `component:mind` or `contract:signal-mind:ordinary`. |
+| `KnowledgeDomainKey` | Mind-local canonical domain key, such as `domain:component` or `domain:contract`. |
 | `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-origin`. |
 | `ChannelMessageKind` | closed set of first-stack route categories. |
 | `ChannelDuration` | channel lifetime requested or emitted by mind choreography. |
@@ -481,6 +529,21 @@ MindUnimplementedReason
 - Technical node queries expose about-node neighborhoods, incoming/outgoing
   relation neighborhoods, dependency closure, and provenance chain reply shapes
   over canonical `TechnicalNodeKey` values.
+- Mind accepted knowledge uses `AcceptedKnowledge`, not `Thought`, as its
+  durable root noun.
+- `SubmitKnowledge` and `QueryKnowledge` are distinct from `SubmitThought`;
+  Mind accepted knowledge does not inherit Spirit intent semantics.
+- Semantic knowledge judgment belongs behind `KnowledgeJudgeVerdict`; this
+  contract only gives deterministic code typed structure, routeable records,
+  verdict application data, and relation domain/range validation.
+- Rejected knowledge candidates and accepted admission receipts are not accepted
+  knowledge record families.
+- Source/provenance is not mandatory metadata; source is modeled only when it
+  is itself accepted knowledge.
+- Shared Spirit/Mind subject-domain extraction is deferred; v1 uses
+  Mind-local `KnowledgeDomain` and `KnowledgeDomainKey`.
+- Accepted knowledge v1 does not add corpus import, production AI prompts,
+  Mind daemon storage, or Spirit intent semantics.
 - Lock files and BEADS are represented only as temporary external references or
   aliases, never as live backend protocol.
 - Channel choreography records use `signal-persona-origin` endpoint and origin
@@ -544,6 +607,8 @@ Existing tests in `tests/round_trip.rs` cover:
   request/reply/event frame round trips, and operation head coverage.
 - technical about-node, relation-neighborhood, dependency-closure, and
   provenance-chain request/reply round trips.
+- accepted knowledge key validation, relation-kind domain/range validation,
+  request/reply round trips, and judge verdict round trips.
 - subscription retract/retracted stream grammar, typed accepted/event family
   payloads, resume cursors, and demand request/reply round trips.
 - schema/docs drift witness for live operation heads, package version,
@@ -580,6 +645,7 @@ This repo does not own:
 src/lib.rs              shared newtypes and signal_channel! declaration
 src/graph.rs            Thought/Relation graph records and subscription snapshot/delta shapes
 src/technical.rs        TechnicalNode/TechnicalRelation records, filters, validators, replies
+src/knowledge.rs        AcceptedKnowledge records, judge verdicts, selectors, validators, replies
 tests/round_trip.rs     frame round trips, NOTA witnesses, and validation tests
 ```
 
