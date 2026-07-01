@@ -1,5 +1,8 @@
 use signal_frame::SignalOperationHeads;
-use signal_mind::{MindRequest, TechnicalNodeKind, TechnicalRelationKind};
+use signal_mind::{
+    KnowledgeRecordKind, KnowledgeRelationKind, MindRequest, TechnicalNodeKind,
+    TechnicalRelationKind,
+};
 
 const CONCEPT_SCHEMA: &str = include_str!("../schema/signal-mind.concept.schema");
 
@@ -87,6 +90,42 @@ fn concept_schema_declares_split_technical_relation_roots() {
         !relation_kind_line.contains("DependsOn"),
         "concept schema must not collapse split dependency kinds back to DependsOn"
     );
+}
+
+#[test]
+fn concept_schema_declares_accepted_knowledge_roots() {
+    let record_kind_line = declaration_line("KnowledgeRecordKind ");
+    for kind in KnowledgeRecordKind::ALL {
+        let name = format!("{kind:?}");
+        assert!(
+            record_kind_line.contains(&name),
+            "concept schema must include KnowledgeRecordKind::{name}"
+        );
+    }
+
+    let relation_kind_line = declaration_line("KnowledgeRelationKind ");
+    for kind in KnowledgeRelationKind::ALL {
+        let name = format!("{kind:?}");
+        assert!(
+            relation_kind_line.contains(&name),
+            "concept schema must include KnowledgeRelationKind::{name}"
+        );
+    }
+
+    for required in [
+        "AcceptedKnowledge",
+        "KnowledgeJudgeVerdict",
+        "KnowledgeRejectionReason",
+        "CurrentView",
+        "KnowledgeDomainKey",
+        "domain:component",
+        "contract:signal-mind:ordinary",
+    ] {
+        assert!(
+            CONCEPT_SCHEMA.contains(required),
+            "concept schema must document knowledge contract fact: {required}"
+        );
+    }
 }
 
 #[test]

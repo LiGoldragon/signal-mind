@@ -31,8 +31,10 @@ use std::fmt;
 use std::str::FromStr;
 
 mod graph;
+mod knowledge;
 mod technical;
 pub use graph::*;
+pub use knowledge::*;
 pub use technical::*;
 
 // ─── Error ────────────────────────────────────────────────
@@ -47,6 +49,10 @@ pub enum Error {
     InvalidTaskToken { token: String },
     #[error("invalid technical node key {key}: {reason}")]
     InvalidTechnicalNodeKey { key: String, reason: String },
+    #[error("invalid knowledge stable key {key}: {reason}")]
+    InvalidKnowledgeStableKey { key: String, reason: String },
+    #[error("invalid knowledge domain key {key}: {reason}")]
+    InvalidKnowledgeDomainKey { key: String, reason: String },
     #[error("unknown workspace role token: {role}")]
     UnknownRoleName { role: String },
 }
@@ -1270,6 +1276,8 @@ signal_channel! {
         operation QueryTechnicalRelations(QueryTechnicalRelations),
         operation SubscribeTechnicalNodes(SubscribeTechnicalNodes) opens MindEventStream,
         operation SubscribeTechnicalRelations(SubscribeTechnicalRelations) opens MindEventStream,
+        operation SubmitKnowledge(KnowledgeSubmission),
+        operation QueryKnowledge(KnowledgeQuery),
     }
     reply MindReply {
         ThoughtCommitted(ThoughtCommitted),
@@ -1298,6 +1306,9 @@ signal_channel! {
         TechnicalProvenanceChain(TechnicalProvenanceChain),
         TechnicalNodeRejected(TechnicalNodeRejected),
         TechnicalRelationRejected(TechnicalRelationRejected),
+        KnowledgeAccepted(KnowledgeAccepted),
+        KnowledgeRejected(KnowledgeRejection),
+        KnowledgeList(KnowledgeList),
     }
     event MindEvent {
         SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,

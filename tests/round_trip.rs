@@ -138,6 +138,14 @@ fn sample_technical_key(value: &str) -> TechnicalNodeKey {
     TechnicalNodeKey::from_canonical(value).expect("canonical technical node key")
 }
 
+fn sample_knowledge_key(value: &str) -> KnowledgeStableKey {
+    KnowledgeStableKey::from_canonical(value).expect("canonical knowledge stable key")
+}
+
+fn sample_domain_key(value: &str) -> KnowledgeDomainKey {
+    KnowledgeDomainKey::from_canonical(value).expect("canonical knowledge domain key")
+}
+
 fn sample_mind_component() -> ComponentName {
     ComponentName::new("mind")
 }
@@ -539,6 +547,130 @@ impl TechnicalFixture {
             author: self.actor.clone(),
             occurred_at: self.occurred_at,
             note: Some(TextBody::new("crate defines the public contract")),
+        }
+    }
+}
+
+struct KnowledgeFixture {
+    actor: ActorName,
+    accepted_at: TimestampNanos,
+}
+
+impl KnowledgeFixture {
+    fn new() -> Self {
+        Self {
+            actor: sample_actor(),
+            accepted_at: TimestampNanos::new(1_790_000_000_000_000_100),
+        }
+    }
+
+    fn header(
+        &self,
+        identifier: &str,
+        stable_key: Option<KnowledgeStableKey>,
+    ) -> KnowledgeRecordHeader {
+        KnowledgeRecordHeader {
+            identifier: KnowledgeIdentifier::new(identifier),
+            stable_key,
+            accepted_by: self.actor.clone(),
+            accepted_at: self.accepted_at,
+        }
+    }
+
+    fn component_domain_key(&self) -> KnowledgeDomainKey {
+        sample_domain_key("domain:component")
+    }
+
+    fn contract_domain_key(&self) -> KnowledgeDomainKey {
+        sample_domain_key("domain:contract")
+    }
+
+    fn component_domain(&self) -> KnowledgeDomain {
+        KnowledgeDomain {
+            header: self.header(
+                "kn-domain-component",
+                Some(sample_knowledge_key("domain:component")),
+            ),
+            domain_key: self.component_domain_key(),
+            name: TextBody::new("component"),
+            description: Some(TextBody::new("software component classification")),
+        }
+    }
+
+    fn mind_entity(&self) -> KnowledgeEntity {
+        KnowledgeEntity {
+            header: self.header(
+                "kn-component-mind",
+                Some(sample_knowledge_key("component:mind")),
+            ),
+            name: TextBody::new("Mind"),
+            description: Some(TextBody::new("central accepted knowledge substrate")),
+            domains: vec![self.component_domain_key()],
+        }
+    }
+
+    fn contract_entity(&self) -> KnowledgeEntity {
+        KnowledgeEntity {
+            header: self.header(
+                "kn-contract-signal-mind",
+                Some(sample_knowledge_key("contract:signal-mind:ordinary")),
+            ),
+            name: TextBody::new("signal-mind ordinary contract"),
+            description: Some(TextBody::new("typed Mind public vocabulary")),
+            domains: vec![self.contract_domain_key()],
+        }
+    }
+
+    fn source(&self) -> KnowledgeSource {
+        KnowledgeSource {
+            header: self.header(
+                "kn-source-architecture",
+                Some(sample_knowledge_key("source:signal-mind:architecture")),
+            ),
+            locator: TextBody::new("/git/github.com/LiGoldragon/signal-mind/ARCHITECTURE.md"),
+            description: Some(TextBody::new("signal-mind architecture document")),
+        }
+    }
+
+    fn statement(&self) -> KnowledgeStatement {
+        KnowledgeStatement {
+            header: self.header("kn-statement-source-backed", None),
+            body: TextBody::new("Mind accepted knowledge is fixture-driven in v1."),
+            about: vec![KnowledgeIdentifier::new("kn-component-mind")],
+            domains: vec![self.component_domain_key()],
+        }
+    }
+
+    fn relation(&self) -> KnowledgeRelation {
+        KnowledgeRelation {
+            header: self.header("kn-relation-classified-as", None),
+            kind: KnowledgeRelationKind::ClassifiedAs,
+            source: KnowledgeRelationEndpoint {
+                identifier: KnowledgeIdentifier::new("kn-component-mind"),
+                stable_key: Some(sample_knowledge_key("component:mind")),
+                kind: KnowledgeRecordKind::Entity,
+            },
+            target: KnowledgeRelationEndpoint {
+                identifier: KnowledgeIdentifier::new("kn-domain-component"),
+                stable_key: Some(sample_knowledge_key("domain:component")),
+                kind: KnowledgeRecordKind::Domain,
+            },
+            note: None,
+        }
+    }
+
+    fn entity_submission(&self) -> KnowledgeSubmission {
+        KnowledgeSubmission {
+            candidate: KnowledgeCandidate::Entity(KnowledgeEntityCandidate {
+                stable_key: Some(sample_knowledge_key("component:mind")),
+                name: TextBody::new("Mind"),
+                description: Some(TextBody::new("accepted knowledge substrate")),
+                domains: vec![self.component_domain_key()],
+            }),
+            fixture_policy: KnowledgeFixturePolicy::FixtureOnly,
+            requester_context: KnowledgeRequesterContext {
+                request_summary: Some(TextBody::new("fixture accepted entity")),
+            },
         }
     }
 }
@@ -1314,6 +1446,262 @@ fn technical_relation_kind_rejects_wrong_domain() {
     assert_eq!(mismatch.got_target_kind, TechnicalNodeKind::Repository);
 }
 
+// ─── Accepted knowledge contract variants ─────────────────
+
+#[test]
+fn every_knowledge_record_kind_round_trips_through_nota_text() {
+    let cases = [
+        (KnowledgeRecordKind::Entity, "Entity"),
+        (KnowledgeRecordKind::Statement, "Statement"),
+        (KnowledgeRecordKind::Relation, "Relation"),
+        (KnowledgeRecordKind::Domain, "Domain"),
+        (KnowledgeRecordKind::Source, "Source"),
+    ];
+
+    for (kind, expected) in cases {
+        round_trip_nota(kind, expected);
+    }
+}
+
+#[test]
+fn every_knowledge_relation_kind_round_trips_through_nota_text() {
+    let cases = [
+        (KnowledgeRelationKind::ClassifiedAs, "ClassifiedAs"),
+        (KnowledgeRelationKind::BroaderThan, "BroaderThan"),
+        (KnowledgeRelationKind::NarrowerThan, "NarrowerThan"),
+        (KnowledgeRelationKind::RelatedTo, "RelatedTo"),
+        (KnowledgeRelationKind::References, "References"),
+        (KnowledgeRelationKind::SupportedBy, "SupportedBy"),
+        (KnowledgeRelationKind::Contradicts, "Contradicts"),
+        (KnowledgeRelationKind::Supersedes, "Supersedes"),
+        (KnowledgeRelationKind::Defines, "Defines"),
+        (KnowledgeRelationKind::Implements, "Implements"),
+        (KnowledgeRelationKind::DependsOn, "DependsOn"),
+    ];
+
+    for (kind, expected) in cases {
+        round_trip_nota(kind, expected);
+    }
+}
+
+#[test]
+fn knowledge_keys_accept_canonical_v1_shapes() {
+    let stable = sample_knowledge_key("contract:signal-mind:ordinary");
+    assert_eq!(stable.as_str(), "contract:signal-mind:ordinary");
+    round_trip_nota(stable, "contract:signal-mind:ordinary");
+
+    let domain = sample_domain_key("domain:component");
+    assert_eq!(domain.as_str(), "domain:component");
+    round_trip_nota(domain, "domain:component");
+}
+
+#[test]
+fn knowledge_keys_reject_invalid_canonical_shapes() {
+    let missing_separator =
+        KnowledgeStableKey::from_canonical("component").expect_err("separator is required");
+    assert_eq!(
+        missing_separator.reason,
+        KnowledgeKeyRejectionReason::MissingFamilySeparator
+    );
+
+    let wrong_domain_family =
+        KnowledgeDomainKey::from_canonical("component:mind").expect_err("domain family required");
+    assert_eq!(
+        wrong_domain_family.reason,
+        KnowledgeKeyRejectionReason::WrongFamily
+    );
+
+    let invalid_character =
+        KnowledgeStableKey::from_canonical("component:Mind").expect_err("lowercase required");
+    assert_eq!(
+        invalid_character.reason,
+        KnowledgeKeyRejectionReason::InvalidSegmentCharacter
+    );
+}
+
+#[test]
+fn knowledge_relation_kind_domain_table_covers_every_relation_kind() {
+    let valid_cases = [
+        (
+            KnowledgeRelationKind::ClassifiedAs,
+            KnowledgeRecordKind::Entity,
+            KnowledgeRecordKind::Domain,
+        ),
+        (
+            KnowledgeRelationKind::BroaderThan,
+            KnowledgeRecordKind::Domain,
+            KnowledgeRecordKind::Domain,
+        ),
+        (
+            KnowledgeRelationKind::NarrowerThan,
+            KnowledgeRecordKind::Domain,
+            KnowledgeRecordKind::Domain,
+        ),
+        (
+            KnowledgeRelationKind::RelatedTo,
+            KnowledgeRecordKind::Entity,
+            KnowledgeRecordKind::Entity,
+        ),
+        (
+            KnowledgeRelationKind::References,
+            KnowledgeRecordKind::Statement,
+            KnowledgeRecordKind::Source,
+        ),
+        (
+            KnowledgeRelationKind::SupportedBy,
+            KnowledgeRecordKind::Relation,
+            KnowledgeRecordKind::Source,
+        ),
+        (
+            KnowledgeRelationKind::Contradicts,
+            KnowledgeRecordKind::Statement,
+            KnowledgeRecordKind::Statement,
+        ),
+        (
+            KnowledgeRelationKind::Supersedes,
+            KnowledgeRecordKind::Statement,
+            KnowledgeRecordKind::Statement,
+        ),
+        (
+            KnowledgeRelationKind::Defines,
+            KnowledgeRecordKind::Source,
+            KnowledgeRecordKind::Entity,
+        ),
+        (
+            KnowledgeRelationKind::Implements,
+            KnowledgeRecordKind::Entity,
+            KnowledgeRecordKind::Entity,
+        ),
+        (
+            KnowledgeRelationKind::DependsOn,
+            KnowledgeRecordKind::Entity,
+            KnowledgeRecordKind::Entity,
+        ),
+    ];
+
+    for relation in KnowledgeRelationKind::ALL {
+        assert!(
+            valid_cases
+                .iter()
+                .any(|(candidate, _, _)| *candidate == relation),
+            "{relation:?} must have at least one valid witness case",
+        );
+    }
+
+    for (relation, source, target) in valid_cases {
+        relation
+            .validate_endpoint_kinds(source, target)
+            .unwrap_or_else(|mismatch| panic!("unexpected mismatch: {mismatch:?}"));
+    }
+}
+
+#[test]
+fn knowledge_relation_kind_rejects_wrong_domain() {
+    let mismatch = KnowledgeRelationKind::ClassifiedAs
+        .validate_endpoint_kinds(KnowledgeRecordKind::Entity, KnowledgeRecordKind::Entity)
+        .expect_err("classified-as target must be a domain");
+
+    assert_eq!(mismatch.relation, KnowledgeRelationKind::ClassifiedAs);
+    assert_eq!(mismatch.got_source_kind, KnowledgeRecordKind::Entity);
+    assert_eq!(mismatch.got_target_kind, KnowledgeRecordKind::Entity);
+    assert_eq!(
+        mismatch.expected_target_kinds,
+        vec![KnowledgeRecordKind::Domain]
+    );
+}
+
+#[test]
+fn knowledge_submit_and_query_requests_round_trip() {
+    let fixture = KnowledgeFixture::new();
+    let requests = vec![
+        MindRequest::SubmitKnowledge(fixture.entity_submission()),
+        MindRequest::QueryKnowledge(KnowledgeQuery::GetByIdentifier(KnowledgeIdentifier::new(
+            "kn-component-mind",
+        ))),
+        MindRequest::QueryKnowledge(KnowledgeQuery::GetByStableKey(sample_knowledge_key(
+            "component:mind",
+        ))),
+        MindRequest::QueryKnowledge(KnowledgeQuery::ListByKind(
+            KnowledgeRecordKind::Entity,
+            CurrentView::CurrentOnly,
+        )),
+        MindRequest::QueryKnowledge(KnowledgeQuery::ListByDomain(
+            KnowledgeDomainSelector::Direct(fixture.component_domain_key()),
+            CurrentView::IncludeSuperseded,
+        )),
+        MindRequest::QueryKnowledge(KnowledgeQuery::ListRelations(
+            RelationSelector {
+                kind: Some(KnowledgeRelationKind::Defines),
+                source: Some(KnowledgeIdentifier::new("kn-repo-signal-mind")),
+                target: Some(KnowledgeIdentifier::new("kn-contract-signal-mind")),
+                limit: QueryLimit::new(10),
+            },
+            CurrentView::CurrentOnly,
+        )),
+    ];
+
+    for request in requests {
+        let decoded = round_trip_request(request.clone());
+        assert_eq!(decoded, request);
+    }
+}
+
+#[test]
+fn knowledge_verdicts_and_replies_round_trip() {
+    let fixture = KnowledgeFixture::new();
+    let accepted_records = vec![
+        AcceptedKnowledge::Domain(fixture.component_domain()),
+        AcceptedKnowledge::Entity(fixture.mind_entity()),
+        AcceptedKnowledge::Entity(fixture.contract_entity()),
+        AcceptedKnowledge::Statement(fixture.statement()),
+        AcceptedKnowledge::Source(fixture.source()),
+        AcceptedKnowledge::Relation(fixture.relation()),
+    ];
+
+    let accepted_reply = MindReply::KnowledgeAccepted(KnowledgeAccepted {
+        accepted: AcceptedKnowledgeView {
+            records: accepted_records.clone(),
+        },
+    });
+    assert_eq!(round_trip_reply(accepted_reply.clone()), accepted_reply);
+
+    let list_reply = MindReply::KnowledgeList(KnowledgeList {
+        records: accepted_records,
+        has_more: false,
+    });
+    assert_eq!(round_trip_reply(list_reply.clone()), list_reply);
+
+    let rejected_reply = MindReply::KnowledgeRejected(KnowledgeRejection {
+        reason: KnowledgeRejectionReason::ConflictsAcceptedKnowledge(vec![
+            KnowledgeIdentifier::new("kn-statement-source-backed"),
+        ]),
+        candidate_summary: CandidateSummary {
+            summary: TextBody::new("contradictory fixture candidate"),
+        },
+        retry_hint: None,
+    });
+    assert_eq!(round_trip_reply(rejected_reply.clone()), rejected_reply);
+
+    let verdict = KnowledgeJudgeVerdict::Accept(AcceptedKnowledgeDraft {
+        records: vec![KnowledgeRecordDraft::Entity(KnowledgeEntityCandidate {
+            stable_key: Some(sample_knowledge_key("component:mind")),
+            name: TextBody::new("Mind"),
+            description: None,
+            domains: vec![fixture.component_domain_key()],
+        })],
+        relations: vec![KnowledgeRelationDraft {
+            kind: KnowledgeRelationKind::ClassifiedAs,
+            source: KnowledgeEndpointSelector::StableKey(sample_knowledge_key("component:mind")),
+            target: KnowledgeEndpointSelector::StableKey(sample_knowledge_key("domain:component")),
+            note: None,
+        }],
+    });
+    let decoded = NotaSource::new(&verdict.to_nota())
+        .parse::<KnowledgeJudgeVerdict>()
+        .expect("decode knowledge verdict");
+    assert_eq!(decoded, verdict);
+}
+
 #[test]
 fn technical_node_requests_round_trip() {
     let fixture = TechnicalFixture::new();
@@ -1960,6 +2348,17 @@ fn mind_request_exposes_contract_owned_operation_kind() {
             }),
             MindOperationKind::SubscribeTechnicalRelations,
         ),
+        (
+            MindRequest::SubmitKnowledge(KnowledgeFixture::new().entity_submission()),
+            MindOperationKind::SubmitKnowledge,
+        ),
+        (
+            MindRequest::QueryKnowledge(KnowledgeQuery::ListByKind(
+                KnowledgeRecordKind::Entity,
+                CurrentView::CurrentOnly,
+            )),
+            MindOperationKind::QueryKnowledge,
+        ),
     ];
 
     for (request, operation) in cases {
@@ -1994,6 +2393,8 @@ fn mind_request_variants_declare_contract_local_operation_heads() {
             "QueryTechnicalRelations",
             "SubscribeTechnicalNodes",
             "SubscribeTechnicalRelations",
+            "SubmitKnowledge",
+            "QueryKnowledge",
         ]
     );
 }

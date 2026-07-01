@@ -1,7 +1,7 @@
 ;; signal-mind current concept schema.
 ;;
 ;; This is the hand-maintained concept source for the contract shipped as
-;; signal-mind 0.5.0. It documents the current Rust contract; it is not yet
+;; signal-mind 0.5.1. It documents the current Rust contract; it is not yet
 ;; the generator source for src/*.rs.
 ;;
 ;; Request operation heads are still relation-specific. SubmitTechnicalNode,
@@ -34,6 +34,8 @@
   (QueryTechnicalRelations QueryTechnicalRelations)
   (SubscribeTechnicalNodes SubscribeTechnicalNodes)
   (SubscribeTechnicalRelations SubscribeTechnicalRelations)
+  (SubmitKnowledge KnowledgeSubmission)
+  (QueryKnowledge KnowledgeQuery)
 ]
 
 [
@@ -63,6 +65,9 @@
   TechnicalProvenanceChain
   TechnicalNodeRejected
   TechnicalRelationRejected
+  KnowledgeAccepted
+  KnowledgeRejected
+  KnowledgeList
 ]
 
 [
@@ -142,6 +147,65 @@
   SubscribeTechnicalRelations (TechnicalRelationFilter (Option SubscriptionCursor) SubscriptionDemandCredit)
   TechnicalRelationFilter [(ByKind ByTechnicalRelationKind) (BySource ByTechnicalRelationSource) (ByTarget ByTechnicalRelationTarget) (BetweenEndpoints ByTechnicalRelationEndpoints) (Composite CompositeTechnicalRelationFilter)]
 
+  ;; Accepted knowledge contract v1.
+  ;;
+  ;; Mind accepted knowledge is the non-Spirit knowledge substrate. V1 is
+  ;; fixture-driven and guarded: semantic judgment is represented by
+  ;; KnowledgeJudgeVerdict, while deterministic code handles structure,
+  ;; routing, typed contracts, verdict application, and relation domain/range
+  ;; validation. Rejected candidates and accepted admission receipts are not
+  ;; accepted knowledge records. Source/provenance is optional; when source
+  ;; matters it is represented as KnowledgeSource plus relations such as
+  ;; References or SupportedBy.
+  KnowledgeIdentifier (String)
+  KnowledgeStableKey (String)
+  KnowledgeDomainKey (String)
+  ;; Canonical v1 examples: domain:component, domain:contract,
+  ;; component:mind, repo:signal-mind, contract:signal-mind:ordinary.
+  KnowledgeRecordKind [Entity Statement Relation Domain Source]
+  AcceptedKnowledge [(Entity KnowledgeEntity) (Statement KnowledgeStatement) (Relation KnowledgeRelation) (Domain KnowledgeDomain) (Source KnowledgeSource)]
+  KnowledgeRecordHeader (KnowledgeIdentifier (Option KnowledgeStableKey) ActorName TimestampNanos)
+  KnowledgeEntity (KnowledgeRecordHeader TextBody (Option TextBody) (Vec KnowledgeDomainKey))
+  KnowledgeStatement (KnowledgeRecordHeader TextBody (Vec KnowledgeIdentifier) (Vec KnowledgeDomainKey))
+  KnowledgeDomain (KnowledgeRecordHeader KnowledgeDomainKey TextBody (Option TextBody))
+  KnowledgeSource (KnowledgeRecordHeader TextBody (Option TextBody))
+  KnowledgeRelationEndpoint (KnowledgeIdentifier (Option KnowledgeStableKey) KnowledgeRecordKind)
+  KnowledgeRelation (KnowledgeRecordHeader KnowledgeRelationKind KnowledgeRelationEndpoint KnowledgeRelationEndpoint (Option TextBody))
+  KnowledgeRelationKind [ClassifiedAs BroaderThan NarrowerThan RelatedTo References SupportedBy Contradicts Supersedes Defines Implements DependsOn]
+  KnowledgeRelationKindMismatch (KnowledgeRelationKind (Vec KnowledgeRecordKind) (Vec KnowledgeRecordKind) KnowledgeRecordKind KnowledgeRecordKind)
+  KnowledgeSubmission (KnowledgeCandidate KnowledgeFixturePolicy KnowledgeRequesterContext)
+  KnowledgeFixturePolicy [FixtureOnly]
+  KnowledgeRequesterContext ((Option TextBody))
+  KnowledgeCandidate [(Entity KnowledgeEntityCandidate) (Statement KnowledgeStatementCandidate) (Relation KnowledgeRelationCandidate) (Domain KnowledgeDomainCandidate) (Source KnowledgeSourceCandidate)]
+  KnowledgeEntityCandidate ((Option KnowledgeStableKey) TextBody (Option TextBody) (Vec KnowledgeDomainKey))
+  KnowledgeStatementCandidate ((Option KnowledgeStableKey) TextBody (Vec KnowledgeIdentifier) (Vec KnowledgeDomainKey))
+  KnowledgeRelationCandidate (KnowledgeRelationKind KnowledgeEndpointSelector KnowledgeEndpointSelector (Option TextBody))
+  KnowledgeDomainCandidate (KnowledgeDomainKey TextBody (Option TextBody))
+  KnowledgeSourceCandidate ((Option KnowledgeStableKey) TextBody (Option TextBody))
+  KnowledgeEndpointSelector [(Identifier KnowledgeIdentifier) (StableKey KnowledgeStableKey)]
+  KnowledgeJudgePacket (KnowledgeCandidate (Vec AcceptedKnowledge) (Vec KnowledgeRelationRule) KnowledgeFixturePolicy)
+  KnowledgeRelationRule (KnowledgeRelationKind (Vec KnowledgeRecordKind) (Vec KnowledgeRecordKind))
+  KnowledgeJudgeVerdict [(Accept AcceptedKnowledgeDraft) (Reject KnowledgeRejection)]
+  AcceptedKnowledgeDraft ((Vec KnowledgeRecordDraft) (Vec KnowledgeRelationDraft))
+  KnowledgeRecordDraft [(Entity KnowledgeEntityCandidate) (Statement KnowledgeStatementCandidate) (Domain KnowledgeDomainCandidate) (Source KnowledgeSourceCandidate)]
+  KnowledgeRelationDraft (KnowledgeRelationKind KnowledgeEndpointSelector KnowledgeEndpointSelector (Option TextBody))
+  KnowledgeAccepted (AcceptedKnowledgeView)
+  AcceptedKnowledgeView ((Vec AcceptedKnowledge))
+  KnowledgeList ((Vec AcceptedKnowledge) bool)
+  KnowledgeRejection (KnowledgeRejectionReason CandidateSummary (Option RetryHint))
+  CandidateSummary (TextBody)
+  RetryHint (TextBody)
+  KnowledgeRejectionReason [NotKnowledge PrivateOrUnauthorized MeaningUnclear FalseOrUnsupported (SemanticDuplicate KnowledgeIdentifier) (ConflictsAcceptedKnowledge (Vec KnowledgeIdentifier)) (WrongDomain KnowledgeDomainKey) (NeedsMoreSpecificShape (Vec ExpectedKnowledgeShape)) SourceRequiredByCandidate (StructuralPreflightFailed StructuralRejection) PersistenceRejected]
+  ExpectedKnowledgeShape [Entity Statement Relation Domain Source]
+  StructuralRejection (StructuralRejectionReason)
+  StructuralRejectionReason [(MissingEndpoint KnowledgeEndpointSelector) (RelationDomainRangeViolation KnowledgeRelationKindMismatch) (InvalidStableKey KnowledgeKeyRejection) (InvalidDomainKey KnowledgeKeyRejection) EmptyAcceptedDraft PersistenceRejected]
+  KnowledgeKeyRejection (TextBody KnowledgeKeyRejectionReason)
+  KnowledgeKeyRejectionReason [MissingFamilySeparator WrongFamily EmptySegment InvalidSegmentCharacter]
+  KnowledgeQuery [(GetByIdentifier KnowledgeIdentifier) (GetByStableKey KnowledgeStableKey) (ListByKind KnowledgeRecordKind CurrentView) (ListByDomain KnowledgeDomainSelector CurrentView) (ListRelations RelationSelector CurrentView)]
+  CurrentView [CurrentOnly IncludeSuperseded]
+  KnowledgeDomainSelector [Any (Direct KnowledgeDomainKey) (WithDescendants KnowledgeDomainKey)]
+  RelationSelector ((Option KnowledgeRelationKind) (Option KnowledgeIdentifier) (Option KnowledgeIdentifier) QueryLimit)
+
   ;; Work and memory graph.
   Opening (ItemKind Magnitude Title TextBody)
   NoteSubmission (ItemReference TextBody)
@@ -175,6 +239,6 @@
 }
 
 [
-  (Version 0 5 0)
+  (Version 0 5 1)
   (Status CurrentConcept)
 ]
