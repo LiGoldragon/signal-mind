@@ -138,24 +138,8 @@ fn sample_technical_key(value: &str) -> TechnicalNodeKey {
     TechnicalNodeKey::from_canonical(value).expect("canonical technical node key")
 }
 
-fn sample_knowledge_name(value: &str) -> KnowledgeName {
-    KnowledgeName::new(value)
-}
-
-fn component_identity(value: &str) -> KnowledgeIdentity {
-    KnowledgeIdentity::Component(ComponentName::new(value))
-}
-
-fn repository_identity(value: &str) -> KnowledgeIdentity {
-    KnowledgeIdentity::Repository(sample_knowledge_name(value))
-}
-
-fn contract_identity(value: &str, surface: ContractSurface) -> KnowledgeIdentity {
-    KnowledgeIdentity::Contract(sample_knowledge_name(value), surface)
-}
-
-fn source_identity(value: &str) -> KnowledgeIdentity {
-    KnowledgeIdentity::Source(sample_knowledge_name(value))
+fn sample_knowledge_identity() -> KnowledgeIdentity {
+    KnowledgeIdentity::new("k9x8")
 }
 
 fn sample_mind_component() -> ComponentName {
@@ -566,6 +550,7 @@ impl TechnicalFixture {
 struct KnowledgeFixture {
     actor: ActorName,
     accepted_at: TimestampNanos,
+    identity: KnowledgeIdentity,
 }
 
 impl KnowledgeFixture {
@@ -573,15 +558,7 @@ impl KnowledgeFixture {
         Self {
             actor: sample_actor(),
             accepted_at: TimestampNanos::new(1_790_000_000_000_000_100),
-        }
-    }
-
-    fn header(&self, identifier: &str, identity: KnowledgeIdentitySlot) -> KnowledgeRecordHeader {
-        KnowledgeRecordHeader {
-            identifier: KnowledgeIdentifier::new(identifier),
-            identity,
-            accepted_by: self.actor.clone(),
-            accepted_at: self.accepted_at,
+            identity: sample_knowledge_identity(),
         }
     }
 
@@ -589,103 +566,20 @@ impl KnowledgeFixture {
         KnowledgeSubject::Component
     }
 
-    fn contract_subject(&self) -> KnowledgeSubject {
-        KnowledgeSubject::Contract
-    }
-
-    fn component_domain(&self) -> KnowledgeDomain {
-        KnowledgeDomain {
-            header: self.header(
-                "kn-domain-component",
-                KnowledgeIdentitySlot::Keyed(KnowledgeIdentity::Domain(
-                    KnowledgeSubject::Component,
-                )),
-            ),
-            subject: self.component_subject(),
-            name: TextBody::new("component"),
-            description: vec![TextBody::new("software component classification")],
-        }
-    }
-
-    fn mind_entity(&self) -> KnowledgeEntity {
-        KnowledgeEntity {
-            header: self.header(
-                "kn-component-mind",
-                KnowledgeIdentitySlot::Keyed(component_identity("mind")),
-            ),
-            name: TextBody::new("Mind"),
-            description: vec![TextBody::new("central accepted knowledge substrate")],
-            domains: vec![self.component_subject()],
-        }
-    }
-
-    fn contract_entity(&self) -> KnowledgeEntity {
-        KnowledgeEntity {
-            header: self.header(
-                "kn-contract-signal-mind",
-                KnowledgeIdentitySlot::Keyed(contract_identity(
-                    "signal-mind",
-                    ContractSurface::Ordinary,
-                )),
-            ),
-            name: TextBody::new("signal-mind ordinary contract"),
-            description: vec![TextBody::new("typed Mind public vocabulary")],
-            domains: vec![self.contract_subject()],
-        }
-    }
-
-    fn source(&self) -> KnowledgeSource {
-        KnowledgeSource {
-            header: self.header(
-                "kn-source-architecture",
-                KnowledgeIdentitySlot::Keyed(source_identity("signal-mind-architecture")),
-            ),
-            locator: TextBody::new("/git/github.com/LiGoldragon/signal-mind/ARCHITECTURE.md"),
-            description: vec![TextBody::new("signal-mind architecture document")],
-        }
-    }
-
-    fn statement(&self) -> KnowledgeStatement {
-        KnowledgeStatement {
-            header: self.header("kn-statement-source-backed", KnowledgeIdentitySlot::Unkeyed),
-            body: TextBody::new("Mind accepted knowledge is fixture-driven in v1."),
-            about: vec![KnowledgeIdentifier::new("kn-component-mind")],
-            domains: vec![self.component_subject()],
-        }
-    }
-
-    fn relation(&self) -> KnowledgeRelation {
-        KnowledgeRelation {
-            header: self.header("kn-relation-classified-as", KnowledgeIdentitySlot::Unkeyed),
-            kind: KnowledgeRelationKind::ClassifiedAs,
-            source: KnowledgeRelationEndpoint {
-                identifier: KnowledgeIdentifier::new("kn-component-mind"),
-                identity: KnowledgeIdentitySlot::Keyed(component_identity("mind")),
-                kind: KnowledgeRecordKind::Entity,
-            },
-            target: KnowledgeRelationEndpoint {
-                identifier: KnowledgeIdentifier::new("kn-domain-component"),
-                identity: KnowledgeIdentitySlot::Keyed(KnowledgeIdentity::Domain(
-                    KnowledgeSubject::Component,
-                )),
-                kind: KnowledgeRecordKind::Domain,
-            },
-            note: Vec::new(),
-        }
-    }
-
-    fn entity_submission(&self) -> KnowledgeSubmission {
+    fn submission(&self) -> KnowledgeSubmission {
         KnowledgeSubmission {
-            candidate: KnowledgeCandidate::Entity(KnowledgeEntityCandidate::Keyed(
-                component_identity("mind"),
-                TextBody::new("Mind"),
-                vec![TextBody::new("accepted knowledge substrate")],
-                vec![self.component_subject()],
-            )),
-            fixture_policy: KnowledgeFixturePolicy::FixtureOnly,
-            requester_context: KnowledgeRequesterContext {
-                summaries: vec![TextBody::new("fixture accepted entity")],
-            },
+            subject: self.component_subject(),
+            statement: TextBody::new("Mind stores accepted knowledge."),
+        }
+    }
+
+    fn accepted_record(&self) -> AcceptedKnowledge {
+        AcceptedKnowledge {
+            identity: self.identity.clone(),
+            subject: self.component_subject(),
+            statement: TextBody::new("Mind stores accepted knowledge."),
+            accepted_by: self.actor.clone(),
+            accepted_at: self.accepted_at,
         }
     }
 }
@@ -1464,56 +1358,8 @@ fn technical_relation_kind_rejects_wrong_domain() {
 // ─── Accepted knowledge contract variants ─────────────────
 
 #[test]
-fn every_knowledge_record_kind_round_trips_through_nota_text() {
-    let cases = [
-        (KnowledgeRecordKind::Entity, "Entity"),
-        (KnowledgeRecordKind::Statement, "Statement"),
-        (KnowledgeRecordKind::Relation, "Relation"),
-        (KnowledgeRecordKind::Domain, "Domain"),
-        (KnowledgeRecordKind::Source, "Source"),
-    ];
-
-    for (kind, expected) in cases {
-        round_trip_nota(kind, expected);
-    }
-}
-
-#[test]
-fn every_knowledge_relation_kind_round_trips_through_nota_text() {
-    let cases = [
-        (KnowledgeRelationKind::ClassifiedAs, "ClassifiedAs"),
-        (KnowledgeRelationKind::BroaderThan, "BroaderThan"),
-        (KnowledgeRelationKind::NarrowerThan, "NarrowerThan"),
-        (KnowledgeRelationKind::RelatedTo, "RelatedTo"),
-        (KnowledgeRelationKind::References, "References"),
-        (KnowledgeRelationKind::SupportedBy, "SupportedBy"),
-        (KnowledgeRelationKind::Contradicts, "Contradicts"),
-        (KnowledgeRelationKind::Supersedes, "Supersedes"),
-        (KnowledgeRelationKind::Defines, "Defines"),
-        (KnowledgeRelationKind::Implements, "Implements"),
-        (KnowledgeRelationKind::DependsOn, "DependsOn"),
-    ];
-
-    for (kind, expected) in cases {
-        round_trip_nota(kind, expected);
-    }
-}
-
-#[test]
-fn knowledge_identities_round_trip_without_colon_pseudo_keys() {
-    round_trip_nota(component_identity("mind"), "(Component mind)");
-    round_trip_nota(
-        repository_identity("signal-mind"),
-        "(Repository signal-mind)",
-    );
-    round_trip_nota(
-        contract_identity("signal-mind", ContractSurface::Ordinary),
-        "(Contract (signal-mind Ordinary))",
-    );
-    round_trip_nota(
-        KnowledgeIdentity::Domain(KnowledgeSubject::Component),
-        "(Domain Component)",
-    );
+fn generated_knowledge_identity_round_trips_as_short_atom() {
+    round_trip_nota(sample_knowledge_identity(), "k9x8");
 }
 
 #[test]
@@ -1532,122 +1378,11 @@ fn knowledge_subjects_round_trip_as_typed_domain_atoms() {
 }
 
 #[test]
-fn knowledge_relation_kind_domain_table_covers_every_relation_kind() {
-    let valid_cases = [
-        (
-            KnowledgeRelationKind::ClassifiedAs,
-            KnowledgeRecordKind::Entity,
-            KnowledgeRecordKind::Domain,
-        ),
-        (
-            KnowledgeRelationKind::BroaderThan,
-            KnowledgeRecordKind::Domain,
-            KnowledgeRecordKind::Domain,
-        ),
-        (
-            KnowledgeRelationKind::NarrowerThan,
-            KnowledgeRecordKind::Domain,
-            KnowledgeRecordKind::Domain,
-        ),
-        (
-            KnowledgeRelationKind::RelatedTo,
-            KnowledgeRecordKind::Entity,
-            KnowledgeRecordKind::Entity,
-        ),
-        (
-            KnowledgeRelationKind::References,
-            KnowledgeRecordKind::Statement,
-            KnowledgeRecordKind::Source,
-        ),
-        (
-            KnowledgeRelationKind::SupportedBy,
-            KnowledgeRecordKind::Relation,
-            KnowledgeRecordKind::Source,
-        ),
-        (
-            KnowledgeRelationKind::Contradicts,
-            KnowledgeRecordKind::Statement,
-            KnowledgeRecordKind::Statement,
-        ),
-        (
-            KnowledgeRelationKind::Supersedes,
-            KnowledgeRecordKind::Statement,
-            KnowledgeRecordKind::Statement,
-        ),
-        (
-            KnowledgeRelationKind::Defines,
-            KnowledgeRecordKind::Source,
-            KnowledgeRecordKind::Entity,
-        ),
-        (
-            KnowledgeRelationKind::Implements,
-            KnowledgeRecordKind::Entity,
-            KnowledgeRecordKind::Entity,
-        ),
-        (
-            KnowledgeRelationKind::DependsOn,
-            KnowledgeRecordKind::Entity,
-            KnowledgeRecordKind::Entity,
-        ),
-    ];
-
-    for relation in KnowledgeRelationKind::ALL {
-        assert!(
-            valid_cases
-                .iter()
-                .any(|(candidate, _, _)| *candidate == relation),
-            "{relation:?} must have at least one valid witness case",
-        );
-    }
-
-    for (relation, source, target) in valid_cases {
-        relation
-            .validate_endpoint_kinds(source, target)
-            .unwrap_or_else(|mismatch| panic!("unexpected mismatch: {mismatch:?}"));
-    }
-}
-
-#[test]
-fn knowledge_relation_kind_rejects_wrong_domain() {
-    let mismatch = KnowledgeRelationKind::ClassifiedAs
-        .validate_endpoint_kinds(KnowledgeRecordKind::Entity, KnowledgeRecordKind::Entity)
-        .expect_err("classified-as target must be a domain");
-
-    assert_eq!(mismatch.relation, KnowledgeRelationKind::ClassifiedAs);
-    assert_eq!(mismatch.got_source_kind, KnowledgeRecordKind::Entity);
-    assert_eq!(mismatch.got_target_kind, KnowledgeRecordKind::Entity);
-    assert_eq!(
-        mismatch.expected_target_kinds,
-        vec![KnowledgeRecordKind::Domain]
-    );
-}
-
-#[test]
 fn knowledge_submit_and_query_requests_round_trip() {
     let fixture = KnowledgeFixture::new();
     let requests = vec![
-        MindRequest::SubmitKnowledge(fixture.entity_submission()),
-        MindRequest::QueryKnowledge(KnowledgeQuery::GetByIdentifier(KnowledgeIdentifier::new(
-            "kn-component-mind",
-        ))),
-        MindRequest::QueryKnowledge(KnowledgeQuery::GetByIdentity(component_identity("mind"))),
-        MindRequest::QueryKnowledge(KnowledgeQuery::ListByKind(
-            KnowledgeRecordKind::Entity,
-            CurrentView::CurrentOnly,
-        )),
-        MindRequest::QueryKnowledge(KnowledgeQuery::ListByDomain(
-            KnowledgeDomainSelector::Direct(fixture.component_subject()),
-            CurrentView::IncludeSuperseded,
-        )),
-        MindRequest::QueryKnowledge(KnowledgeQuery::ListRelations(
-            RelationSelector {
-                kind: Some(KnowledgeRelationKind::Defines),
-                source: Some(KnowledgeIdentifier::new("kn-repo-signal-mind")),
-                target: Some(KnowledgeIdentifier::new("kn-contract-signal-mind")),
-                limit: QueryLimit::new(10),
-            },
-            CurrentView::CurrentOnly,
-        )),
+        MindRequest::Submit(fixture.submission()),
+        MindRequest::Get(fixture.identity.clone()),
     ];
 
     for request in requests {
@@ -1659,37 +1394,26 @@ fn knowledge_submit_and_query_requests_round_trip() {
 #[test]
 fn knowledge_verdicts_and_replies_round_trip() {
     let fixture = KnowledgeFixture::new();
-    let accepted_records = vec![
-        AcceptedKnowledge::Domain(fixture.component_domain()),
-        AcceptedKnowledge::Entity(fixture.mind_entity()),
-        AcceptedKnowledge::Entity(fixture.contract_entity()),
-        AcceptedKnowledge::Statement(fixture.statement()),
-        AcceptedKnowledge::Source(fixture.source()),
-        AcceptedKnowledge::Relation(fixture.relation()),
-    ];
+    let record = fixture.accepted_record();
 
-    let accepted_reply = MindReply::KnowledgeAccepted(KnowledgeAccepted {
-        accepted: AcceptedKnowledgeView {
-            records: accepted_records.clone(),
-        },
+    let accepted_reply = MindReply::Accepted(KnowledgeAccepted {
+        identity: fixture.identity.clone(),
     });
     assert_eq!(round_trip_reply(accepted_reply.clone()), accepted_reply);
 
-    let list_reply = MindReply::KnowledgeList(KnowledgeList {
-        records: accepted_records,
-        has_more: false,
+    let found_reply = MindReply::Found(KnowledgeFound {
+        record: record.clone(),
     });
-    assert_eq!(round_trip_reply(list_reply.clone()), list_reply);
+    assert_eq!(round_trip_reply(found_reply.clone()), found_reply);
 
-    let rejected_reply = MindReply::KnowledgeRejected(KnowledgeRejection {
-        reason: KnowledgeRejectionReason::ConflictsAcceptedKnowledge(vec![
-            KnowledgeIdentifier::new("kn-statement-source-backed"),
-        ]),
-        candidate_summary: CandidateSummary {
-            summary: TextBody::new("contradictory fixture candidate"),
-        },
-        retry_hint: None,
+    let not_found_reply = MindReply::NotFound(KnowledgeNotFound {
+        identity: KnowledgeIdentity::new("none"),
     });
+    assert_eq!(round_trip_reply(not_found_reply.clone()), not_found_reply);
+
+    let rejected_reply = MindReply::Rejected(KnowledgeRejectionReason::ConflictsAcceptedKnowledge(
+        vec![fixture.identity.clone()],
+    ));
     assert_eq!(round_trip_reply(rejected_reply.clone()), rejected_reply);
 
     let verdict = KnowledgeJudgeVerdict::Accept;
@@ -1697,6 +1421,28 @@ fn knowledge_verdicts_and_replies_round_trip() {
         .parse::<KnowledgeJudgeVerdict>()
         .expect("decode knowledge verdict");
     assert_eq!(decoded, verdict);
+}
+
+#[test]
+fn old_keyed_unkeyed_and_get_by_identity_surfaces_do_not_parse() {
+    for old_surface in [
+        "(SubmitKnowledge ((Entity (Keyed ((Component mind) Mind [] [Component]))) FixtureOnly ([])))",
+        "(SubmitKnowledge ((Entity (Unkeyed (Mind [] [Component]))) FixtureOnly ([])))",
+        "(QueryKnowledge (GetByIdentity (Component mind)))",
+    ] {
+        assert!(
+            NotaSource::new(old_surface).parse::<MindRequest>().is_err(),
+            "old accepted-knowledge surface must not parse: {old_surface}"
+        );
+    }
+
+    let old_substitute_accept = "(Accept (([(Domain (domain:component [Component] None))]) []))";
+    assert!(
+        NotaSource::new(old_substitute_accept)
+            .parse::<KnowledgeJudgeVerdict>()
+            .is_err(),
+        "old substitute accept verdict must not parse"
+    );
 }
 
 #[test]
@@ -2346,15 +2092,12 @@ fn mind_request_exposes_contract_owned_operation_kind() {
             MindOperationKind::SubscribeTechnicalRelations,
         ),
         (
-            MindRequest::SubmitKnowledge(KnowledgeFixture::new().entity_submission()),
-            MindOperationKind::SubmitKnowledge,
+            MindRequest::Submit(KnowledgeFixture::new().submission()),
+            MindOperationKind::Submit,
         ),
         (
-            MindRequest::QueryKnowledge(KnowledgeQuery::ListByKind(
-                KnowledgeRecordKind::Entity,
-                CurrentView::CurrentOnly,
-            )),
-            MindOperationKind::QueryKnowledge,
+            MindRequest::Get(sample_knowledge_identity()),
+            MindOperationKind::Get,
         ),
     ];
 
@@ -2390,8 +2133,8 @@ fn mind_request_variants_declare_contract_local_operation_heads() {
             "QueryTechnicalRelations",
             "SubscribeTechnicalNodes",
             "SubscribeTechnicalRelations",
-            "SubmitKnowledge",
-            "QueryKnowledge",
+            "Submit",
+            "Get",
         ]
     );
 }

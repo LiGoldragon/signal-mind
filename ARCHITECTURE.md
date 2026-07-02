@@ -154,8 +154,8 @@ signal_channel! {
         operation QueryTechnicalRelations(QueryTechnicalRelations),
         operation SubscribeTechnicalNodes(SubscribeTechnicalNodes) opens MindEventStream,
         operation SubscribeTechnicalRelations(SubscribeTechnicalRelations) opens MindEventStream,
-        operation SubmitKnowledge(KnowledgeSubmission),
-        operation QueryKnowledge(KnowledgeQuery),
+        operation Submit(KnowledgeSubmission),
+        operation Get(KnowledgeIdentity),
         reply MindReply {
             ThoughtCommitted(ThoughtCommitted),
             RelationCommitted(RelationCommitted),
@@ -180,9 +180,10 @@ signal_channel! {
             TechnicalRelationList(TechnicalRelationList),
             TechnicalNodeRejected(TechnicalNodeRejected),
             TechnicalRelationRejected(TechnicalRelationRejected),
-            KnowledgeAccepted(KnowledgeAccepted),
-            KnowledgeRejected(KnowledgeRejection),
-            KnowledgeList(KnowledgeList),
+            Accepted(KnowledgeAccepted),
+            Rejected(KnowledgeRejectionReason),
+            Found(KnowledgeFound),
+            NotFound(KnowledgeNotFound),
         }
         event MindEvent {
             SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
@@ -340,41 +341,24 @@ domain/range violation, and persistence rejection.
 
 | Request | Reply |
 |---|---|
-| `SubmitKnowledge` | `KnowledgeAccepted` or `KnowledgeRejected` |
-| `QueryKnowledge` | `KnowledgeList` |
+| `Submit` | `Accepted` or `Rejected` |
+| `Get` | `Found` or `NotFound` |
 
 Accepted knowledge is Mind's non-Spirit knowledge substrate. The durable root
-noun is `AcceptedKnowledge`, with closed variants `Entity`, `Statement`,
-`Relation`, `Domain`, and `Source`. V1 is contract-only and fixture-driven:
-semantic judgment crosses the typed `KnowledgeJudgePacket` /
-`KnowledgeJudgeVerdict` boundary, while deterministic code owns structure,
-routing, verdict application, and `KnowledgeRelationKind` domain/range
-validation.
+noun is `AcceptedKnowledge`: one generated `KnowledgeIdentity`, one
+`KnowledgeSubject`, one statement body, and acceptance metadata. A caller
+submits only `(Submit <subject> <statement>)`; Mind mints the short identity
+after `KnowledgeJudgeVerdict::Accept` and returns `(Accepted <identity>)`.
 
-Rejected candidates are represented only as `KnowledgeRejected` replies and
-are not stored as accepted knowledge. Accepted admission receipts are not a
-record family. Source/provenance is optional; if source matters, it is accepted
-knowledge itself via `KnowledgeSource` and relations such as `References` or
-`SupportedBy`.
+Rejected submissions are represented only as `Rejected` replies and are not
+stored as accepted knowledge. Accepted admission receipts are not a record
+family.
 
 Mind-local `KnowledgeSubject` intentionally stands in for any future shared
-Spirit/Mind subject-domain extraction. Caller-visible identity is structured as
-`KnowledgeIdentity`, with examples such as `(Component mind)`,
-`(Repository signal-mind)`, `(Contract (signal-mind Ordinary))`, and
-`(Domain Component)`. Accepted candidates use explicit `Keyed` or `Unkeyed`
-variants instead of optional key wrappers.
-
-`KnowledgeRelationKind` is closed in v1: `ClassifiedAs`, `BroaderThan`,
-`NarrowerThan`, `RelatedTo`, `References`, `SupportedBy`, `Contradicts`,
-`Supersedes`, `Defines`, `Implements`, and `DependsOn`. The enum owns the
-deterministic relation domain/range table over `KnowledgeRecordKind`. The table
-validates record families only; it does not infer truth, contradiction,
-duplicates, support, or supersession from text.
-
-`KnowledgeQuery` reads accepted state by identifier, structured identity,
-record kind, domain selector, or relation selector. `CurrentView` is closed as
-`CurrentOnly` or `IncludeSuperseded` so callers must choose whether
-superseded accepted records are visible.
+Spirit/Mind subject-domain extraction. The submitted subject is classification
+context, not record identity. `KnowledgeIdentity` is an opaque Mind-generated
+short code, not a caller-provided structured selector. There is no `Keyed` /
+`Unkeyed` choice and no `Candidate` wrapper in this surface.
 
 ### 3.5 Channel choreography
 
@@ -440,8 +424,7 @@ The contract validates boundary strings before they become wire values.
 | `TechnicalNodeIdentifier` | compact daemon-minted technical node identifier. |
 | `TechnicalRelationIdentifier` | compact daemon-minted technical relation identifier. |
 | `TechnicalNodeKey` | validated caller-visible technical node key used for submissions and filters; canonical families include `component:mind`, `repo:signal-mind`, and `contract:signal-mind:ordinary`. |
-| `KnowledgeIdentifier` | daemon-minted identifier for an accepted knowledge record. |
-| `KnowledgeIdentity` | caller-visible structured identity for accepted knowledge with external identity, such as `(Component mind)` or `(Contract (signal-mind Ordinary))`. |
+| `KnowledgeIdentity` | daemon-minted short identity for an accepted knowledge record. |
 | `KnowledgeSubject` | Mind-local accepted-knowledge subject domain, such as `Component` or `Contract`. |
 | `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-origin`. |
 | `ChannelMessageKind` | closed set of first-stack route categories. |
@@ -533,11 +516,12 @@ MindUnimplementedReason
   over canonical `TechnicalNodeKey` values.
 - Mind accepted knowledge uses `AcceptedKnowledge`, not `Thought`, as its
   durable root noun.
-- `SubmitKnowledge` and `QueryKnowledge` are distinct from `SubmitThought`;
-  Mind accepted knowledge does not inherit Spirit intent semantics.
+- `Submit` and `Get` are accepted-knowledge operations distinct from
+  `SubmitThought`; Mind accepted knowledge does not inherit Spirit intent
+  semantics.
 - Semantic knowledge judgment belongs behind `KnowledgeJudgeVerdict`; this
   contract only gives deterministic code typed structure, routeable records,
-  verdict application data, and relation domain/range validation.
+  and verdict application data.
 - Rejected knowledge candidates and accepted admission receipts are not accepted
   knowledge record families.
 - Source/provenance is not mandatory metadata; source is modeled only when it

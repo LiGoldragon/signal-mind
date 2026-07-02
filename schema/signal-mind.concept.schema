@@ -34,8 +34,8 @@
   (QueryTechnicalRelations QueryTechnicalRelations)
   (SubscribeTechnicalNodes SubscribeTechnicalNodes)
   (SubscribeTechnicalRelations SubscribeTechnicalRelations)
-  (SubmitKnowledge KnowledgeSubmission)
-  (QueryKnowledge KnowledgeQuery)
+  (Submit KnowledgeSubmission)
+  (Get KnowledgeIdentity)
 ]
 
 [
@@ -65,9 +65,10 @@
   TechnicalProvenanceChain
   TechnicalNodeRejected
   TechnicalRelationRejected
-  KnowledgeAccepted
-  KnowledgeRejected
-  KnowledgeList
+  Accepted
+  Rejected
+  Found
+  NotFound
 ]
 
 [
@@ -149,59 +150,20 @@
 
   ;; Accepted knowledge contract v1.
   ;;
-  ;; Mind accepted knowledge is the non-Spirit knowledge substrate. V1 is
-  ;; fixture-driven and guarded: semantic judgment is represented by
-  ;; KnowledgeJudgeVerdict, while deterministic code handles structure,
-  ;; routing, typed contracts, verdict application, and relation domain/range
-  ;; validation. Rejected candidates and accepted admission receipts are not
-  ;; accepted knowledge records. Source/provenance is optional; when source
-  ;; matters it is represented as KnowledgeSource plus relations such as
-  ;; References or SupportedBy.
-  KnowledgeIdentifier (String)
-  KnowledgeName (String)
+  ;; Mind accepted knowledge is submitted as a subject plus statement. The
+  ;; caller never supplies record identity. After the judge accepts the
+  ;; submission, Mind mints the short KnowledgeIdentity and stores the accepted
+  ;; record under that generated identity.
+  KnowledgeIdentity (String)
   KnowledgeSubject [Component Contract Repository Architecture Interface Storage Source]
-  KnowledgeIdentity [(Component ComponentName) (Repository KnowledgeName) (Crate KnowledgeName) (Contract KnowledgeName ContractSurface) (Statement KnowledgeName) (Source KnowledgeName) (Domain KnowledgeSubject)]
-  KnowledgeIdentitySlot [Unkeyed (Keyed KnowledgeIdentity)]
-  ;; Canonical v2 examples: (Component mind), (Repository signal-mind),
-  ;; (Contract (signal-mind Ordinary)), and (Domain Component).
-  KnowledgeRecordKind [Entity Statement Relation Domain Source]
-  AcceptedKnowledge [(Entity KnowledgeEntity) (Statement KnowledgeStatement) (Relation KnowledgeRelation) (Domain KnowledgeDomain) (Source KnowledgeSource)]
-  KnowledgeRecordHeader (KnowledgeIdentifier KnowledgeIdentitySlot ActorName TimestampNanos)
-  KnowledgeEntity (KnowledgeRecordHeader TextBody (Vec TextBody) (Vec KnowledgeSubject))
-  KnowledgeStatement (KnowledgeRecordHeader TextBody (Vec KnowledgeIdentifier) (Vec KnowledgeSubject))
-  KnowledgeDomain (KnowledgeRecordHeader KnowledgeSubject TextBody (Vec TextBody))
-  KnowledgeSource (KnowledgeRecordHeader TextBody (Vec TextBody))
-  KnowledgeRelationEndpoint (KnowledgeIdentifier KnowledgeIdentitySlot KnowledgeRecordKind)
-  KnowledgeRelation (KnowledgeRecordHeader KnowledgeRelationKind KnowledgeRelationEndpoint KnowledgeRelationEndpoint (Vec TextBody))
-  KnowledgeRelationKind [ClassifiedAs BroaderThan NarrowerThan RelatedTo References SupportedBy Contradicts Supersedes Defines Implements DependsOn]
-  KnowledgeRelationKindMismatch (KnowledgeRelationKind (Vec KnowledgeRecordKind) (Vec KnowledgeRecordKind) KnowledgeRecordKind KnowledgeRecordKind)
-  KnowledgeSubmission (KnowledgeCandidate KnowledgeFixturePolicy KnowledgeRequesterContext)
-  KnowledgeFixturePolicy [FixtureOnly]
-  KnowledgeRequesterContext ((Vec TextBody))
-  KnowledgeCandidate [(Entity KnowledgeEntityCandidate) (Statement KnowledgeStatementCandidate) (Relation KnowledgeRelationCandidate) (Domain KnowledgeDomainCandidate) (Source KnowledgeSourceCandidate)]
-  KnowledgeEntityCandidate [(Keyed KnowledgeIdentity TextBody (Vec TextBody) (Vec KnowledgeSubject)) (Unkeyed TextBody (Vec TextBody) (Vec KnowledgeSubject))]
-  KnowledgeStatementCandidate [(Keyed KnowledgeIdentity TextBody (Vec KnowledgeIdentifier) (Vec KnowledgeSubject)) (Unkeyed TextBody (Vec KnowledgeIdentifier) (Vec KnowledgeSubject))]
-  KnowledgeRelationCandidate (KnowledgeRelationKind KnowledgeEndpointSelector KnowledgeEndpointSelector (Vec TextBody))
-  KnowledgeDomainCandidate (KnowledgeSubject TextBody (Vec TextBody))
-  KnowledgeSourceCandidate [(Keyed KnowledgeIdentity TextBody (Vec TextBody)) (Unkeyed TextBody (Vec TextBody))]
-  KnowledgeEndpointSelector [(Identifier KnowledgeIdentifier) (Identity KnowledgeIdentity)]
-  KnowledgeJudgePacket (KnowledgeCandidate (Vec AcceptedKnowledge) (Vec KnowledgeRelationRule) KnowledgeFixturePolicy)
-  KnowledgeRelationRule (KnowledgeRelationKind (Vec KnowledgeRecordKind) (Vec KnowledgeRecordKind))
-  KnowledgeJudgeVerdict [Accept (Reject KnowledgeRejection)]
-  KnowledgeAccepted (AcceptedKnowledgeView)
-  AcceptedKnowledgeView ((Vec AcceptedKnowledge))
-  KnowledgeList ((Vec AcceptedKnowledge) bool)
-  KnowledgeRejection (KnowledgeRejectionReason CandidateSummary (Option RetryHint))
-  CandidateSummary (TextBody)
-  RetryHint (TextBody)
-  KnowledgeRejectionReason [NotKnowledge PrivateOrUnauthorized MeaningUnclear FalseOrUnsupported (SemanticDuplicate KnowledgeIdentifier) (ConflictsAcceptedKnowledge (Vec KnowledgeIdentifier)) (WrongDomain KnowledgeSubject) (NeedsMoreSpecificShape (Vec ExpectedKnowledgeShape)) SourceRequiredByCandidate (StructuralPreflightFailed StructuralRejection) PersistenceRejected]
-  ExpectedKnowledgeShape [Entity Statement Relation Domain Source]
-  StructuralRejection (StructuralRejectionReason)
-  StructuralRejectionReason [(MissingEndpoint KnowledgeEndpointSelector) (RelationDomainRangeViolation KnowledgeRelationKindMismatch) (DuplicateIdentity KnowledgeIdentity) PersistenceRejected]
-  KnowledgeQuery [(GetByIdentifier KnowledgeIdentifier) (GetByIdentity KnowledgeIdentity) (ListByKind KnowledgeRecordKind CurrentView) (ListByDomain KnowledgeDomainSelector CurrentView) (ListRelations RelationSelector CurrentView)]
-  CurrentView [CurrentOnly IncludeSuperseded]
-  KnowledgeDomainSelector [Any (Direct KnowledgeSubject) (WithDescendants KnowledgeSubject)]
-  RelationSelector ((Option KnowledgeRelationKind) (Option KnowledgeIdentifier) (Option KnowledgeIdentifier) QueryLimit)
+  KnowledgeSubmission (KnowledgeSubject TextBody)
+  AcceptedKnowledge (KnowledgeIdentity KnowledgeSubject TextBody ActorName TimestampNanos)
+  KnowledgeJudgePacket (KnowledgeSubject TextBody (Vec AcceptedKnowledge))
+  KnowledgeJudgeVerdict [Accept (Reject KnowledgeRejectionReason)]
+  KnowledgeAccepted (KnowledgeIdentity)
+  KnowledgeFound (AcceptedKnowledge)
+  KnowledgeNotFound (KnowledgeIdentity)
+  KnowledgeRejectionReason [NotKnowledge PrivateOrUnauthorized MeaningUnclear FalseOrUnsupported (SemanticDuplicate KnowledgeIdentity) (ConflictsAcceptedKnowledge (Vec KnowledgeIdentity)) (WrongSubject KnowledgeSubject) NeedsMoreSpecificShape SourceRequired PersistenceRejected]
 
   ;; Work and memory graph.
   Opening (ItemKind Magnitude Title TextBody)

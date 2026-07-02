@@ -1,8 +1,5 @@
 use signal_frame::SignalOperationHeads;
-use signal_mind::{
-    KnowledgeRecordKind, KnowledgeRelationKind, KnowledgeSubject, MindRequest, TechnicalNodeKind,
-    TechnicalRelationKind,
-};
+use signal_mind::{KnowledgeSubject, MindRequest, TechnicalNodeKind, TechnicalRelationKind};
 
 const CONCEPT_SCHEMA: &str = include_str!("../schema/signal-mind.concept.schema");
 
@@ -94,35 +91,22 @@ fn concept_schema_declares_split_technical_relation_roots() {
 
 #[test]
 fn concept_schema_declares_accepted_knowledge_roots() {
-    let record_kind_line = declaration_line("KnowledgeRecordKind ");
-    for kind in KnowledgeRecordKind::ALL {
-        let name = format!("{kind:?}");
-        assert!(
-            record_kind_line.contains(&name),
-            "concept schema must include KnowledgeRecordKind::{name}"
-        );
-    }
-
-    let relation_kind_line = declaration_line("KnowledgeRelationKind ");
-    for kind in KnowledgeRelationKind::ALL {
-        let name = format!("{kind:?}");
-        assert!(
-            relation_kind_line.contains(&name),
-            "concept schema must include KnowledgeRelationKind::{name}"
-        );
-    }
-
     for required in [
         "AcceptedKnowledge",
         "KnowledgeIdentity",
-        "KnowledgeIdentitySlot",
         "KnowledgeSubject",
+        "KnowledgeSubmission",
         "KnowledgeJudgeVerdict",
+        "KnowledgeAccepted",
+        "KnowledgeFound",
+        "KnowledgeNotFound",
         "KnowledgeRejectionReason",
-        "CurrentView",
-        "(Component mind)",
-        "(Contract (signal-mind Ordinary))",
-        "(Domain Component)",
+        "(Submit KnowledgeSubmission)",
+        "(Get KnowledgeIdentity)",
+        "Accepted",
+        "Rejected",
+        "Found",
+        "NotFound",
     ] {
         assert!(
             CONCEPT_SCHEMA.contains(required),
@@ -144,6 +128,21 @@ fn concept_schema_declares_accepted_knowledge_roots() {
         assert!(
             subject_line.contains(&name),
             "concept schema must include KnowledgeSubject::{name}"
+        );
+    }
+
+    for forbidden in [
+        "KnowledgeIdentitySlot",
+        "KnowledgeCandidate",
+        "Keyed",
+        "Unkeyed",
+        "GetByIdentity",
+        "SubmitKnowledge",
+        "QueryKnowledge",
+    ] {
+        assert!(
+            !CONCEPT_SCHEMA.contains(forbidden),
+            "concept schema must not retain old knowledge surface: {forbidden}"
         );
     }
 }

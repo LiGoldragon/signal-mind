@@ -1272,8 +1272,8 @@ signal_channel! {
         operation QueryTechnicalRelations(QueryTechnicalRelations),
         operation SubscribeTechnicalNodes(SubscribeTechnicalNodes) opens MindEventStream,
         operation SubscribeTechnicalRelations(SubscribeTechnicalRelations) opens MindEventStream,
-        operation SubmitKnowledge(KnowledgeSubmission),
-        operation QueryKnowledge(KnowledgeQuery),
+        operation Submit(KnowledgeSubmission),
+        operation Get(KnowledgeIdentity),
     }
     reply MindReply {
         ThoughtCommitted(ThoughtCommitted),
@@ -1302,9 +1302,10 @@ signal_channel! {
         TechnicalProvenanceChain(TechnicalProvenanceChain),
         TechnicalNodeRejected(TechnicalNodeRejected),
         TechnicalRelationRejected(TechnicalRelationRejected),
-        KnowledgeAccepted(KnowledgeAccepted),
-        KnowledgeRejected(KnowledgeRejection),
-        KnowledgeList(KnowledgeList),
+        Accepted(KnowledgeAccepted),
+        Rejected(KnowledgeRejectionReason),
+        Found(KnowledgeFound),
+        NotFound(KnowledgeNotFound),
     }
     event MindEvent {
         SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
