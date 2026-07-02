@@ -49,10 +49,6 @@ pub enum Error {
     InvalidTaskToken { token: String },
     #[error("invalid technical node key {key}: {reason}")]
     InvalidTechnicalNodeKey { key: String, reason: String },
-    #[error("invalid knowledge stable key {key}: {reason}")]
-    InvalidKnowledgeStableKey { key: String, reason: String },
-    #[error("invalid knowledge domain key {key}: {reason}")]
-    InvalidKnowledgeDomainKey { key: String, reason: String },
     #[error("unknown workspace role token: {role}")]
     UnknownRoleName { role: String },
 }

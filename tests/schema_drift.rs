@@ -1,6 +1,6 @@
 use signal_frame::SignalOperationHeads;
 use signal_mind::{
-    KnowledgeRecordKind, KnowledgeRelationKind, MindRequest, TechnicalNodeKind,
+    KnowledgeRecordKind, KnowledgeRelationKind, KnowledgeSubject, MindRequest, TechnicalNodeKind,
     TechnicalRelationKind,
 };
 
@@ -114,16 +114,36 @@ fn concept_schema_declares_accepted_knowledge_roots() {
 
     for required in [
         "AcceptedKnowledge",
+        "KnowledgeIdentity",
+        "KnowledgeIdentitySlot",
+        "KnowledgeSubject",
         "KnowledgeJudgeVerdict",
         "KnowledgeRejectionReason",
         "CurrentView",
-        "KnowledgeDomainKey",
-        "domain:component",
-        "contract:signal-mind:ordinary",
+        "(Component mind)",
+        "(Contract (signal-mind Ordinary))",
+        "(Domain Component)",
     ] {
         assert!(
             CONCEPT_SCHEMA.contains(required),
             "concept schema must document knowledge contract fact: {required}"
+        );
+    }
+
+    let subject_line = declaration_line("KnowledgeSubject ");
+    for subject in [
+        KnowledgeSubject::Component,
+        KnowledgeSubject::Contract,
+        KnowledgeSubject::Repository,
+        KnowledgeSubject::Architecture,
+        KnowledgeSubject::Interface,
+        KnowledgeSubject::Storage,
+        KnowledgeSubject::Source,
+    ] {
+        let name = format!("{subject:?}");
+        assert!(
+            subject_line.contains(&name),
+            "concept schema must include KnowledgeSubject::{name}"
         );
     }
 }

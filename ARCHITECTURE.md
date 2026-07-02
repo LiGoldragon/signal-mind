@@ -357,10 +357,12 @@ record family. Source/provenance is optional; if source matters, it is accepted
 knowledge itself via `KnowledgeSource` and relations such as `References` or
 `SupportedBy`.
 
-Mind-local `KnowledgeDomain` and `KnowledgeDomainKey` intentionally stand in
-for any future shared Spirit/Mind subject-domain extraction. V1 keys include
-fixtures such as `domain:component`, `domain:contract`, `component:mind`,
-`repo:signal-mind`, and `contract:signal-mind:ordinary`.
+Mind-local `KnowledgeSubject` intentionally stands in for any future shared
+Spirit/Mind subject-domain extraction. Caller-visible identity is structured as
+`KnowledgeIdentity`, with examples such as `(Component mind)`,
+`(Repository signal-mind)`, `(Contract (signal-mind Ordinary))`, and
+`(Domain Component)`. Accepted candidates use explicit `Keyed` or `Unkeyed`
+variants instead of optional key wrappers.
 
 `KnowledgeRelationKind` is closed in v1: `ClassifiedAs`, `BroaderThan`,
 `NarrowerThan`, `RelatedTo`, `References`, `SupportedBy`, `Contradicts`,
@@ -369,8 +371,8 @@ deterministic relation domain/range table over `KnowledgeRecordKind`. The table
 validates record families only; it does not infer truth, contradiction,
 duplicates, support, or supersession from text.
 
-`KnowledgeQuery` reads accepted state by identifier, stable key, record kind,
-domain selector, or relation selector. `CurrentView` is closed as
+`KnowledgeQuery` reads accepted state by identifier, structured identity,
+record kind, domain selector, or relation selector. `CurrentView` is closed as
 `CurrentOnly` or `IncludeSuperseded` so callers must choose whether
 superseded accepted records are visible.
 
@@ -439,8 +441,8 @@ The contract validates boundary strings before they become wire values.
 | `TechnicalRelationIdentifier` | compact daemon-minted technical relation identifier. |
 | `TechnicalNodeKey` | validated caller-visible technical node key used for submissions and filters; canonical families include `component:mind`, `repo:signal-mind`, and `contract:signal-mind:ordinary`. |
 | `KnowledgeIdentifier` | daemon-minted identifier for an accepted knowledge record. |
-| `KnowledgeStableKey` | optional caller-visible stable key for accepted knowledge with external identity, such as `component:mind` or `contract:signal-mind:ordinary`. |
-| `KnowledgeDomainKey` | Mind-local canonical domain key, such as `domain:component` or `domain:contract`. |
+| `KnowledgeIdentity` | caller-visible structured identity for accepted knowledge with external identity, such as `(Component mind)` or `(Contract (signal-mind Ordinary))`. |
+| `KnowledgeSubject` | Mind-local accepted-knowledge subject domain, such as `Component` or `Contract`. |
 | `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-origin`. |
 | `ChannelMessageKind` | closed set of first-stack route categories. |
 | `ChannelDuration` | channel lifetime requested or emitted by mind choreography. |
@@ -540,8 +542,8 @@ MindUnimplementedReason
   knowledge record families.
 - Source/provenance is not mandatory metadata; source is modeled only when it
   is itself accepted knowledge.
-- Shared Spirit/Mind subject-domain extraction is deferred; v1 uses
-  Mind-local `KnowledgeDomain` and `KnowledgeDomainKey`.
+- Shared Spirit/Mind subject-domain extraction is deferred; accepted knowledge
+  uses Mind-local `KnowledgeSubject` values.
 - Accepted knowledge v1 does not add corpus import, production AI prompts,
   Mind daemon storage, or Spirit intent semantics.
 - Lock files and BEADS are represented only as temporary external references or

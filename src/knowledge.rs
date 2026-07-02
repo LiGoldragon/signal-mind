@@ -1,9 +1,8 @@
-use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use nota::{NotaDecode, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
-use std::fmt;
-use std::str::FromStr;
+use signal_persona::ComponentName;
 
-use crate::{ActorName, Error, MindResult, QueryLimit, TextBody, TimestampNanos};
+use crate::{ActorName, ContractSurface, QueryLimit, TextBody, TimestampNanos};
 
 #[derive(
     Archive,
@@ -30,199 +29,26 @@ impl KnowledgeIdentifier {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, Debug, Clone, PartialEq, Eq, Hash,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    NotaEncode,
+    NotaDecode,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
 )]
-pub struct KnowledgeStableKey(String);
+pub struct KnowledgeName(String);
 
-impl KnowledgeStableKey {
-    pub fn try_new(value: String) -> MindResult<Self> {
-        Self::from_canonical(value).map_err(|rejection| Error::InvalidKnowledgeStableKey {
-            key: rejection.supplied_key.as_str().to_string(),
-            reason: rejection.reason.to_string(),
-        })
-    }
-
-    pub fn from_canonical(
-        value: impl Into<String>,
-    ) -> std::result::Result<Self, KnowledgeKeyRejection> {
-        let value = value.into();
-        KnowledgeKeyShape::Generic.validate(&value)?;
-        Ok(Self(value))
+impl KnowledgeName {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
     }
 
     pub fn as_str(&self) -> &str {
         &self.0
-    }
-}
-
-impl TryFrom<String> for KnowledgeStableKey {
-    type Error = Error;
-
-    fn try_from(value: String) -> MindResult<Self> {
-        Self::try_new(value)
-    }
-}
-
-impl TryFrom<&str> for KnowledgeStableKey {
-    type Error = Error;
-
-    fn try_from(value: &str) -> MindResult<Self> {
-        Self::try_new(value.to_string())
-    }
-}
-
-impl FromStr for KnowledgeStableKey {
-    type Err = Error;
-
-    fn from_str(value: &str) -> MindResult<Self> {
-        Self::try_from(value)
-    }
-}
-
-impl AsRef<str> for KnowledgeStableKey {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl NotaDecode for KnowledgeStableKey {
-    fn from_nota_block(block: &Block) -> std::result::Result<Self, NotaDecodeError> {
-        let key = NotaBlock::new(block).parse_string()?;
-        Self::from_canonical(key).map_err(|rejection| NotaDecodeError::Parse(rejection.to_string()))
-    }
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, Debug, Clone, PartialEq, Eq, Hash,
-)]
-pub struct KnowledgeDomainKey(String);
-
-impl KnowledgeDomainKey {
-    pub fn try_new(value: String) -> MindResult<Self> {
-        Self::from_canonical(value).map_err(|rejection| Error::InvalidKnowledgeDomainKey {
-            key: rejection.supplied_key.as_str().to_string(),
-            reason: rejection.reason.to_string(),
-        })
-    }
-
-    pub fn from_canonical(
-        value: impl Into<String>,
-    ) -> std::result::Result<Self, KnowledgeKeyRejection> {
-        let value = value.into();
-        KnowledgeKeyShape::Domain.validate(&value)?;
-        Ok(Self(value))
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl TryFrom<String> for KnowledgeDomainKey {
-    type Error = Error;
-
-    fn try_from(value: String) -> MindResult<Self> {
-        Self::try_new(value)
-    }
-}
-
-impl TryFrom<&str> for KnowledgeDomainKey {
-    type Error = Error;
-
-    fn try_from(value: &str) -> MindResult<Self> {
-        Self::try_new(value.to_string())
-    }
-}
-
-impl FromStr for KnowledgeDomainKey {
-    type Err = Error;
-
-    fn from_str(value: &str) -> MindResult<Self> {
-        Self::try_from(value)
-    }
-}
-
-impl AsRef<str> for KnowledgeDomainKey {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl NotaDecode for KnowledgeDomainKey {
-    fn from_nota_block(block: &Block) -> std::result::Result<Self, NotaDecodeError> {
-        let key = NotaBlock::new(block).parse_string()?;
-        Self::from_canonical(key).map_err(|rejection| NotaDecodeError::Parse(rejection.to_string()))
-    }
-}
-
-enum KnowledgeKeyShape {
-    Generic,
-    Domain,
-}
-
-impl KnowledgeKeyShape {
-    fn validate(&self, value: &str) -> std::result::Result<(), KnowledgeKeyRejection> {
-        let parts = value.split(':').collect::<Vec<_>>();
-        if parts.len() < 2 {
-            return Err(KnowledgeKeyRejection::new(
-                value,
-                KnowledgeKeyRejectionReason::MissingFamilySeparator,
-            ));
-        }
-
-        if matches!(self, Self::Domain) && parts[0] != "domain" {
-            return Err(KnowledgeKeyRejection::new(
-                value,
-                KnowledgeKeyRejectionReason::WrongFamily,
-            ));
-        }
-
-        if parts.iter().any(|segment| segment.is_empty()) {
-            return Err(KnowledgeKeyRejection::new(
-                value,
-                KnowledgeKeyRejectionReason::EmptySegment,
-            ));
-        }
-
-        if parts
-            .iter()
-            .flat_map(|segment| segment.chars())
-            .any(|character| {
-                !(character.is_ascii_lowercase()
-                    || character.is_ascii_digit()
-                    || matches!(character, '-' | '_' | '.' | ':'))
-            })
-        {
-            return Err(KnowledgeKeyRejection::new(
-                value,
-                KnowledgeKeyRejectionReason::InvalidSegmentCharacter,
-            ));
-        }
-
-        Ok(())
-    }
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
-)]
-pub struct KnowledgeKeyRejection {
-    pub supplied_key: TextBody,
-    pub reason: KnowledgeKeyRejectionReason,
-}
-
-impl KnowledgeKeyRejection {
-    pub fn new(supplied_key: impl Into<String>, reason: KnowledgeKeyRejectionReason) -> Self {
-        Self {
-            supplied_key: TextBody::new(supplied_key),
-            reason,
-        }
-    }
-}
-
-impl fmt::Display for KnowledgeKeyRejection {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "{}: {}", self.supplied_key.as_str(), self.reason)
     }
 }
 
@@ -239,21 +65,43 @@ impl fmt::Display for KnowledgeKeyRejection {
     Eq,
     Hash,
 )]
-pub enum KnowledgeKeyRejectionReason {
-    MissingFamilySeparator,
-    WrongFamily,
-    EmptySegment,
-    InvalidSegmentCharacter,
+pub enum KnowledgeSubject {
+    Component,
+    Contract,
+    Repository,
+    Architecture,
+    Interface,
+    Storage,
+    Source,
 }
 
-impl fmt::Display for KnowledgeKeyRejectionReason {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(match self {
-            Self::MissingFamilySeparator => "missing family separator",
-            Self::WrongFamily => "wrong family",
-            Self::EmptySegment => "empty segment",
-            Self::InvalidSegmentCharacter => "invalid segment character",
-        })
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub enum KnowledgeIdentity {
+    Component(ComponentName),
+    Repository(KnowledgeName),
+    Crate(KnowledgeName),
+    Contract(KnowledgeName, ContractSurface),
+    Statement(KnowledgeName),
+    Source(KnowledgeName),
+    Domain(KnowledgeSubject),
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub enum KnowledgeIdentitySlot {
+    Unkeyed,
+    Keyed(KnowledgeIdentity),
+}
+
+impl KnowledgeIdentitySlot {
+    pub fn as_identity(&self) -> Option<&KnowledgeIdentity> {
+        match self {
+            Self::Unkeyed => None,
+            Self::Keyed(identity) => Some(identity),
+        }
     }
 }
 
@@ -316,7 +164,7 @@ impl AcceptedKnowledge {
 )]
 pub struct KnowledgeRecordHeader {
     pub identifier: KnowledgeIdentifier,
-    pub stable_key: Option<KnowledgeStableKey>,
+    pub identity: KnowledgeIdentitySlot,
     pub accepted_by: ActorName,
     pub accepted_at: TimestampNanos,
 }
@@ -327,8 +175,8 @@ pub struct KnowledgeRecordHeader {
 pub struct KnowledgeEntity {
     pub header: KnowledgeRecordHeader,
     pub name: TextBody,
-    pub description: Option<TextBody>,
-    pub domains: Vec<KnowledgeDomainKey>,
+    pub description: Vec<TextBody>,
+    pub domains: Vec<KnowledgeSubject>,
 }
 
 #[derive(
@@ -338,7 +186,7 @@ pub struct KnowledgeStatement {
     pub header: KnowledgeRecordHeader,
     pub body: TextBody,
     pub about: Vec<KnowledgeIdentifier>,
-    pub domains: Vec<KnowledgeDomainKey>,
+    pub domains: Vec<KnowledgeSubject>,
 }
 
 #[derive(
@@ -346,9 +194,9 @@ pub struct KnowledgeStatement {
 )]
 pub struct KnowledgeDomain {
     pub header: KnowledgeRecordHeader,
-    pub domain_key: KnowledgeDomainKey,
+    pub subject: KnowledgeSubject,
     pub name: TextBody,
-    pub description: Option<TextBody>,
+    pub description: Vec<TextBody>,
 }
 
 #[derive(
@@ -357,7 +205,7 @@ pub struct KnowledgeDomain {
 pub struct KnowledgeSource {
     pub header: KnowledgeRecordHeader,
     pub locator: TextBody,
-    pub description: Option<TextBody>,
+    pub description: Vec<TextBody>,
 }
 
 #[derive(
@@ -365,7 +213,7 @@ pub struct KnowledgeSource {
 )]
 pub struct KnowledgeRelationEndpoint {
     pub identifier: KnowledgeIdentifier,
-    pub stable_key: Option<KnowledgeStableKey>,
+    pub identity: KnowledgeIdentitySlot,
     pub kind: KnowledgeRecordKind,
 }
 
@@ -377,7 +225,7 @@ pub struct KnowledgeRelation {
     pub kind: KnowledgeRelationKind,
     pub source: KnowledgeRelationEndpoint,
     pub target: KnowledgeRelationEndpoint,
-    pub note: Option<TextBody>,
+    pub note: Vec<TextBody>,
 }
 
 #[derive(
@@ -520,7 +368,7 @@ pub enum KnowledgeFixturePolicy {
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct KnowledgeRequesterContext {
-    pub request_summary: Option<TextBody>,
+    pub summaries: Vec<TextBody>,
 }
 
 #[derive(
@@ -537,21 +385,27 @@ pub enum KnowledgeCandidate {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
-pub struct KnowledgeEntityCandidate {
-    pub stable_key: Option<KnowledgeStableKey>,
-    pub name: TextBody,
-    pub description: Option<TextBody>,
-    pub domains: Vec<KnowledgeDomainKey>,
+pub enum KnowledgeEntityCandidate {
+    Keyed(
+        KnowledgeIdentity,
+        TextBody,
+        Vec<TextBody>,
+        Vec<KnowledgeSubject>,
+    ),
+    Unkeyed(TextBody, Vec<TextBody>, Vec<KnowledgeSubject>),
 }
 
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
-pub struct KnowledgeStatementCandidate {
-    pub stable_key: Option<KnowledgeStableKey>,
-    pub body: TextBody,
-    pub about: Vec<KnowledgeIdentifier>,
-    pub domains: Vec<KnowledgeDomainKey>,
+pub enum KnowledgeStatementCandidate {
+    Keyed(
+        KnowledgeIdentity,
+        TextBody,
+        Vec<KnowledgeIdentifier>,
+        Vec<KnowledgeSubject>,
+    ),
+    Unkeyed(TextBody, Vec<KnowledgeIdentifier>, Vec<KnowledgeSubject>),
 }
 
 #[derive(
@@ -561,25 +415,24 @@ pub struct KnowledgeRelationCandidate {
     pub kind: KnowledgeRelationKind,
     pub source: KnowledgeEndpointSelector,
     pub target: KnowledgeEndpointSelector,
-    pub note: Option<TextBody>,
+    pub note: Vec<TextBody>,
 }
 
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct KnowledgeDomainCandidate {
-    pub domain_key: KnowledgeDomainKey,
+    pub subject: KnowledgeSubject,
     pub name: TextBody,
-    pub description: Option<TextBody>,
+    pub description: Vec<TextBody>,
 }
 
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
-pub struct KnowledgeSourceCandidate {
-    pub stable_key: Option<KnowledgeStableKey>,
-    pub locator: TextBody,
-    pub description: Option<TextBody>,
+pub enum KnowledgeSourceCandidate {
+    Keyed(KnowledgeIdentity, TextBody, Vec<TextBody>),
+    Unkeyed(TextBody, Vec<TextBody>),
 }
 
 #[derive(
@@ -587,7 +440,7 @@ pub struct KnowledgeSourceCandidate {
 )]
 pub enum KnowledgeEndpointSelector {
     Identifier(KnowledgeIdentifier),
-    StableKey(KnowledgeStableKey),
+    Identity(KnowledgeIdentity),
 }
 
 #[derive(
@@ -613,36 +466,8 @@ pub struct KnowledgeRelationRule {
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum KnowledgeJudgeVerdict {
-    Accept(AcceptedKnowledgeDraft),
+    Accept,
     Reject(KnowledgeRejection),
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
-)]
-pub struct AcceptedKnowledgeDraft {
-    pub records: Vec<KnowledgeRecordDraft>,
-    pub relations: Vec<KnowledgeRelationDraft>,
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
-)]
-pub enum KnowledgeRecordDraft {
-    Entity(KnowledgeEntityCandidate),
-    Statement(KnowledgeStatementCandidate),
-    Domain(KnowledgeDomainCandidate),
-    Source(KnowledgeSourceCandidate),
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
-)]
-pub struct KnowledgeRelationDraft {
-    pub kind: KnowledgeRelationKind,
-    pub source: KnowledgeEndpointSelector,
-    pub target: KnowledgeEndpointSelector,
-    pub note: Option<TextBody>,
 }
 
 #[derive(
@@ -700,7 +525,7 @@ pub enum KnowledgeRejectionReason {
     FalseOrUnsupported,
     SemanticDuplicate(KnowledgeIdentifier),
     ConflictsAcceptedKnowledge(Vec<KnowledgeIdentifier>),
-    WrongDomain(KnowledgeDomainKey),
+    WrongDomain(KnowledgeSubject),
     NeedsMoreSpecificShape(Vec<ExpectedKnowledgeShape>),
     SourceRequiredByCandidate,
     StructuralPreflightFailed(StructuralRejection),
@@ -741,9 +566,7 @@ pub struct StructuralRejection {
 pub enum StructuralRejectionReason {
     MissingEndpoint(KnowledgeEndpointSelector),
     RelationDomainRangeViolation(KnowledgeRelationKindMismatch),
-    InvalidStableKey(KnowledgeKeyRejection),
-    InvalidDomainKey(KnowledgeKeyRejection),
-    EmptyAcceptedDraft,
+    DuplicateIdentity(KnowledgeIdentity),
     PersistenceRejected,
 }
 
@@ -752,7 +575,7 @@ pub enum StructuralRejectionReason {
 )]
 pub enum KnowledgeQuery {
     GetByIdentifier(KnowledgeIdentifier),
-    GetByStableKey(KnowledgeStableKey),
+    GetByIdentity(KnowledgeIdentity),
     ListByKind(KnowledgeRecordKind, CurrentView),
     ListByDomain(KnowledgeDomainSelector, CurrentView),
     ListRelations(RelationSelector, CurrentView),
@@ -781,8 +604,8 @@ pub enum CurrentView {
 )]
 pub enum KnowledgeDomainSelector {
     Any,
-    Direct(KnowledgeDomainKey),
-    WithDescendants(KnowledgeDomainKey),
+    Direct(KnowledgeSubject),
+    WithDescendants(KnowledgeSubject),
 }
 
 #[derive(
