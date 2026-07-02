@@ -1411,9 +1411,10 @@ fn knowledge_verdicts_and_replies_round_trip() {
     });
     assert_eq!(round_trip_reply(not_found_reply.clone()), not_found_reply);
 
-    let rejected_reply = MindReply::Rejected(KnowledgeRejectionReason::ConflictsAcceptedKnowledge(
-        vec![fixture.identity.clone()],
-    ));
+    let rejected_reply =
+        MindReply::Rejected(KnowledgeRejectionReason::ConflictsAcceptedKnowledge(vec![
+            fixture.identity.clone(),
+        ]));
     assert_eq!(round_trip_reply(rejected_reply.clone()), rejected_reply);
 
     let verdict = KnowledgeJudgeVerdict::Accept;
