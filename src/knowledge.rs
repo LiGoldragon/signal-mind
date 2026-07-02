@@ -78,6 +78,25 @@ pub struct AcceptedKnowledge {
     pub accepted_at: TimestampNanos,
 }
 
+impl AcceptedKnowledge {
+    pub fn public_record(&self) -> KnowledgeRecord {
+        KnowledgeRecord {
+            identity: self.identity.clone(),
+            subject: self.subject,
+            statement: self.statement.clone(),
+        }
+    }
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
+pub struct KnowledgeRecord {
+    pub identity: KnowledgeIdentity,
+    pub subject: KnowledgeSubject,
+    pub statement: TextBody,
+}
+
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
@@ -93,27 +112,6 @@ pub struct KnowledgeJudgePacket {
 pub enum KnowledgeJudgeVerdict {
     Accept,
     Reject(KnowledgeRejectionReason),
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
-)]
-pub struct KnowledgeAccepted {
-    pub identity: KnowledgeIdentity,
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
-)]
-pub struct KnowledgeFound {
-    pub record: AcceptedKnowledge,
-}
-
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
-)]
-pub struct KnowledgeNotFound {
-    pub identity: KnowledgeIdentity,
 }
 
 #[derive(

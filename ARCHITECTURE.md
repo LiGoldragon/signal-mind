@@ -180,10 +180,10 @@ signal_channel! {
             TechnicalRelationList(TechnicalRelationList),
             TechnicalNodeRejected(TechnicalNodeRejected),
             TechnicalRelationRejected(TechnicalRelationRejected),
-            Accepted(KnowledgeAccepted),
+            Accepted(KnowledgeIdentity),
             Rejected(KnowledgeRejectionReason),
-            Found(KnowledgeFound),
-            NotFound(KnowledgeNotFound),
+            Found(KnowledgeRecord),
+            NotFound,
         }
         event MindEvent {
             SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
@@ -346,7 +346,10 @@ domain/range violation, and persistence rejection.
 
 Accepted knowledge is Mind's non-Spirit knowledge substrate. The durable root
 noun is `AcceptedKnowledge`: one generated `KnowledgeIdentity`, one
-`KnowledgeSubject`, one statement body, and acceptance metadata. A caller
+`KnowledgeSubject`, one statement body, and acceptance metadata. The default
+found reply projects that durable record to `KnowledgeRecord`, which carries
+only identity, subject, and statement; actor and timestamp metadata stay
+internal unless a future named provenance surface exposes them. A caller
 submits only `(Submit <subject> <statement>)`; Mind mints the short identity
 after `KnowledgeJudgeVerdict::Accept` and returns `(Accepted <identity>)`.
 

@@ -1302,10 +1302,10 @@ signal_channel! {
         TechnicalProvenanceChain(TechnicalProvenanceChain),
         TechnicalNodeRejected(TechnicalNodeRejected),
         TechnicalRelationRejected(TechnicalRelationRejected),
-        Accepted(KnowledgeAccepted),
+        Accepted(KnowledgeIdentity),
         Rejected(KnowledgeRejectionReason),
-        Found(KnowledgeFound),
-        NotFound(KnowledgeNotFound),
+        Found(KnowledgeRecord),
+        NotFound,
     }
     event MindEvent {
         SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,

@@ -548,16 +548,12 @@ impl TechnicalFixture {
 }
 
 struct KnowledgeFixture {
-    actor: ActorName,
-    accepted_at: TimestampNanos,
     identity: KnowledgeIdentity,
 }
 
 impl KnowledgeFixture {
     fn new() -> Self {
         Self {
-            actor: sample_actor(),
-            accepted_at: TimestampNanos::new(1_790_000_000_000_000_100),
             identity: sample_knowledge_identity(),
         }
     }
@@ -573,13 +569,11 @@ impl KnowledgeFixture {
         }
     }
 
-    fn accepted_record(&self) -> AcceptedKnowledge {
-        AcceptedKnowledge {
+    fn public_record(&self) -> KnowledgeRecord {
+        KnowledgeRecord {
             identity: self.identity.clone(),
             subject: self.component_subject(),
             statement: TextBody::new("Mind stores accepted knowledge."),
-            accepted_by: self.actor.clone(),
-            accepted_at: self.accepted_at,
         }
     }
 }
@@ -1394,22 +1388,21 @@ fn knowledge_submit_and_query_requests_round_trip() {
 #[test]
 fn knowledge_verdicts_and_replies_round_trip() {
     let fixture = KnowledgeFixture::new();
-    let record = fixture.accepted_record();
 
-    let accepted_reply = MindReply::Accepted(KnowledgeAccepted {
-        identity: fixture.identity.clone(),
-    });
+    let accepted_reply = MindReply::Accepted(fixture.identity.clone());
     assert_eq!(round_trip_reply(accepted_reply.clone()), accepted_reply);
+    round_trip_nota(accepted_reply, "(Accepted k9x8)");
 
-    let found_reply = MindReply::Found(KnowledgeFound {
-        record: record.clone(),
-    });
+    let found_reply = MindReply::Found(fixture.public_record());
     assert_eq!(round_trip_reply(found_reply.clone()), found_reply);
+    round_trip_nota(
+        found_reply,
+        "(Found (k9x8 Component [Mind stores accepted knowledge.]))",
+    );
 
-    let not_found_reply = MindReply::NotFound(KnowledgeNotFound {
-        identity: KnowledgeIdentity::new("none"),
-    });
+    let not_found_reply = MindReply::NotFound;
     assert_eq!(round_trip_reply(not_found_reply.clone()), not_found_reply);
+    round_trip_nota(not_found_reply, "NotFound");
 
     let rejected_reply =
         MindReply::Rejected(KnowledgeRejectionReason::ConflictsAcceptedKnowledge(vec![

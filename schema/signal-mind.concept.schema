@@ -1,7 +1,7 @@
 ;; signal-mind current concept schema.
 ;;
 ;; This is the hand-maintained concept source for the contract shipped as
-;; signal-mind 0.6.0. It documents the current Rust contract; it is not yet
+;; signal-mind 0.7.0. It documents the current Rust contract; it is not yet
 ;; the generator source for src/*.rs.
 ;;
 ;; Request operation heads are still relation-specific. SubmitTechnicalNode,
@@ -158,11 +158,9 @@
   KnowledgeSubject [Component Contract Repository Architecture Interface Storage Source]
   KnowledgeSubmission (KnowledgeSubject TextBody)
   AcceptedKnowledge (KnowledgeIdentity KnowledgeSubject TextBody ActorName TimestampNanos)
+  KnowledgeRecord (KnowledgeIdentity KnowledgeSubject TextBody)
   KnowledgeJudgePacket (KnowledgeSubject TextBody (Vec AcceptedKnowledge))
   KnowledgeJudgeVerdict [Accept (Reject KnowledgeRejectionReason)]
-  KnowledgeAccepted (KnowledgeIdentity)
-  KnowledgeFound (AcceptedKnowledge)
-  KnowledgeNotFound (KnowledgeIdentity)
   KnowledgeRejectionReason [NotKnowledge PrivateOrUnauthorized MeaningUnclear FalseOrUnsupported (SemanticDuplicate KnowledgeIdentity) (ConflictsAcceptedKnowledge (Vec KnowledgeIdentity)) (WrongSubject KnowledgeSubject) NeedsMoreSpecificShape SourceRequired PersistenceRejected]
 
   ;; Work and memory graph.
@@ -198,6 +196,6 @@
 }
 
 [
-  (Version 0 6 0)
+  (Version 0 7 0)
   (Status CurrentConcept)
 ]
