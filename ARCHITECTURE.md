@@ -352,6 +352,11 @@ only identity, subject, and statement; actor and timestamp metadata stay
 internal unless a future named provenance surface exposes them. A caller
 submits only `(Submit <subject> <statement>)`; Mind mints the short identity
 after `KnowledgeJudgeVerdict::Accept` and returns `(Accepted <identity>)`.
+Agent-backed judging may return a `KnowledgeJudgeResponse`, which wraps the
+load-bearing `KnowledgeJudgeVerdict` with optional `diagnostic_message` prose
+for debug and eval feedback. That diagnostic prose is not record data and does
+not participate in acceptance, rejection, identity, conflict, or storage
+decisions.
 
 Rejected submissions are represented only as `Rejected` replies and are not
 stored as accepted knowledge. Accepted admission receipts are not a record
@@ -525,6 +530,8 @@ MindUnimplementedReason
 - Semantic knowledge judgment belongs behind `KnowledgeJudgeVerdict`; this
   contract only gives deterministic code typed structure, routeable records,
   and verdict application data.
+- `KnowledgeJudgeResponse.diagnostic_message` is optional debug prose; the
+  verdict remains the only load-bearing judge result.
 - Rejected knowledge candidates and accepted admission receipts are not accepted
   knowledge record families.
 - Source/provenance is not mandatory metadata; source is modeled only when it

@@ -1415,6 +1415,34 @@ fn knowledge_verdicts_and_replies_round_trip() {
         .parse::<KnowledgeJudgeVerdict>()
         .expect("decode knowledge verdict");
     assert_eq!(decoded, verdict);
+
+    let response = KnowledgeJudgeResponse::new(verdict.clone())
+        .with_diagnostic_message("Ambiguous but accepted.");
+    let response_text = response.to_nota();
+    assert!(response_text.contains("Ambiguous but accepted."));
+    let decoded_response = NotaSource::new(&response_text)
+        .parse::<KnowledgeJudgeResponse>()
+        .expect("decode knowledge judge response");
+    assert_eq!(decoded_response.verdict, verdict);
+    assert_eq!(
+        decoded_response
+            .diagnostic_message
+            .expect("diagnostic message exists")
+            .as_str(),
+        "Ambiguous but accepted."
+    );
+
+    let response_without_diagnostic = KnowledgeJudgeResponse::new(KnowledgeJudgeVerdict::Reject(
+        KnowledgeRejectionReason::NeedsMoreSpecificShape,
+    ));
+    let decoded_without_diagnostic = NotaSource::new(&response_without_diagnostic.to_nota())
+        .parse::<KnowledgeJudgeResponse>()
+        .expect("decode knowledge judge response without diagnostic");
+    assert_eq!(
+        decoded_without_diagnostic.verdict,
+        KnowledgeJudgeVerdict::Reject(KnowledgeRejectionReason::NeedsMoreSpecificShape)
+    );
+    assert_eq!(decoded_without_diagnostic.diagnostic_message, None);
 }
 
 #[test]

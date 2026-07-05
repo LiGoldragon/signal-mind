@@ -97,6 +97,8 @@ fn concept_schema_declares_accepted_knowledge_roots() {
         "KnowledgeSubject",
         "KnowledgeSubmission",
         "KnowledgeJudgeVerdict",
+        "KnowledgeJudgeResponse",
+        "diagnostic_message",
         "KnowledgeRecord",
         "KnowledgeRejectionReason",
         "(Submit KnowledgeSubmission)",

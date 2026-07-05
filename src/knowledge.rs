@@ -109,6 +109,28 @@ pub struct KnowledgeJudgePacket {
 #[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
+pub struct KnowledgeJudgeResponse {
+    pub verdict: KnowledgeJudgeVerdict,
+    pub diagnostic_message: Option<TextBody>,
+}
+
+impl KnowledgeJudgeResponse {
+    pub fn new(verdict: KnowledgeJudgeVerdict) -> Self {
+        Self {
+            verdict,
+            diagnostic_message: None,
+        }
+    }
+
+    pub fn with_diagnostic_message(mut self, message: impl Into<String>) -> Self {
+        self.diagnostic_message = Some(TextBody::new(message));
+        self
+    }
+}
+
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+)]
 pub enum KnowledgeJudgeVerdict {
     Accept,
     Reject(KnowledgeRejectionReason),
