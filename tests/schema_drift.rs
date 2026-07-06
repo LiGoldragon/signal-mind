@@ -1,5 +1,5 @@
 use signal_frame::SignalOperationHeads;
-use signal_mind::{KnowledgeSubject, MindRequest, TechnicalNodeKind, TechnicalRelationKind};
+use signal_mind::{MindRequest, TechnicalNodeKind, TechnicalRelationKind};
 
 const CONCEPT_SCHEMA: &str = include_str!("../schema/signal-mind.concept.schema");
 
@@ -94,7 +94,6 @@ fn concept_schema_declares_accepted_knowledge_roots() {
     for required in [
         "AcceptedKnowledge",
         "KnowledgeIdentity",
-        "KnowledgeSubject",
         "KnowledgeSubmission",
         "KnowledgeJudgeVerdict",
         "KnowledgeJudgeResponse",
@@ -114,24 +113,22 @@ fn concept_schema_declares_accepted_knowledge_roots() {
         );
     }
 
-    let subject_line = declaration_line("KnowledgeSubject ");
-    for subject in [
-        KnowledgeSubject::Component,
-        KnowledgeSubject::Contract,
-        KnowledgeSubject::Repository,
-        KnowledgeSubject::Architecture,
-        KnowledgeSubject::Interface,
-        KnowledgeSubject::Storage,
-        KnowledgeSubject::Source,
-    ] {
-        let name = format!("{subject:?}");
-        assert!(
-            subject_line.contains(&name),
-            "concept schema must include KnowledgeSubject::{name}"
-        );
-    }
+    let knowledge_submission_line = declaration_line("KnowledgeSubmission ");
+    let knowledge_rejection_reason_line = declaration_line("KnowledgeRejectionReason ");
+    assert!(
+        knowledge_submission_line.contains("Domain"),
+        "concept schema must use shared Domain in KnowledgeSubmission"
+    );
+    assert!(
+        knowledge_rejection_reason_line.contains("WrongDomain Domain"),
+        "concept schema must reject wrong shared Domain"
+    );
 
     for forbidden in [
+        "KnowledgeSubject",
+        "WrongSubject",
+        "FalseOrUnsupported",
+        "SourceRequired",
         "KnowledgeIdentitySlot",
         "KnowledgeCandidate",
         "Keyed",

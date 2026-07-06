@@ -1,7 +1,7 @@
 ;; signal-mind current concept schema.
 ;;
 ;; This is the hand-maintained concept source for the contract shipped as
-;; signal-mind 0.7.1. It documents the current Rust contract; it is not yet
+;; signal-mind 0.8.0. It documents the current Rust contract; it is not yet
 ;; the generator source for src/*.rs.
 ;;
 ;; Request operation heads are still relation-specific. SubmitTechnicalNode,
@@ -150,19 +150,18 @@
 
   ;; Accepted knowledge contract v1.
   ;;
-  ;; Mind accepted knowledge is submitted as a subject plus statement. The
+  ;; Mind accepted knowledge is submitted as a shared Domain plus statement. The
   ;; caller never supplies record identity. After the judge accepts the
   ;; submission, Mind mints the short KnowledgeIdentity and stores the accepted
   ;; record under that generated identity.
   KnowledgeIdentity (String)
-  KnowledgeSubject [Component Contract Repository Architecture Interface Storage Source]
-  KnowledgeSubmission (KnowledgeSubject TextBody)
-  AcceptedKnowledge (KnowledgeIdentity KnowledgeSubject TextBody ActorName TimestampNanos)
-  KnowledgeRecord (KnowledgeIdentity KnowledgeSubject TextBody)
-  KnowledgeJudgePacket (KnowledgeSubject TextBody (Vec AcceptedKnowledge))
+  KnowledgeSubmission (Domain TextBody)
+  AcceptedKnowledge (KnowledgeIdentity Domain TextBody ActorName TimestampNanos)
+  KnowledgeRecord (KnowledgeIdentity Domain TextBody)
+  KnowledgeJudgePacket (Domain TextBody (Vec AcceptedKnowledge))
   KnowledgeJudgeResponse (KnowledgeJudgeVerdict (Option TextBody)) ;; diagnostic_message is optional, non-load-bearing debug prose.
   KnowledgeJudgeVerdict [Accept (Reject KnowledgeRejectionReason)]
-  KnowledgeRejectionReason [NotKnowledge PrivateOrUnauthorized MeaningUnclear FalseOrUnsupported (SemanticDuplicate KnowledgeIdentity) (ConflictsAcceptedKnowledge (Vec KnowledgeIdentity)) (WrongSubject KnowledgeSubject) NeedsMoreSpecificShape SourceRequired PersistenceRejected]
+  KnowledgeRejectionReason [NotKnowledge PrivateOrUnauthorized MeaningUnclear (SemanticDuplicate KnowledgeIdentity) (ConflictsAcceptedKnowledge (Vec KnowledgeIdentity)) (WrongDomain Domain) NeedsMoreSpecificShape PersistenceRejected]
 
   ;; Work and memory graph.
   Opening (ItemKind Magnitude Title TextBody)
@@ -197,6 +196,6 @@
 }
 
 [
-  (Version 0 7 1)
+  (Version 0 8 0)
   (Status CurrentConcept)
 ]

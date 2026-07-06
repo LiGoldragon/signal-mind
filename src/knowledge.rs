@@ -1,6 +1,8 @@
 use nota::{NotaDecode, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
+use signal_domain::Domain;
+
 use crate::{ActorName, TextBody, TimestampNanos};
 
 #[derive(
@@ -28,40 +30,17 @@ impl KnowledgeIdentity {
 }
 
 #[derive(
-    Archive,
-    RkyvSerialize,
-    RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-)]
-pub enum KnowledgeSubject {
-    Component,
-    Contract,
-    Repository,
-    Architecture,
-    Interface,
-    Storage,
-    Source,
-}
-
-#[derive(
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct KnowledgeSubmission {
-    pub subject: KnowledgeSubject,
+    pub domain: Domain,
     pub statement: TextBody,
 }
 
 impl KnowledgeSubmission {
-    pub fn new(subject: KnowledgeSubject, statement: impl Into<String>) -> Self {
+    pub fn new(domain: Domain, statement: impl Into<String>) -> Self {
         Self {
-            subject,
+            domain,
             statement: TextBody::new(statement),
         }
     }
@@ -72,7 +51,7 @@ impl KnowledgeSubmission {
 )]
 pub struct AcceptedKnowledge {
     pub identity: KnowledgeIdentity,
-    pub subject: KnowledgeSubject,
+    pub domain: Domain,
     pub statement: TextBody,
     pub accepted_by: ActorName,
     pub accepted_at: TimestampNanos,
@@ -82,7 +61,7 @@ impl AcceptedKnowledge {
     pub fn public_record(&self) -> KnowledgeRecord {
         KnowledgeRecord {
             identity: self.identity.clone(),
-            subject: self.subject,
+            domain: self.domain.clone(),
             statement: self.statement.clone(),
         }
     }
@@ -93,7 +72,7 @@ impl AcceptedKnowledge {
 )]
 pub struct KnowledgeRecord {
     pub identity: KnowledgeIdentity,
-    pub subject: KnowledgeSubject,
+    pub domain: Domain,
     pub statement: TextBody,
 }
 
@@ -101,7 +80,7 @@ pub struct KnowledgeRecord {
     Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct KnowledgeJudgePacket {
-    pub subject: KnowledgeSubject,
+    pub domain: Domain,
     pub statement: TextBody,
     pub relevant_neighbors: Vec<AcceptedKnowledge>,
 }
@@ -143,11 +122,9 @@ pub enum KnowledgeRejectionReason {
     NotKnowledge,
     PrivateOrUnauthorized,
     MeaningUnclear,
-    FalseOrUnsupported,
     SemanticDuplicate(KnowledgeIdentity),
     ConflictsAcceptedKnowledge(Vec<KnowledgeIdentity>),
-    WrongSubject(KnowledgeSubject),
+    WrongDomain(Domain),
     NeedsMoreSpecificShape,
-    SourceRequired,
     PersistenceRejected,
 }

@@ -1,8 +1,8 @@
 [package]
 name         = "signal-mind"
-version      = "0.7.1"
+version      = "0.8.0"
 edition      = "2024"
-rust-version = "1.85"
+rust-version = "1.89"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/LiGoldragon/signal-mind"
 description  = "Signal contract — `mind` CLI ↔ mind channel: typed records for work graph, mind graph, and channel choreography."
@@ -19,9 +19,13 @@ nota-text = ["signal-frame/nota-text"]
 [dependencies]
 signal-frame        = { git = "https://github.com/LiGoldragon/signal-frame.git", branch = "main" }
 signal-persona      = { git = "https://github.com/LiGoldragon/signal-persona.git", branch = "main", features = ["nota-text"] }
+signal-domain       = { git = "https://github.com/LiGoldragon/signal-domain.git", branch = "main", features = ["nota-text"] }
 nota = { package = "nota", git = "https://github.com/LiGoldragon/nota.git", branch = "main" }
 rkyv                = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 thiserror           = "2"
+
+[patch."https://github.com/LiGoldragon/nota-next.git"]
+nota = { git = "https://github.com/LiGoldragon/nota.git", branch = "main" }
 
 [lints.rust]
 unsafe_code = "forbid"

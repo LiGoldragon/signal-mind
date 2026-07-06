@@ -7,6 +7,7 @@
 //! length-prefixed Frame.
 
 use nota::{NotaDecode, NotaEncode, NotaSource};
+use signal_domain::{Domain, EngineeringLeaf, Software, Technology};
 use signal_frame::{
     ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
     SignalOperationHeads, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
@@ -558,13 +559,15 @@ impl KnowledgeFixture {
         }
     }
 
-    fn component_subject(&self) -> KnowledgeSubject {
-        KnowledgeSubject::Component
+    fn architecture_domain(&self) -> Domain {
+        Domain::Technology(Technology::Software(Software::Engineering(
+            EngineeringLeaf::Architecture,
+        )))
     }
 
     fn submission(&self) -> KnowledgeSubmission {
         KnowledgeSubmission {
-            subject: self.component_subject(),
+            domain: self.architecture_domain(),
             statement: TextBody::new("Mind stores accepted knowledge."),
         }
     }
@@ -572,7 +575,7 @@ impl KnowledgeFixture {
     fn public_record(&self) -> KnowledgeRecord {
         KnowledgeRecord {
             identity: self.identity.clone(),
-            subject: self.component_subject(),
+            domain: self.architecture_domain(),
             statement: TextBody::new("Mind stores accepted knowledge."),
         }
     }
@@ -1357,18 +1360,12 @@ fn generated_knowledge_identity_round_trips_as_short_atom() {
 }
 
 #[test]
-fn knowledge_subjects_round_trip_as_typed_domain_atoms() {
-    for (subject, expected) in [
-        (KnowledgeSubject::Component, "Component"),
-        (KnowledgeSubject::Contract, "Contract"),
-        (KnowledgeSubject::Repository, "Repository"),
-        (KnowledgeSubject::Architecture, "Architecture"),
-        (KnowledgeSubject::Interface, "Interface"),
-        (KnowledgeSubject::Storage, "Storage"),
-        (KnowledgeSubject::Source, "Source"),
-    ] {
-        round_trip_nota(subject, expected);
-    }
+fn accepted_knowledge_domain_round_trips_through_shared_codec() {
+    let domain = Domain::Technology(Technology::Software(Software::Engineering(
+        EngineeringLeaf::Architecture,
+    )));
+
+    round_trip_nota(domain, "(Technology (Software (Engineering Architecture)))");
 }
 
 #[test]
@@ -1397,7 +1394,7 @@ fn knowledge_verdicts_and_replies_round_trip() {
     assert_eq!(round_trip_reply(found_reply.clone()), found_reply);
     round_trip_nota(
         found_reply,
-        "(Found (k9x8 Component [Mind stores accepted knowledge.]))",
+        "(Found (k9x8 (Technology (Software (Engineering Architecture))) [Mind stores accepted knowledge.]))",
     );
 
     let not_found_reply = MindReply::NotFound;

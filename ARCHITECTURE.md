@@ -345,12 +345,12 @@ domain/range violation, and persistence rejection.
 | `Get` | `Found` or `NotFound` |
 
 Accepted knowledge is Mind's non-Spirit knowledge substrate. The durable root
-noun is `AcceptedKnowledge`: one generated `KnowledgeIdentity`, one
-`KnowledgeSubject`, one statement body, and acceptance metadata. The default
-found reply projects that durable record to `KnowledgeRecord`, which carries
-only identity, subject, and statement; actor and timestamp metadata stay
+noun is `AcceptedKnowledge`: one generated `KnowledgeIdentity`, one shared
+`signal_domain::Domain`, one statement body, and acceptance metadata. The
+default found reply projects that durable record to `KnowledgeRecord`, which
+carries only identity, domain, and statement; actor and timestamp metadata stay
 internal unless a future named provenance surface exposes them. A caller
-submits only `(Submit <subject> <statement>)`; Mind mints the short identity
+submits only `(Submit <domain> <statement>)`; Mind mints the short identity
 after `KnowledgeJudgeVerdict::Accept` and returns `(Accepted <identity>)`.
 Agent-backed judging may return a `KnowledgeJudgeResponse`, which wraps the
 load-bearing `KnowledgeJudgeVerdict` with optional `diagnostic_message` prose
@@ -362,11 +362,11 @@ Rejected submissions are represented only as `Rejected` replies and are not
 stored as accepted knowledge. Accepted admission receipts are not a record
 family.
 
-Mind-local `KnowledgeSubject` intentionally stands in for any future shared
-Spirit/Mind subject-domain extraction. The submitted subject is classification
-context, not record identity. `KnowledgeIdentity` is an opaque Mind-generated
-short code, not a caller-provided structured selector. There is no `Keyed` /
-`Unkeyed` choice and no `Candidate` wrapper in this surface.
+Accepted knowledge uses the shared `Domain` type directly from `signal-domain`;
+there is no Mind-local subject wrapper or newtype. The submitted domain is
+classification context, not record identity. `KnowledgeIdentity` is an opaque
+Mind-generated short code, not a caller-provided structured selector. There is
+no `Keyed` / `Unkeyed` choice and no `Candidate` wrapper in this surface.
 
 ### 3.5 Channel choreography
 
@@ -433,7 +433,7 @@ The contract validates boundary strings before they become wire values.
 | `TechnicalRelationIdentifier` | compact daemon-minted technical relation identifier. |
 | `TechnicalNodeKey` | validated caller-visible technical node key used for submissions and filters; canonical families include `component:mind`, `repo:signal-mind`, and `contract:signal-mind:ordinary`. |
 | `KnowledgeIdentity` | daemon-minted short identity for an accepted knowledge record. |
-| `KnowledgeSubject` | Mind-local accepted-knowledge subject domain, such as `Component` or `Contract`. |
+| `Domain` | shared accepted-knowledge classification domain from `signal-domain`. |
 | `ChannelEndpoint` | typed internal/external route endpoint using `signal-persona-origin`. |
 | `ChannelMessageKind` | closed set of first-stack route categories. |
 | `ChannelDuration` | channel lifetime requested or emitted by mind choreography. |
@@ -536,8 +536,8 @@ MindUnimplementedReason
   knowledge record families.
 - Source/provenance is not mandatory metadata; source is modeled only when it
   is itself accepted knowledge.
-- Shared Spirit/Mind subject-domain extraction is deferred; accepted knowledge
-  uses Mind-local `KnowledgeSubject` values.
+- Accepted knowledge uses shared `signal_domain::Domain` directly; lack of
+  accepted neighbors is not itself a rejection reason.
 - Accepted knowledge v1 does not add corpus import, production AI prompts,
   Mind daemon storage, or Spirit intent semantics.
 - Lock files and BEADS are represented only as temporary external references or
