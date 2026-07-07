@@ -532,6 +532,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "schema-language"
+version = "0.2.0"
+source = "git+https://github.com/LiGoldragon/schema-language.git?rev=6aae825d668e3f607a2754afa6b7d94e9f246c41#6aae825d668e3f607a2754afa6b7d94e9f246c41"
+dependencies = [
+ "blake3",
+ "nota",
+ "rkyv",
+ "schema-language-cc",
+ "thiserror",
+]
+
+[[package]]
+name = "schema-language-cc"
+version = "0.1.0"
+source = "git+https://github.com/LiGoldragon/schema-language.git?rev=6aae825d668e3f607a2754afa6b7d94e9f246c41#6aae825d668e3f607a2754afa6b7d94e9f246c41"
+dependencies = [
+ "nota",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
 name = "schema-rust"
 version = "0.6.0"
 source = "git+https://github.com/LiGoldragon/schema-rust.git?branch=trueschema#886a9009077bdf9ee0e71fa0fa31aaf6e5444dd3"
@@ -549,13 +574,13 @@ dependencies = [
 [[package]]
 name = "schema-rust"
 version = "0.6.0"
-source = "git+https://github.com/LiGoldragon/schema-rust.git?rev=886a9009077bdf9ee0e71fa0fa31aaf6e5444dd3#886a9009077bdf9ee0e71fa0fa31aaf6e5444dd3"
+source = "git+https://github.com/LiGoldragon/schema-rust.git?rev=3278fbc6e6593c044437b3ee5ca1fe71cac344c1#3278fbc6e6593c044437b3ee5ca1fe71cac344c1"
 dependencies = [
  "nota",
  "prettyplease",
  "proc-macro2",
  "quote",
- "schema 0.2.0 (git+https://github.com/LiGoldragon/schema.git?rev=4a8aaf1de3aaf476577d5b4e93691ef47c135d1a)",
+ "schema-language",
  "syn",
  "thiserror",
  "triad-runtime",
@@ -600,12 +625,12 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 [[package]]
 name = "signal-domain"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/signal-domain.git?rev=3a1692693f7b842c024994b16523395732780f0a#3a1692693f7b842c024994b16523395732780f0a"
+source = "git+https://github.com/LiGoldragon/signal-domain.git?rev=801e1c5bcc824c9760e246205826e3c8e962d005#801e1c5bcc824c9760e246205826e3c8e962d005"
 dependencies = [
  "nota",
  "rkyv",
- "schema 0.2.0 (git+https://github.com/LiGoldragon/schema.git?rev=4a8aaf1de3aaf476577d5b4e93691ef47c135d1a)",
- "schema-rust 0.6.0 (git+https://github.com/LiGoldragon/schema-rust.git?rev=886a9009077bdf9ee0e71fa0fa31aaf6e5444dd3)",
+ "schema-language",
+ "schema-rust 0.6.0 (git+https://github.com/LiGoldragon/schema-rust.git?rev=3278fbc6e6593c044437b3ee5ca1fe71cac344c1)",
 ]
 
 [[package]]

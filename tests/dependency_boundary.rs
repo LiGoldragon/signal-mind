@@ -31,9 +31,9 @@ fn mind_contract_consumes_shared_domain_from_portable_remote_contract() {
         "shared contract dependency must not be a local filesystem input",
     );
     assert!(
-        signal_domain_line.contains("rev = \"3a1692693f7b842c024994b16523395732780f0a\"")
+        signal_domain_line.contains("rev = \"801e1c5bcc824c9760e246205826e3c8e962d005\"")
             && !signal_domain_line.contains("branch = \"main\""),
-        "signal-domain stays on the portable Domain::All revision while retired producer repositories are patched out",
+        "signal-domain stays on the portable migrated Domain::All revision while retired producer repositories are patched out",
     );
 }
 
@@ -54,8 +54,6 @@ fn mind_contract_pins_trueschema_family_without_retired_direct_dependencies() {
     for required in [
         "github.com/LiGoldragon/schema.git",
         "rev = \"4a8aaf1de3aaf476577d5b4e93691ef47c135d1a\"",
-        "github.com/LiGoldragon/schema-rust.git",
-        "rev = \"886a9009077bdf9ee0e71fa0fa31aaf6e5444dd3\"",
     ] {
         assert!(
             cargo_toml.contains(required),

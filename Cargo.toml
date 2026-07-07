@@ -19,7 +19,7 @@ nota-text = ["signal-frame/nota-text"]
 [dependencies]
 signal-frame        = { git = "https://github.com/LiGoldragon/signal-frame.git", branch = "main" }
 signal-persona      = { git = "https://github.com/LiGoldragon/signal-persona.git", rev = "e6fbc977cdf6a19b9ee31b41d235e1808091dc88", features = ["nota-text"] }
-signal-domain       = { git = "https://github.com/LiGoldragon/signal-domain.git", rev = "3a1692693f7b842c024994b16523395732780f0a", features = ["nota-text"] }
+signal-domain       = { git = "https://github.com/LiGoldragon/signal-domain.git", rev = "801e1c5bcc824c9760e246205826e3c8e962d005", features = ["nota-text"] }
 nota = { package = "nota", git = "https://github.com/LiGoldragon/nota.git", branch = "main" }
 rkyv                = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 thiserror           = "2"
@@ -30,9 +30,6 @@ nota = { git = "https://github.com/LiGoldragon/nota.git", branch = "main" }
 [patch."https://github.com/LiGoldragon/schema-next.git"]
 schema = { package = "schema", git = "https://github.com/LiGoldragon/schema.git", rev = "4a8aaf1de3aaf476577d5b4e93691ef47c135d1a" }
 schema-cc = { package = "schema-cc", git = "https://github.com/LiGoldragon/schema.git", rev = "4a8aaf1de3aaf476577d5b4e93691ef47c135d1a" }
-
-[patch."https://github.com/LiGoldragon/schema-rust-next.git"]
-schema-rust = { package = "schema-rust", git = "https://github.com/LiGoldragon/schema-rust.git", rev = "886a9009077bdf9ee0e71fa0fa31aaf6e5444dd3" }
 
 [lints.rust]
 unsafe_code = "forbid"
