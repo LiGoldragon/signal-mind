@@ -363,10 +363,12 @@ stored as accepted knowledge. Accepted admission receipts are not a record
 family.
 
 Accepted knowledge uses the shared `Domain` type directly from `signal-domain`;
-there is no Mind-local subject wrapper or newtype. The submitted domain is
-classification context, not record identity. `KnowledgeIdentity` is an opaque
-Mind-generated short code, not a caller-provided structured selector. There is
-no `Keyed` / `Unkeyed` choice and no `Candidate` wrapper in this surface.
+there is no Mind-local subject wrapper or newtype. `Domain::All` is the shared
+canonical domain-general value and round-trips through the same shared codec as
+concrete domains. The submitted domain is classification context, not record
+identity. `KnowledgeIdentity` is an opaque Mind-generated short code, not a
+caller-provided structured selector. There is no `Keyed` / `Unkeyed` choice and
+no `Candidate` wrapper in this surface.
 
 ### 3.5 Channel choreography
 

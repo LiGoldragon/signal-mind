@@ -579,6 +579,31 @@ impl KnowledgeFixture {
             statement: TextBody::new("Mind stores accepted knowledge."),
         }
     }
+
+    fn all_domain_submission(&self) -> KnowledgeSubmission {
+        KnowledgeSubmission {
+            domain: Domain::All,
+            statement: TextBody::new("Domain-general knowledge is accepted knowledge."),
+        }
+    }
+
+    fn all_domain_accepted_knowledge(&self) -> AcceptedKnowledge {
+        AcceptedKnowledge {
+            identity: self.identity.clone(),
+            domain: Domain::All,
+            statement: TextBody::new("Domain-general knowledge is accepted knowledge."),
+            accepted_by: ActorName::new("mind-judge"),
+            accepted_at: TimestampNanos::new(1_722_334_455_000_000_000),
+        }
+    }
+
+    fn all_domain_public_record(&self) -> KnowledgeRecord {
+        KnowledgeRecord {
+            identity: self.identity.clone(),
+            domain: Domain::All,
+            statement: TextBody::new("Domain-general knowledge is accepted knowledge."),
+        }
+    }
 }
 
 // ─── Mind graph contract variants ─────────────────────────
@@ -1366,6 +1391,50 @@ fn accepted_knowledge_domain_round_trips_through_shared_codec() {
     )));
 
     round_trip_nota(domain, "(Technology (Software (Engineering Architecture)))");
+    round_trip_nota(Domain::All, "All");
+}
+
+#[test]
+fn accepted_knowledge_contract_round_trips_all_domain() {
+    let fixture = KnowledgeFixture::new();
+    let submission = fixture.all_domain_submission();
+    let request = MindRequest::Submit(submission.clone());
+    assert_eq!(round_trip_request(request.clone()), request);
+    round_trip_nota(
+        submission,
+        "(All [Domain-general knowledge is accepted knowledge.])",
+    );
+
+    let accepted_knowledge = fixture.all_domain_accepted_knowledge();
+    round_trip_nota(
+        accepted_knowledge.clone(),
+        "(k9x8 All [Domain-general knowledge is accepted knowledge.] mind-judge 1722334455000000000)",
+    );
+
+    let judge_packet = KnowledgeJudgePacket {
+        domain: Domain::All,
+        statement: TextBody::new("Domain-general knowledge is accepted knowledge."),
+        relevant_neighbors: vec![accepted_knowledge],
+    };
+    round_trip_nota(
+        judge_packet,
+        "(All [Domain-general knowledge is accepted knowledge.] [(k9x8 All [Domain-general knowledge is accepted knowledge.] mind-judge 1722334455000000000)])",
+    );
+
+    let found_reply = MindReply::Found(fixture.all_domain_public_record());
+    assert_eq!(round_trip_reply(found_reply.clone()), found_reply);
+    round_trip_nota(
+        found_reply,
+        "(Found (k9x8 All [Domain-general knowledge is accepted knowledge.]))",
+    );
+
+    let wrong_domain_reply =
+        MindReply::Rejected(KnowledgeRejectionReason::WrongDomain(Domain::All));
+    assert_eq!(
+        round_trip_reply(wrong_domain_reply.clone()),
+        wrong_domain_reply
+    );
+    round_trip_nota(wrong_domain_reply, "(Rejected (WrongDomain All))");
 }
 
 #[test]
