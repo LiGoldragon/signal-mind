@@ -31,9 +31,8 @@ fn mind_contract_consumes_shared_domain_from_portable_remote_contract() {
         "shared contract dependency must not be a local filesystem input",
     );
     assert!(
-        signal_domain_line.contains("rev = \"801e1c5bcc824c9760e246205826e3c8e962d005\"")
-            && !signal_domain_line.contains("branch = \"main\""),
-        "signal-domain stays on the portable migrated Domain::All revision while retired producer repositories are patched out",
+        signal_domain_line.contains("branch = \"main\"") && !signal_domain_line.contains("rev ="),
+        "signal-domain must converge on the published canonical producer revision",
     );
 }
 
@@ -46,20 +45,9 @@ fn mind_contract_pins_trueschema_family_without_retired_direct_dependencies() {
         .find(|line| line.trim_start().starts_with("signal-persona"))
         .expect("signal-persona dependency line");
     assert!(
-        signal_persona_line.contains("rev = \"e6fbc977cdf6a19b9ee31b41d235e1808091dc88\"")
-            && !signal_persona_line.contains("branch = \"main\""),
-        "signal-mind must consume the TrueSchema signal-persona producer revision",
+        signal_persona_line.contains("branch = \"main\"") && !signal_persona_line.contains("rev ="),
+        "signal-mind and router must consume one published signal-persona producer revision",
     );
-
-    for required in [
-        "github.com/LiGoldragon/schema.git",
-        "rev = \"4a8aaf1de3aaf476577d5b4e93691ef47c135d1a\"",
-    ] {
-        assert!(
-            cargo_toml.contains(required),
-            "Cargo.toml must carry TrueSchema producer fact: {required}",
-        );
-    }
 
     let retired_direct_dependencies: Vec<_> = cargo_toml
         .lines()
