@@ -1,4 +1,4 @@
-use nota::{NotaDecode, NotaEncode};
+use dotos::{DotosDecode, DotosEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use signal_domain::Domain;
@@ -9,8 +9,8 @@ use crate::{ActorName, TextBody, TimestampNanos};
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
+    DotosEncode,
+    DotosDecode,
     Debug,
     Clone,
     PartialEq,
@@ -30,7 +30,7 @@ impl KnowledgeIdentity {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct KnowledgeSubmission {
     pub domain: Domain,
@@ -47,7 +47,7 @@ impl KnowledgeSubmission {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct AcceptedKnowledge {
     pub identity: KnowledgeIdentity,
@@ -68,7 +68,7 @@ impl AcceptedKnowledge {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct KnowledgeRecord {
     pub identity: KnowledgeIdentity,
@@ -77,7 +77,7 @@ pub struct KnowledgeRecord {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct KnowledgeJudgePacket {
     pub domain: Domain,
@@ -86,7 +86,7 @@ pub struct KnowledgeJudgePacket {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct KnowledgeJudgeResponse {
     pub verdict: KnowledgeJudgeVerdict,
@@ -108,7 +108,7 @@ impl KnowledgeJudgeResponse {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum KnowledgeJudgeVerdict {
     Accept,
@@ -116,7 +116,7 @@ pub enum KnowledgeJudgeVerdict {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum KnowledgeRejectionReason {
     NotKnowledge,

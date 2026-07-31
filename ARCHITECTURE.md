@@ -113,12 +113,12 @@ flowchart LR
 | Reply producer | `mind` daemon. |
 | Reply consumer | the caller that submitted the operation. |
 
-The CLI text surface is one NOTA record in and one NOTA record out. That text
+The CLI text surface is one DOTOS record in and one DOTOS record out. That text
 projection must decode into the same `MindRequest` enum declared here. It must
 not create a second CLI-only command language.
 
 Rust-to-Rust boundaries use `signal-frame` frames carrying rkyv archives. The
-same typed request/reply vocabulary underlies both the NOTA projection and the
+same typed request/reply vocabulary underlies both the DOTOS projection and the
 binary frame projection.
 
 The local transport between CLI and daemon belongs to `mind`, not this
@@ -446,21 +446,21 @@ do not pass unstructured maps.
 
 ## 5 · Text Projection
 
-The required text surface is NOTA. Nexus may supply the semantic content shape
-inside NOTA, but there is no second text syntax.
+The required text surface is DOTOS. Nexus may supply the semantic content shape
+inside DOTOS, but there is no second text syntax.
 
-The contract records implement NOTA directly. Root `MindRequest` and
+The contract records implement DOTOS directly. Root `MindRequest` and
 `MindReply` text decoding dispatches through `signal_frame::signal_channel!`;
-payload records derive or implement NOTA in this crate. Validating boundary
+payload records derive or implement DOTOS in this crate. Validating boundary
 newtypes such as `WirePath` and `TaskToken` decode through their constructors,
 so text input cannot bypass boundary validation.
 
 ```mermaid
 flowchart LR
-    text[NOTA record] --> decode[contract decoder]
+    text[DOTOS record] --> decode[contract decoder]
     decode --> request[MindRequest]
     request --> encode[contract encoder]
-    encode --> text_again[NOTA record]
+    encode --> text_again[DOTOS record]
 ```
 
 Representative contract text shapes:
@@ -471,7 +471,7 @@ Representative contract text shapes:
 (AdjudicationRequest [adjudication-aab] (External (Owner)) (Internal Router) MessageSubmission [owner asks router to deliver a prompt])
 ```
 
-Surface owners decide where this NOTA is accepted or rendered. This crate owns
+Surface owners decide where this DOTOS is accepted or rendered. This crate owns
 the codec on the contract types, and the parsed value is one of the
 `MindRequest` or `MindReply` variants declared here.
 
@@ -554,7 +554,7 @@ MindUnimplementedReason
   channel grant, extension, revocation, or denial.
 - This contract crate contains no CLI, daemon, actor runtime, database table,
   transport, or migration implementation.
-- The text surface is NOTA projected into these exact records; there is no
+- The text surface is DOTOS projected into these exact records; there is no
   second command language.
 - Subscription close uses the streaming grammar: a typed subscription request opens
   the stream; a typed `SubscriptionRetraction(SubscriptionIdentifier)`
@@ -585,7 +585,7 @@ MindUnimplementedReason
 Existing tests in `tests/round_trip.rs` cover:
 
 - request/reply frame round trips;
-- representative NOTA text round trips for root requests and replies:
+- representative DOTOS text round trips for root requests and replies:
   `Query`, `Opening`, and `AdjudicationRequest`;
 - memory/work variants;
 - every `QueryKind`;
@@ -596,11 +596,11 @@ Existing tests in `tests/round_trip.rs` cover:
 - `MessageIngressSubmission` distinct from generic `MessageSubmission`;
 - scope variants;
 - external references;
-- boundary validation, including `WirePath` NOTA decode rejection.
+- boundary validation, including `WirePath` DOTOS decode rejection.
 - workspace role coverage.
 - relation-kind domain/range validation and table coverage.
 - technical key validation and invalid-key rejection reasons.
-- technical node/relation kind NOTA round trips, kind/body validation, storage
+- technical node/relation kind DOTOS round trips, kind/body validation, storage
   node bodies, split dependency relation domain/range validation,
   request/reply/event frame round trips, and operation head coverage.
 - technical about-node, relation-neighborhood, dependency-closure, and
@@ -617,7 +617,7 @@ Additional architecture guards still worth adding:
 
 | Test | Proves |
 |---|---|
-| `nota_projection_rejects_cli_only_command` | no second command language. |
+| `dotos_projection_rejects_cli_only_command` | no second command language. |
 | `request_payload_cannot_carry_timestamp` | store mints time. |
 | `request_payload_cannot_mint_event_sequence` | store mints sequence; callers may only echo producer-issued resume cursors. |
 | `contract_crate_cannot_spawn_actor_runtime` | contract crate stays behavior-free. |
@@ -644,7 +644,7 @@ src/lib.rs              shared newtypes and signal_channel! declaration
 src/graph.rs            Thought/Relation graph records and subscription snapshot/delta shapes
 src/technical.rs        TechnicalNode/TechnicalRelation records, filters, validators, replies
 src/knowledge.rs        AcceptedKnowledge records, judge verdicts, selectors, validators, replies
-tests/round_trip.rs     frame round trips, NOTA witnesses, and validation tests
+tests/round_trip.rs     frame round trips, DOTOS witnesses, and validation tests
 ```
 
 ## See Also

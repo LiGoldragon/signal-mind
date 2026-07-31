@@ -13,19 +13,16 @@ name = "signal_mind"
 path = "src/lib.rs"
 
 [features]
-default = ["nota-text"]
-nota-text = ["signal-frame/nota-text"]
+default = ["dotos-text"]
+dotos-text = ["signal-frame/dotos-text"]
 
 [dependencies]
-signal-frame        = { git = "https://github.com/LiGoldragon/signal-frame.git", branch = "main" }
-signal-persona      = { git = "https://github.com/LiGoldragon/signal-persona.git", branch = "main", features = ["nota-text"] }
-signal-domain       = { git = "https://github.com/LiGoldragon/signal-domain.git", branch = "main", features = ["nota-text"] }
-nota = { package = "nota", git = "https://github.com/LiGoldragon/nota.git", branch = "main" }
+signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", rev = "ca72b2d1151f5b3df536295b2ba68f039536ec19" }
+signal-persona = { git = "https://github.com/LiGoldragon/signal-persona.git", rev = "51ee97b12fef5dfd8c4bbf876dc3e4f0ee14df5a", features = ["dotos-text"] }
+signal-domain = { git = "https://github.com/LiGoldragon/signal-domain.git", rev = "1890f33174f3637b2d605b9c79e584e127580d13", features = ["dotos-text"] }
+dotos = { package = "dotos", git = "https://github.com/LiGoldragon/dotos.git", rev = "80c7b17f7ad3" }
 rkyv                = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 thiserror           = "2"
-
-[patch."https://github.com/LiGoldragon/nota-next.git"]
-nota = { git = "https://github.com/LiGoldragon/nota.git", branch = "main" }
 
 [lints.rust]
 unsafe_code = "forbid"

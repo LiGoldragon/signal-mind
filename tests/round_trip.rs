@@ -6,11 +6,12 @@
 //! proves the macro-emitted type round-trips through a
 //! length-prefixed Frame.
 
-use nota::{NotaDecode, NotaEncode, NotaSource};
+use dotos::{DotosDecode, DotosEncode, DotosSource};
 use signal_domain::{Domain, EngineeringLeaf, Software, Technology};
 use signal_frame::{
-    ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, RequestPayload, SessionEpoch,
-    SignalOperationHeads, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
+    ExchangeIdentifier, ExchangeLane, LaneSequence, NonEmpty, Reply, SessionEpoch,
+    RootCode, SignalOperationHeads, StreamEventIdentifier, SubReply, SubscriptionTokenInner,
+    VariantCode, WireRoute,
 };
 use signal_mind::*;
 use signal_persona::{
@@ -28,18 +29,11 @@ fn exchange() -> ExchangeIdentifier {
 }
 
 fn stream_event() -> StreamEventIdentifier {
-    StreamEventIdentifier::new(
-        SessionEpoch::new(1),
-        ExchangeLane::Acceptor,
-        LaneSequence::first(),
-    )
+    StreamEventIdentifier::acceptor(SessionEpoch::new(1), LaneSequence::first())
 }
 
 fn round_trip_request(request: MindRequest) -> MindRequest {
-    let frame = MindFrame::new(MindFrameBody::Request {
-        exchange: exchange(),
-        request: request.into_request(),
-    });
+    let frame = request.into_frame(exchange()).expect("build request frame");
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = MindFrame::decode_length_prefixed(&bytes).expect("decode");
     match decoded.into_body() {
@@ -49,10 +43,13 @@ fn round_trip_request(request: MindRequest) -> MindRequest {
 }
 
 fn round_trip_reply(reply: MindReply) -> MindReply {
-    let frame = MindFrame::new(MindFrameBody::Reply {
-        exchange: exchange(),
-        reply: Reply::committed(NonEmpty::single(SubReply::Ok(reply))),
-    });
+    let frame = MindFrame::new(
+        WireRoute::new(RootCode::new(0), VariantCode::new(0)),
+        MindFrameBody::Reply {
+            exchange: exchange(),
+            reply: Reply::committed(NonEmpty::single(SubReply::Ok(reply))),
+        },
+    );
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = MindFrame::decode_length_prefixed(&bytes).expect("decode");
     match decoded.into_body() {
@@ -68,11 +65,14 @@ fn round_trip_reply(reply: MindReply) -> MindReply {
 }
 
 fn round_trip_event(event: MindEvent) -> MindEvent {
-    let frame = MindFrame::new(MindFrameBody::SubscriptionEvent {
-        event_identifier: stream_event(),
-        token: SubscriptionTokenInner::new(1),
-        event,
-    });
+    let frame = MindFrame::new(
+        WireRoute::new(RootCode::new(0), VariantCode::new(0)),
+        MindFrameBody::SubscriptionEvent {
+            event_identifier: stream_event(),
+            token: SubscriptionTokenInner::new(1),
+            event,
+        },
+    );
     let bytes = frame.encode_length_prefixed().expect("encode");
     let decoded = MindFrame::decode_length_prefixed(&bytes).expect("decode");
     match decoded.into_body() {
@@ -81,16 +81,16 @@ fn round_trip_event(event: MindEvent) -> MindEvent {
     }
 }
 
-fn round_trip_nota<T>(value: T, expected: &str)
+fn round_trip_dotos<T>(value: T, expected: &str)
 where
-    T: NotaEncode + NotaDecode + PartialEq + std::fmt::Debug,
+    T: DotosEncode + DotosDecode + PartialEq + std::fmt::Debug,
 {
-    let encoded = value.to_nota();
+    let encoded = value.to_dotos();
     assert_eq!(encoded, expected);
 
-    let recovered = NotaSource::new(&encoded)
+    let recovered = DotosSource::new(&encoded)
         .parse::<T>()
-        .expect("decode nota text");
+        .expect("decode dotos text");
     assert_eq!(recovered, value);
 }
 
@@ -609,7 +609,7 @@ impl KnowledgeFixture {
 // ─── Mind graph contract variants ─────────────────────────
 
 #[test]
-fn every_thought_kind_round_trips_through_nota_text() {
+fn every_thought_kind_round_trips_through_dotos_text() {
     let cases = [
         (ThoughtKind::Observation, "Observation"),
         (ThoughtKind::Memory, "Memory"),
@@ -621,12 +621,12 @@ fn every_thought_kind_round_trips_through_nota_text() {
     ];
 
     for (kind, expected) in cases {
-        round_trip_nota(kind, expected);
+        round_trip_dotos(kind, expected);
     }
 }
 
 #[test]
-fn every_relation_kind_round_trips_through_nota_text() {
+fn every_relation_kind_round_trips_through_dotos_text() {
     let cases = [
         (RelationKind::Implements, "Implements"),
         (RelationKind::Realizes, "Realizes"),
@@ -642,7 +642,7 @@ fn every_relation_kind_round_trips_through_nota_text() {
     ];
 
     for (kind, expected) in cases {
-        round_trip_nota(kind, expected);
+        round_trip_dotos(kind, expected);
     }
 }
 
@@ -1063,33 +1063,33 @@ fn unimplemented_reply_round_trips_as_typed_reply() {
     let cases = [
         (
             MindUnimplementedReason::NotInPrototypeScope,
-            "(MindRequestUnimplemented (NotInPrototypeScope))",
+            "(MindRequestUnimplemented {NotInPrototypeScope})",
         ),
         (
             MindUnimplementedReason::ChoreographyPolicyMissing,
-            "(MindRequestUnimplemented (ChoreographyPolicyMissing))",
+            "(MindRequestUnimplemented {ChoreographyPolicyMissing})",
         ),
         (
             MindUnimplementedReason::DependencyMissing(DependencyKind::Router),
-            "(MindRequestUnimplemented ((DependencyMissing Router)))",
+            "(MindRequestUnimplemented {DependencyMissing.Router})",
         ),
         (
             MindUnimplementedReason::ResourceUnavailable(ResourceKind::Database),
-            "(MindRequestUnimplemented ((ResourceUnavailable Database)))",
+            "(MindRequestUnimplemented {ResourceUnavailable.Database})",
         ),
     ];
 
     for (reason, expected_text) in cases {
         let reply = MindReply::MindRequestUnimplemented(MindRequestUnimplemented { reason });
         assert_eq!(round_trip_reply(reply.clone()), reply);
-        round_trip_nota(reply, expected_text);
+        round_trip_dotos(reply, expected_text);
     }
 }
 
 // ─── Technical dependency memory contract variants ────────
 
 #[test]
-fn every_technical_node_kind_round_trips_through_nota_text() {
+fn every_technical_node_kind_round_trips_through_dotos_text() {
     let cases = [
         (TechnicalNodeKind::Component, "Component"),
         (TechnicalNodeKind::Repository, "Repository"),
@@ -1106,12 +1106,12 @@ fn every_technical_node_kind_round_trips_through_nota_text() {
     ];
 
     for (kind, expected) in cases {
-        round_trip_nota(kind, expected);
+        round_trip_dotos(kind, expected);
     }
 }
 
 #[test]
-fn every_technical_relation_kind_round_trips_through_nota_text() {
+fn every_technical_relation_kind_round_trips_through_dotos_text() {
     let cases = [
         (TechnicalRelationKind::OwnsRepository, "OwnsRepository"),
         (TechnicalRelationKind::DefinesContract, "DefinesContract"),
@@ -1141,7 +1141,7 @@ fn every_technical_relation_kind_round_trips_through_nota_text() {
     ];
 
     for (kind, expected) in cases {
-        round_trip_nota(kind, expected);
+        round_trip_dotos(kind, expected);
     }
 }
 
@@ -1224,7 +1224,7 @@ fn technical_node_key_accepts_canonical_typed_families() {
         assert_eq!(key.as_str(), text);
         assert_eq!(key.family(), family);
         assert_eq!(key.expected_node_kind(), node_kind);
-        round_trip_nota(key, text);
+        round_trip_dotos(key, text);
     }
 }
 
@@ -1381,7 +1381,7 @@ fn technical_relation_kind_rejects_wrong_domain() {
 
 #[test]
 fn generated_knowledge_identity_round_trips_as_short_atom() {
-    round_trip_nota(sample_knowledge_identity(), "k9x8");
+    round_trip_dotos(sample_knowledge_identity(), "k9x8");
 }
 
 #[test]
@@ -1390,8 +1390,8 @@ fn accepted_knowledge_domain_round_trips_through_shared_codec() {
         EngineeringLeaf::Architecture,
     )));
 
-    round_trip_nota(domain, "(Technology (Software (Engineering Architecture)))");
-    round_trip_nota(Domain::All, "All");
+    round_trip_dotos(domain, "Technology.Software.Engineering.Architecture");
+    round_trip_dotos(Domain::All, "All");
 }
 
 #[test]
@@ -1400,15 +1400,15 @@ fn accepted_knowledge_contract_round_trips_all_domain() {
     let submission = fixture.all_domain_submission();
     let request = MindRequest::Submit(submission.clone());
     assert_eq!(round_trip_request(request.clone()), request);
-    round_trip_nota(
+    round_trip_dotos(
         submission,
-        "(All [Domain-general knowledge is accepted knowledge.])",
+        "{All (|Domain-general knowledge is accepted knowledge.|)}",
     );
 
     let accepted_knowledge = fixture.all_domain_accepted_knowledge();
-    round_trip_nota(
+    round_trip_dotos(
         accepted_knowledge.clone(),
-        "(k9x8 All [Domain-general knowledge is accepted knowledge.] mind-judge 1722334455000000000)",
+        "{k9x8 All (|Domain-general knowledge is accepted knowledge.|) mind-judge 1722334455000000000}",
     );
 
     let judge_packet = KnowledgeJudgePacket {
@@ -1416,16 +1416,16 @@ fn accepted_knowledge_contract_round_trips_all_domain() {
         statement: TextBody::new("Domain-general knowledge is accepted knowledge."),
         relevant_neighbors: vec![accepted_knowledge],
     };
-    round_trip_nota(
+    round_trip_dotos(
         judge_packet,
-        "(All [Domain-general knowledge is accepted knowledge.] [(k9x8 All [Domain-general knowledge is accepted knowledge.] mind-judge 1722334455000000000)])",
+        "{All (|Domain-general knowledge is accepted knowledge.|) [{k9x8 All (|Domain-general knowledge is accepted knowledge.|) mind-judge 1722334455000000000}]}",
     );
 
     let found_reply = MindReply::Found(fixture.all_domain_public_record());
     assert_eq!(round_trip_reply(found_reply.clone()), found_reply);
-    round_trip_nota(
+    round_trip_dotos(
         found_reply,
-        "(Found (k9x8 All [Domain-general knowledge is accepted knowledge.]))",
+        "(Found {k9x8 All (|Domain-general knowledge is accepted knowledge.|)})",
     );
 
     let wrong_domain_reply =
@@ -1434,7 +1434,7 @@ fn accepted_knowledge_contract_round_trips_all_domain() {
         round_trip_reply(wrong_domain_reply.clone()),
         wrong_domain_reply
     );
-    round_trip_nota(wrong_domain_reply, "(Rejected (WrongDomain All))");
+    round_trip_dotos(wrong_domain_reply, "(Rejected WrongDomain.All)");
 }
 
 #[test]
@@ -1457,18 +1457,18 @@ fn knowledge_verdicts_and_replies_round_trip() {
 
     let accepted_reply = MindReply::Accepted(fixture.identity.clone());
     assert_eq!(round_trip_reply(accepted_reply.clone()), accepted_reply);
-    round_trip_nota(accepted_reply, "(Accepted k9x8)");
+    round_trip_dotos(accepted_reply, "(Accepted k9x8)");
 
     let found_reply = MindReply::Found(fixture.public_record());
     assert_eq!(round_trip_reply(found_reply.clone()), found_reply);
-    round_trip_nota(
+    round_trip_dotos(
         found_reply,
-        "(Found (k9x8 (Technology (Software (Engineering Architecture))) [Mind stores accepted knowledge.]))",
+        "(Found {k9x8 Technology.Software.Engineering.Architecture (|Mind stores accepted knowledge.|)})",
     );
 
     let not_found_reply = MindReply::NotFound;
     assert_eq!(round_trip_reply(not_found_reply.clone()), not_found_reply);
-    round_trip_nota(not_found_reply, "NotFound");
+    round_trip_dotos(not_found_reply, "NotFound");
 
     let rejected_reply =
         MindReply::Rejected(KnowledgeRejectionReason::ConflictsAcceptedKnowledge(vec![
@@ -1477,16 +1477,16 @@ fn knowledge_verdicts_and_replies_round_trip() {
     assert_eq!(round_trip_reply(rejected_reply.clone()), rejected_reply);
 
     let verdict = KnowledgeJudgeVerdict::Accept;
-    let decoded = NotaSource::new(&verdict.to_nota())
+    let decoded = DotosSource::new(&verdict.to_dotos())
         .parse::<KnowledgeJudgeVerdict>()
         .expect("decode knowledge verdict");
     assert_eq!(decoded, verdict);
 
     let response = KnowledgeJudgeResponse::new(verdict.clone())
         .with_diagnostic_message("Ambiguous but accepted.");
-    let response_text = response.to_nota();
+    let response_text = response.to_dotos();
     assert!(response_text.contains("Ambiguous but accepted."));
-    let decoded_response = NotaSource::new(&response_text)
+    let decoded_response = DotosSource::new(&response_text)
         .parse::<KnowledgeJudgeResponse>()
         .expect("decode knowledge judge response");
     assert_eq!(decoded_response.verdict, verdict);
@@ -1501,7 +1501,7 @@ fn knowledge_verdicts_and_replies_round_trip() {
     let response_without_diagnostic = KnowledgeJudgeResponse::new(KnowledgeJudgeVerdict::Reject(
         KnowledgeRejectionReason::NeedsMoreSpecificShape,
     ));
-    let decoded_without_diagnostic = NotaSource::new(&response_without_diagnostic.to_nota())
+    let decoded_without_diagnostic = DotosSource::new(&response_without_diagnostic.to_dotos())
         .parse::<KnowledgeJudgeResponse>()
         .expect("decode knowledge judge response without diagnostic");
     assert_eq!(
@@ -1519,14 +1519,14 @@ fn old_keyed_unkeyed_and_get_by_identity_surfaces_do_not_parse() {
         "(QueryKnowledge (GetByIdentity (Component mind)))",
     ] {
         assert!(
-            NotaSource::new(old_surface).parse::<MindRequest>().is_err(),
+            DotosSource::new(old_surface).parse::<MindRequest>().is_err(),
             "old accepted-knowledge surface must not parse: {old_surface}"
         );
     }
 
     let old_substitute_accept = "(Accept (([(Domain (domain:component [Component] None))]) []))";
     assert!(
-        NotaSource::new(old_substitute_accept)
+        DotosSource::new(old_substitute_accept)
             .parse::<KnowledgeJudgeVerdict>()
             .is_err(),
         "old substitute accept verdict must not parse"
@@ -1857,13 +1857,13 @@ fn every_query_kind_round_trips() {
 }
 
 #[test]
-fn query_request_round_trips_through_nota_text() {
-    round_trip_nota(
+fn query_request_round_trips_through_dotos_text() {
+    round_trip_dotos(
         MindRequest::Query(Query {
             kind: QueryKind::Ready,
             limit: QueryLimit::new(25),
         }),
-        "(Query (Ready 25))",
+        "(Query {Ready 25})",
     );
 }
 
@@ -1956,11 +1956,11 @@ fn message_ingress_kind_is_distinct_from_generic_message_submission() {
         ChannelMessageKind::MessageIngressSubmission,
         ChannelMessageKind::MessageSubmission
     );
-    round_trip_nota(
+    round_trip_dotos(
         ChannelMessageKind::MessageIngressSubmission,
         "MessageIngressSubmission",
     );
-    round_trip_nota(ChannelMessageKind::MessageSubmission, "MessageSubmission");
+    round_trip_dotos(ChannelMessageKind::MessageSubmission, "MessageSubmission");
 }
 
 #[test]
@@ -1989,7 +1989,7 @@ fn channel_message_kinds_do_not_model_router_owner_orders() {
     ];
 
     for kind in allowed {
-        let encoded = kind.to_nota();
+        let encoded = kind.to_dotos();
         assert!(!forbidden.contains(&encoded.as_str()));
     }
 }
@@ -2252,8 +2252,8 @@ fn mind_contract_has_no_sema_classification_dependency_or_roots() {
 }
 
 #[test]
-fn mind_operation_kind_round_trips_through_nota_text() {
-    round_trip_nota(
+fn mind_operation_kind_round_trips_through_dotos_text() {
+    round_trip_dotos(
         MindOperationKind::AdjudicationRequest,
         "AdjudicationRequest",
     );
@@ -2341,15 +2341,15 @@ fn explicit_variant_lifts_view_into_reply() {
 
 #[test]
 fn path_scope_round_trips() {
-    round_trip_nota(
+    round_trip_dotos(
         ScopeReference::Path(sample_path()),
-        "(Path /git/github.com/LiGoldragon/signal-mind/src/lib.rs)",
+        "Path./git/github.com/LiGoldragon/signal-mind/src/lib.rs",
     );
 }
 
 #[test]
 fn task_scope_round_trips() {
-    round_trip_nota(ScopeReference::Task(sample_task()), "(Task primary-f99)");
+    round_trip_dotos(ScopeReference::Task(sample_task()), "Task.primary-f99");
 }
 
 // ─── Boundary validation ──────────────────────────────────
@@ -2370,8 +2370,8 @@ fn wire_path_requires_absolute_normalized_path() {
 }
 
 #[test]
-fn wire_path_nota_decode_uses_boundary_validation() {
-    let error = NotaSource::new("relative/path")
+fn wire_path_dotos_decode_uses_boundary_validation() {
+    let error = DotosSource::new("relative/path")
         .parse::<WirePath>()
         .expect_err("relative path must fail validation");
     let message = error.to_string();

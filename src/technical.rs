@@ -1,4 +1,4 @@
-use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use signal_persona::ComponentName;
 use std::fmt;
@@ -13,8 +13,8 @@ use crate::{
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
+    DotosEncode,
+    DotosDecode,
     Debug,
     Clone,
     PartialEq,
@@ -37,8 +37,8 @@ impl TechnicalNodeIdentifier {
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
+    DotosEncode,
+    DotosDecode,
     Debug,
     Clone,
     PartialEq,
@@ -58,7 +58,7 @@ impl TechnicalRelationIdentifier {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, Debug, Clone, PartialEq, Eq, Hash,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, Debug, Clone, PartialEq, Eq, Hash,
 )]
 pub struct TechnicalNodeKey(String);
 
@@ -173,10 +173,10 @@ impl AsRef<str> for TechnicalNodeKey {
     }
 }
 
-impl NotaDecode for TechnicalNodeKey {
-    fn from_nota_block(block: &Block) -> std::result::Result<Self, NotaDecodeError> {
-        let key = NotaBlock::new(block).parse_string()?;
-        Self::from_canonical(key).map_err(|rejection| NotaDecodeError::Parse(rejection.to_string()))
+impl DotosDecode for TechnicalNodeKey {
+    fn from_dotos_block(block: &Block) -> std::result::Result<Self, DotosDecodeError> {
+        let key = DotosBlock::new(block).parse_string()?;
+        Self::from_canonical(key).map_err(|rejection| DotosDecodeError::Parse(rejection.to_string()))
     }
 }
 
@@ -184,8 +184,8 @@ impl NotaDecode for TechnicalNodeKey {
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
+    DotosEncode,
+    DotosDecode,
     Debug,
     Clone,
     Copy,
@@ -292,7 +292,7 @@ impl TechnicalNodeKeyFamily {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalNodeKeyRejection {
     pub supplied_key: TextBody,
@@ -318,8 +318,8 @@ impl fmt::Display for TechnicalNodeKeyRejection {
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
+    DotosEncode,
+    DotosDecode,
     Debug,
     Clone,
     Copy,
@@ -351,8 +351,8 @@ impl fmt::Display for TechnicalNodeKeyRejectionReason {
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
+    DotosEncode,
+    DotosDecode,
     Debug,
     Clone,
     Copy,
@@ -408,7 +408,7 @@ impl TechnicalNodeKind {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalNodeKindMismatch {
     pub expected_kind: TechnicalNodeKind,
@@ -416,7 +416,7 @@ pub struct TechnicalNodeKindMismatch {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum TechnicalNodeBody {
     Component(ComponentNode),
@@ -453,7 +453,7 @@ impl TechnicalNodeBody {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ComponentNode {
     pub component: ComponentName,
@@ -461,7 +461,7 @@ pub struct ComponentNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct RepositoryNode {
     pub path: WirePath,
@@ -469,7 +469,7 @@ pub struct RepositoryNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct CrateNode {
     pub name: TextBody,
@@ -477,7 +477,7 @@ pub struct CrateNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ContractNode {
     pub name: TextBody,
@@ -488,8 +488,8 @@ pub struct ContractNode {
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
+    DotosEncode,
+    DotosDecode,
     Debug,
     Clone,
     Copy,
@@ -504,7 +504,7 @@ pub enum ContractSurface {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct WorkItemNode {
     pub task: TaskToken,
@@ -512,7 +512,7 @@ pub struct WorkItemNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct SourceArtifactNode {
     pub locator: TechnicalSourceLocator,
@@ -520,7 +520,7 @@ pub struct SourceArtifactNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ReportNode {
     pub path: WirePath,
@@ -528,14 +528,14 @@ pub struct ReportNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalClaimNode {
     pub claim: TextBody,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct WitnessNode {
     pub summary: TextBody,
@@ -543,7 +543,7 @@ pub struct WitnessNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct StorageResourceNode {
     pub owner: TechnicalNodeKey,
@@ -552,7 +552,7 @@ pub struct StorageResourceNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct SchemaFamilyNode {
     pub owner: TechnicalNodeKey,
@@ -561,7 +561,7 @@ pub struct SchemaFamilyNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TableNode {
     pub storage: TechnicalNodeKey,
@@ -570,7 +570,7 @@ pub struct TableNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum TechnicalSourceLocator {
     Path(WirePath),
@@ -582,7 +582,7 @@ pub enum TechnicalSourceLocator {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalNode {
     pub identifier: TechnicalNodeIdentifier,
@@ -597,8 +597,8 @@ pub struct TechnicalNode {
     Archive,
     RkyvSerialize,
     RkyvDeserialize,
-    NotaEncode,
-    NotaDecode,
+    DotosEncode,
+    DotosDecode,
     Debug,
     Clone,
     Copy,
@@ -758,7 +758,7 @@ impl TechnicalRelationKind {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalRelationKindMismatch {
     pub relation: TechnicalRelationKind,
@@ -769,7 +769,7 @@ pub struct TechnicalRelationKindMismatch {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalRelationEndpoint {
     pub identifier: TechnicalNodeIdentifier,
@@ -777,7 +777,7 @@ pub struct TechnicalRelationEndpoint {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalRelation {
     pub identifier: TechnicalRelationIdentifier,
@@ -790,7 +790,7 @@ pub struct TechnicalRelation {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct SubmitTechnicalNode {
     pub stable_key: TechnicalNodeKey,
@@ -799,7 +799,7 @@ pub struct SubmitTechnicalNode {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct SubmitTechnicalRelation {
     pub kind: TechnicalRelationKind,
@@ -809,7 +809,7 @@ pub struct SubmitTechnicalRelation {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct QueryTechnicalNodes {
     pub query: TechnicalNodeQuery,
@@ -817,7 +817,7 @@ pub struct QueryTechnicalNodes {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct QueryTechnicalRelations {
     pub filter: TechnicalRelationFilter,
@@ -825,7 +825,7 @@ pub struct QueryTechnicalRelations {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct SubscribeTechnicalNodes {
     pub filter: TechnicalNodeFilter,
@@ -834,7 +834,7 @@ pub struct SubscribeTechnicalNodes {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct SubscribeTechnicalRelations {
     pub filter: TechnicalRelationFilter,
@@ -843,7 +843,7 @@ pub struct SubscribeTechnicalRelations {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum TechnicalNodeQuery {
     Filter(TechnicalNodeFilter),
@@ -854,14 +854,14 @@ pub enum TechnicalNodeQuery {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct AboutTechnicalNode {
     pub stable_key: TechnicalNodeKey,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalRelationNeighborhoodQuery {
     pub stable_key: TechnicalNodeKey,
@@ -870,7 +870,7 @@ pub struct TechnicalRelationNeighborhoodQuery {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum TechnicalRelationNeighborhoodDirection {
     Incoming,
@@ -879,7 +879,7 @@ pub enum TechnicalRelationNeighborhoodDirection {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalDependencyClosureQuery {
     pub stable_key: TechnicalNodeKey,
@@ -887,7 +887,7 @@ pub struct TechnicalDependencyClosureQuery {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalProvenanceChainQuery {
     pub stable_key: TechnicalNodeKey,
@@ -895,7 +895,7 @@ pub struct TechnicalProvenanceChainQuery {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum TechnicalNodeFilter {
     ByKind(ByTechnicalNodeKind),
@@ -905,28 +905,28 @@ pub enum TechnicalNodeFilter {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ByTechnicalNodeKind {
     pub kinds: Vec<TechnicalNodeKind>,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ByTechnicalNodeStableKey {
     pub stable_key: TechnicalNodeKey,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ByTechnicalSourceLocator {
     pub locator: TechnicalSourceLocator,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct CompositeTechnicalNodeFilter {
     pub kinds: Vec<TechnicalNodeKind>,
@@ -935,7 +935,7 @@ pub struct CompositeTechnicalNodeFilter {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum TechnicalRelationFilter {
     ByKind(ByTechnicalRelationKind),
@@ -946,28 +946,28 @@ pub enum TechnicalRelationFilter {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ByTechnicalRelationKind {
     pub kinds: Vec<TechnicalRelationKind>,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ByTechnicalRelationSource {
     pub source: TechnicalNodeKey,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ByTechnicalRelationTarget {
     pub target: TechnicalNodeKey,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ByTechnicalRelationEndpoints {
     pub source: TechnicalNodeKey,
@@ -975,7 +975,7 @@ pub struct ByTechnicalRelationEndpoints {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct CompositeTechnicalRelationFilter {
     pub kinds: Vec<TechnicalRelationKind>,
@@ -984,21 +984,21 @@ pub struct CompositeTechnicalRelationFilter {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalNodeCommitted {
     pub node: TechnicalNode,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalRelationCommitted {
     pub relation: TechnicalRelation,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalNodeList {
     pub nodes: Vec<TechnicalNode>,
@@ -1006,7 +1006,7 @@ pub struct TechnicalNodeList {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalRelationList {
     pub relations: Vec<TechnicalRelation>,
@@ -1014,7 +1014,7 @@ pub struct TechnicalRelationList {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalNodeNeighborhood {
     pub center: Option<TechnicalNode>,
@@ -1024,7 +1024,7 @@ pub struct TechnicalNodeNeighborhood {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalDependencyClosure {
     pub root: Option<TechnicalNode>,
@@ -1034,7 +1034,7 @@ pub struct TechnicalDependencyClosure {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalProvenanceChain {
     pub root: Option<TechnicalNode>,
@@ -1044,14 +1044,14 @@ pub struct TechnicalProvenanceChain {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalNodeRejected {
     pub reason: TechnicalNodeRejectionReason,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum TechnicalNodeRejectionReason {
     InvalidStableNodeKey(TechnicalNodeKeyRejection),
@@ -1061,14 +1061,14 @@ pub enum TechnicalNodeRejectionReason {
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub struct TechnicalRelationRejected {
     pub reason: TechnicalRelationRejectionReason,
 }
 
 #[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, NotaEncode, NotaDecode, Debug, Clone, PartialEq, Eq,
+    Archive, RkyvSerialize, RkyvDeserialize, DotosEncode, DotosDecode, Debug, Clone, PartialEq, Eq,
 )]
 pub enum TechnicalRelationRejectionReason {
     DuplicateRelation,
