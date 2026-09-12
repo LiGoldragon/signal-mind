@@ -1,12 +1,16 @@
 # signal-mind
 
 The Signal contract between **`mind`** (the CLI agents invoke per call)
-and **`mind`** (the central state actor that owns `mind.sema`).
+and **`mind`** (the central state actor that owns mind's durable store).
 
-Read `src/lib.rs` for the public interface — two enums
-(`MindRequest`, `MindReply`) declared via the
-`signal_channel!` macro. The variants ARE the messages this
-channel carries:
+Read `ethos/signal.ethos` for the authored contract. It is the source of
+truth: `src/generated/signal.rs` is generated from it by `ethos-zero`, and
+`build.rs` asserts the committed generation matches a fresh one. Never
+hand-edit the generated Rust, and never hand-write a `Datomic` impl for a
+declared type.
+
+The generation yields two enums — `Query` (requests) and `Response`
+(replies). Their variants ARE the messages this channel carries:
 
 - **Memory/work graph:** `Opening`, `NoteSubmission`, `Link`,
   `StatusChange`, `AliasAssignment`, `Query`.
@@ -23,52 +27,43 @@ channel carries:
   `component:mind`, `repo:signal-mind`, and
   `contract:signal-mind:ordinary`.
 - **Channel choreography:** `AdjudicationRequest`, `ChannelList`.
+- **Knowledge:** `Submit`, `Get`.
 
 Ordinary role claims, handoffs, observations, and activity log operations
 belong to `signal-persona-orchestrate`.
 
 ## Quick reference
 
+A value crosses the wire as an rkyv archive inside a typed `Signal<T>`:
+
 ```rust
-use signal_frame::{
-    ExchangeIdentifier, ExchangeLane, LaneSequence, RequestPayload, SessionEpoch,
-};
 use signal_mind::{
-    ItemKind, Magnitude, MindFrame, MindFrameBody, MindRequest, Opening,
-    TextBody, Title,
+    ByteViewable, ItemKind, Magnitude, Opening, Query, Restorable, Signal,
+    Signalizable,
 };
 
-let exchange = ExchangeIdentifier::new(
-    SessionEpoch::new(1),
-    ExchangeLane::Connector,
-    LaneSequence::first(),
-);
-let request = MindRequest::Opening(Opening {
-    kind: ItemKind::Task,
-    priority: Magnitude::High,
-    title: Title::new("wire command-line mind"),
-    body: TextBody::new("replace transitional task storage with typed mind state"),
+let query = Query::Opening(Opening {
+    item_kind: ItemKind::Task,
+    magnitude: Magnitude::High,
+    title: "wire command-line mind".into(),
+    text_body: "replace transitional task storage with typed mind state".into(),
 });
-let frame = MindFrame::new(MindFrameBody::Request {
-    exchange,
-    request: request.into_request(),
-});
-let bytes = frame.encode_length_prefixed()?;
-// hand to mind's daemon dispatcher
+let frame = query.signalize()?;
+let bytes = frame.bytes().to_vec(); // hand to mind's transport
+let restored: Query = Signal::<Query>::from(bytes).restore()?;
 ```
 
-The state actor replies with `MindReply::OpeningReceipt` on success.
+The state actor replies with `Response::OpeningReceipt` on success.
 
-Use the public constructors for boundary strings before
-building a frame: `WirePath::from_absolute_path` (which
-stores a normalized absolute path) and `TaskToken::from_wire_token`.
+With the `datom` feature the same values render and read back as Datom
+text through `Datomizable` / `Potential`. `examples/canonical.datom` holds
+one example per area of the contract, and `tests/generated_contract.rs`
+actualizes every line of it, so an example that stops parsing fails the
+gate.
 
 ## See also
 
 - `ARCHITECTURE.md` — channel role + boundaries
-- `~/primary/skills/contract-repo.md` — contract-repo
-  discipline
-- `signal-frame` — kernel that supplies `Frame`,
-  `Request`, `Reply`, `signal_channel!`
-- `mind` — the consumer that implements
-  this contract
+- `ethos/signal.ethos` — the authored contract
+- `signal-persona`, `signal-domain` — the contracts this one imports from
+- `mind` — the consumer that implements this contract

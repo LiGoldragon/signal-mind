@@ -1,0 +1,351 @@
+Signal
+[ signal_persona:[ ChannelIdentifier ComponentName ConnectionClass MessageOrigin EngineIdentifier HostName UnixUserIdentifier ] signal_domain:[ Domain ] ]
+[ SubmitThought.SubmitThought
+  SubmitRelation.SubmitRelation
+  QueryThoughts.QueryThoughts
+  QueryRelations.QueryRelations
+  SubscribeThoughts.SubscribeThoughts
+  SubscribeRelations.SubscribeRelations
+  SubscriptionRetraction.SubscriptionIdentifier
+  SubscriptionDemand.SubscriptionDemand
+  Opening.Opening
+  NoteSubmission.NoteSubmission
+  Link.Link
+  StatusChange.StatusChange
+  AliasAssignment.AliasAssignment
+  Query.MemoryQuery
+  AdjudicationRequest.AdjudicationSubmission
+  ChannelList.ChannelList
+  SubmitTechnicalNode.SubmitTechnicalNode
+  SubmitTechnicalRelation.SubmitTechnicalRelation
+  QueryTechnicalNodes.QueryTechnicalNodes
+  QueryTechnicalRelations.QueryTechnicalRelations
+  SubscribeTechnicalNodes.SubscribeTechnicalNodes
+  SubscribeTechnicalRelations.SubscribeTechnicalRelations
+  Submit.KnowledgeSubmission
+  Get.KnowledgeIdentity ]
+[ ThoughtCommitted.ThoughtCommitted
+  RelationCommitted.RelationCommitted
+  ThoughtList.ThoughtList
+  RelationList.RelationList
+  SubscriptionAccepted.SubscriptionAccepted
+  SubscriptionRetracted.SubscriptionRetracted
+  SubscriptionDemandAccepted.SubscriptionDemandAccepted
+  SubscriptionDelta.SubscriptionEvent
+  OpeningReceipt.OpeningReceipt
+  NoteReceipt.NoteReceipt
+  LinkReceipt.LinkReceipt
+  StatusReceipt.StatusReceipt
+  AliasReceipt.AliasReceipt
+  View.View
+  Rejection.Rejection
+  AdjudicationReceipt.AdjudicationReceipt
+  ChannelListView.ChannelListView
+  MindRequestUnimplemented.MindRequestUnimplemented
+  TechnicalNodeCommitted.TechnicalNodeCommitted
+  TechnicalRelationCommitted.TechnicalRelationCommitted
+  TechnicalNodeList.TechnicalNodeList
+  TechnicalRelationList.TechnicalRelationList
+  TechnicalNodeNeighborhood.TechnicalNodeNeighborhood
+  TechnicalDependencyClosure.TechnicalDependencyClosure
+  TechnicalProvenanceChain.TechnicalProvenanceChain
+  TechnicalNodeRejected.TechnicalNodeRejected
+  TechnicalRelationRejected.TechnicalRelationRejected
+  Accepted.KnowledgeIdentity
+  Rejected.KnowledgeRejectionReason
+  Found.KnowledgeRecord
+  NotFound ]
+[ WirePath.String
+  TaskToken.String
+  TimestampNanos.Integer
+  StableItemIdentifier.String
+  DisplayIdentifier.String
+  ExternalAlias.String
+  BeadsToken.String
+  OperationIdentifier.String
+  ActorName.String
+  EventSeq.Integer
+  QueryLimit.Integer
+  Title.String
+  TextBody.String
+  ReportPath.String
+  ReferencePath.String
+  CommitHash.String
+  HasMore.Boolean
+  Magnitude.[ Zero Minimum VeryLow Low Medium High VeryHigh Maximum ]
+  RoleName.[ Operator OperatorAssistant SecondOperatorAssistant Designer DesignerAssistant SecondDesignerAssistant SystemSpecialist SystemAssistant SecondSystemAssistant Poet PoetAssistant ]
+  ScopeReference.[ Path.WirePath Task.TaskToken ]
+  ItemKind.[ Task Defect Question Decision Note Handoff ]
+  ItemStatus.[ Open InProgress Blocked Closed Deferred ]
+  EdgeKind.[ DependsOn ParentOf RelatesTo Duplicates Supersedes Answers References ]
+  ItemReference.[ Stable.StableItemIdentifier Display.DisplayIdentifier Alias.ExternalAlias ]
+  ExternalReference.[ Report.ReportPath GitCommit.CommitHash BeadsTask.BeadsToken File.ReferencePath ]
+  LinkTarget.[ Item.ItemReference External.ExternalReference ]
+  EdgeTarget.[ Item.StableItemIdentifier External.ExternalReference ]
+  Opening.{ ItemKind Magnitude Title TextBody }
+  NoteSubmission.{ ItemReference TextBody }
+  Link.{ ItemReference EdgeKind LinkTarget Option<TextBody> }
+  StatusChange.{ ItemReference ItemStatus Option<TextBody> }
+  AliasAssignment.{ ItemReference ExternalAlias }
+  MemoryQuery.{ QueryKind QueryLimit }
+  QueryKind.[ Ready Blocked Open RecentEvents ByItem.ItemReference ByKind.ItemKind ByStatus.ItemStatus ByAlias.ExternalAlias ]
+  Item.{ StableItemIdentifier DisplayIdentifier Vector<ExternalAlias> ItemKind ItemStatus Magnitude Title TextBody }
+  ItemNote.{ EventSeq StableItemIdentifier ActorName TextBody }
+  Edge.{ EventSeq StableItemIdentifier EdgeKind EdgeTarget Option<TextBody> }
+  EventHeader.{ EventSeq OperationIdentifier ActorName }
+  ItemOpenedEvent.{ EventHeader Item }
+  NoteAddedEvent.{ EventHeader ItemNote }
+  EdgeAddedEvent.{ EventHeader Edge }
+  StatusChangedEvent.{ EventHeader StableItemIdentifier ItemStatus Option<TextBody> }
+  AliasAddedEvent.{ EventHeader StableItemIdentifier ExternalAlias }
+  Event.[ ItemOpened.ItemOpenedEvent NoteAdded.NoteAddedEvent EdgeAdded.EdgeAddedEvent StatusChanged.StatusChangedEvent AliasAdded.AliasAddedEvent ]
+  OpeningReceipt.{ ItemOpenedEvent }
+  NoteReceipt.{ NoteAddedEvent }
+  LinkReceipt.{ EdgeAddedEvent }
+  StatusReceipt.{ StatusChangedEvent }
+  AliasReceipt.{ AliasAddedEvent }
+  View.{ Vector<Item> Vector<Edge> Vector<ItemNote> Vector<Event> }
+  Rejection.{ RejectionReason }
+  RejectionReason.[ UnknownItem DuplicateAlias InvalidEdge PersistenceRejected UnsupportedQuery CollisionUnresolved ]
+  AdjudicationRequestIdentifier.String
+  ChannelEndpoint.[ Internal.ComponentName External.ConnectionClass ]
+  ChannelSource.ChannelEndpoint
+  ChannelDestination.ChannelEndpoint
+  ChannelMessageKind.[ MessageIngressSubmission MessageSubmission InboxQuery FocusObservation PromptBufferObservation MessageDelivery TerminalInput TerminalCapture TerminalResize TranscriptEvent AdjudicationRequest DeliveryNotification ]
+  ChannelDuration.[ OneShot Permanent TimeBound.TimestampNanos ]
+  AdjudicationSubmission.{ AdjudicationRequestIdentifier MessageOrigin ChannelEndpoint ChannelMessageKind TextBody }
+  AdjudicationReceipt.{ AdjudicationRequestIdentifier }
+  ChannelList.{ Vector<ChannelFilter> }
+  ChannelFilter.[ Source.ChannelEndpoint Destination.ChannelEndpoint Kind.ChannelMessageKind ]
+  ChannelView.{ ChannelIdentifier ChannelSource ChannelDestination Vector<ChannelMessageKind> ChannelDuration }
+  ChannelListView.{ Vector<ChannelView> }
+  RecordIdentifier.String
+  SourceRecordIdentifier.RecordIdentifier
+  TargetRecordIdentifier.RecordIdentifier
+  GoalRecordIdentifier.RecordIdentifier
+  MemoryRecordIdentifier.RecordIdentifier
+  RelationIdentifier.String
+  SubscriptionIdentifier.String
+  SubscriptionCursor.Integer
+  SubscriptionDemandCredit.Integer
+  SubscriptionBufferBound.Integer
+  SubscriptionStreamKind.[ Thoughts Relations TechnicalNodes TechnicalRelations ]
+  AlternativeIdentifier.String
+  SymbolName.String
+  NormalizedUrl.String
+  DocumentReference.String
+  HarnessKind.String
+  HarnessIdentifier.String
+  ProcessExitCode.Integer
+  ReportNumber.Integer
+  ThoughtKind.[ Observation Memory Belief Goal Claim Decision Reference ]
+  SourceThoughtKind.ThoughtKind
+  TargetThoughtKind.ThoughtKind
+  ExpectedSourceThoughtKinds.Vector<ThoughtKind>
+  ExpectedTargetThoughtKinds.Vector<ThoughtKind>
+  RelationKind.[ Implements Realizes Requires Supports Refutes Supersedes Authored References Decides Considered Belongs ]
+  RelationKindMismatchReason.[ DomainRange AuthoredSourceNotIdentity ]
+  RelationKindMismatch.{ RelationKind RelationKindMismatchReason ExpectedSourceThoughtKinds ExpectedTargetThoughtKinds SourceThoughtKind TargetThoughtKind }
+  Thought.{ RecordIdentifier ThoughtKind ThoughtBody ActorName TimestampNanos }
+  Relation.{ RelationIdentifier RelationKind SourceRecordIdentifier TargetRecordIdentifier ActorName TimestampNanos Option<TextBody> }
+  ThoughtBody.[ Observation.ObservationBody Memory.MemoryBody Belief.BeliefBody Goal.GoalBody Claim.ClaimBody Decision.DecisionBody Reference.ReferenceBody ]
+  ObservationBody.{ ObservationSummary Option<TextBody> Option<RecordIdentifier> }
+  ObservationSummary.[ ComponentSpawned.ComponentSpawned ComponentReady.ComponentReady ComponentExited.ComponentExited MessageReceived.MessageReceived MessageDelivered.MessageDelivered ChannelGranted.ChannelGranted ChannelRetracted.ChannelRetracted ClaimStarted.ClaimStarted ClaimReleased.ClaimReleased SessionEnded.SessionEnded NoteToSelf.NoteToSelf ]
+  ComponentSpawned.{ ComponentName EngineIdentifier }
+  ComponentReady.{ ComponentName EngineIdentifier }
+  ComponentExited.{ ComponentName EngineIdentifier Option<ProcessExitCode> }
+  MessageReceived.{ ChannelIdentifier ActorName }
+  MessageDelivered.{ ChannelIdentifier ActorName }
+  ChannelGranted.{ ChannelIdentifier }
+  ChannelRetracted.{ ChannelIdentifier }
+  ClaimStarted.{ RecordIdentifier RoleName }
+  ClaimReleased.{ RecordIdentifier RoleName }
+  SessionEnded.{ RecordIdentifier }
+  NoteToSelf.{ TextBody }
+  MemoryTitle.TextBody
+  MemorySummary.TextBody
+  MemoryBody.{ MemoryKind MemoryTitle MemorySummary Option<TimeRange> Option<RecordIdentifier> }
+  MemoryKind.[ Session.SessionMemory Thread.ThreadMemory IncidentRecord.IncidentMemory Report.ReportMemory Other.OtherMemory ]
+  SessionMemory.{ HarnessIdentifier EngineIdentifier }
+  ThreadMemory.{ TextBody }
+  IncidentMemory.{ TextBody }
+  ReportMemory.{ RoleName ReportNumber }
+  OtherMemory.{ TextBody }
+  TimeRange.{ TimestampNanos Option<TimestampNanos> }
+  BeliefBody.{ TextBody Confidence BeliefStatus }
+  Confidence.[ Asserted Cited Tested Disputed ]
+  BeliefStatus.[ Current Superseded.SupersededBelief Retracted.RetractedBelief ]
+  SupersededBelief.{ Option<RecordIdentifier> }
+  RetractedBelief.{ TextBody }
+  GoalBody.{ TextBody GoalScope }
+  GoalScope.[ Workspace.WorkspaceGoal Project.ProjectGoal Repo.RepoGoal Personal.PersonalGoal Crosscutting.CrosscuttingGoal ]
+  WorkspaceGoal.{ TextBody }
+  ProjectGoal.{ TextBody }
+  RepoGoal.{ TextBody }
+  PersonalGoal.{ ActorName }
+  CrosscuttingGoal.{ TextBody }
+  ClaimBody.{ ActorName ClaimScope RoleName ClaimActivity }
+  ClaimScope.[ Paths.PathClaimScope Tasks.TaskClaimScope Combined.CombinedClaimScope ]
+  PathClaimScope.{ Vector<WirePath> }
+  TaskClaimScope.{ Vector<ScopeReference> }
+  CombinedClaimScope.{ Vector<WirePath> Vector<ScopeReference> }
+  ClaimActivity.[ Active.ActiveClaim Paused.PausedClaim Releasing.ReleasingClaim ]
+  ActiveClaim.{ TimestampNanos }
+  PausedClaim.{ TimestampNanos TextBody }
+  ReleasingClaim.{ TimestampNanos Option<RecordIdentifier> }
+  DecisionQuestion.TextBody
+  DecisionRationale.TextBody
+  DecisionCriteria.Vector<TextBody>
+  DecisionBody.{ DecisionQuestion Vector<Alternative> AlternativeIdentifier DecisionCriteria DecisionRationale }
+  AlternativeDescription.TextBody
+  AlternativePros.Vector<TextBody>
+  AlternativeCons.Vector<TextBody>
+  Alternative.{ AlternativeIdentifier AlternativeDescription AlternativePros AlternativeCons }
+  ReferenceBody.{ ReferenceTarget Option<TextBody> }
+  ReferenceTarget.[ File.FileReference CodeSymbol.CodeSymbolReference Url.UrlReference Identity.IdentityReference Document.DocumentReferenceTarget BeadsTask.BeadsReference Other.OtherReference ]
+  FileReference.{ WirePath }
+  CodeSymbolReference.{ WirePath SymbolName }
+  UrlReference.{ NormalizedUrl }
+  IdentityReference.[ User.UserIdentity Role.RoleIdentity Component.ComponentIdentity Harness.HarnessIdentity Engine.EngineIdentity ]
+  UserIdentity.{ UnixUserIdentifier }
+  RoleIdentity.{ RoleName }
+  ComponentIdentity.{ EngineIdentifier ComponentName }
+  HarnessIdentity.{ HarnessKind HarnessIdentifier }
+  EngineIdentity.{ EngineIdentifier HostName }
+  DocumentReferenceTarget.{ DocumentReference }
+  BeadsReference.{ TextBody }
+  OtherReferenceKind.TextBody
+  OtherReferenceBody.TextBody
+  OtherReference.{ OtherReferenceKind OtherReferenceBody }
+  SubmitThought.{ ThoughtKind ThoughtBody }
+  SubmitRelation.{ RelationKind SourceRecordIdentifier TargetRecordIdentifier Option<TextBody> }
+  QueryThoughts.{ ThoughtFilter QueryLimit }
+  QueryRelations.{ RelationFilter QueryLimit }
+  SubscribeThoughts.{ ThoughtFilter Option<SubscriptionCursor> SubscriptionDemandCredit }
+  SubscribeRelations.{ RelationFilter Option<SubscriptionCursor> SubscriptionDemandCredit }
+  ThoughtFilter.[ ByKind.ByThoughtKind ByAuthor.ByThoughtAuthor ByTimeRange.ByThoughtTimeRange InGoal.InGoal InMemory.InMemory Composite.CompositeThoughtFilter ]
+  ByThoughtKind.{ Vector<ThoughtKind> }
+  ByThoughtAuthor.{ ActorName }
+  ByThoughtTimeRange.{ TimestampNanos Option<TimestampNanos> }
+  InGoal.{ RecordIdentifier }
+  InMemory.{ RecordIdentifier }
+  CompositeThoughtFilter.{ Vector<ThoughtKind> Option<ActorName> Option<ByThoughtTimeRange> Option<GoalRecordIdentifier> Option<MemoryRecordIdentifier> }
+  RelationFilter.[ ByKind.ByRelationKind BySource.ByRelationSource ByTarget.ByRelationTarget Composite.CompositeRelationFilter ]
+  ByRelationKind.{ Vector<RelationKind> }
+  ByRelationSource.{ RecordIdentifier }
+  ByRelationTarget.{ RecordIdentifier }
+  CompositeRelationFilter.{ Vector<RelationKind> Option<SourceRecordIdentifier> Option<TargetRecordIdentifier> }
+  ThoughtCommitted.{ RecordIdentifier DisplayIdentifier TimestampNanos }
+  RelationCommitted.{ RelationIdentifier TimestampNanos }
+  ThoughtList.{ Vector<Thought> HasMore }
+  RelationList.{ Vector<Relation> HasMore }
+  ThoughtStreamAccepted.{ SubscriptionCursor SubscriptionBufferBound Vector<Thought> }
+  RelationStreamAccepted.{ SubscriptionCursor SubscriptionBufferBound Vector<Relation> }
+  TechnicalNodeStreamAccepted.{ SubscriptionCursor SubscriptionBufferBound Vector<TechnicalNode> }
+  TechnicalRelationStreamAccepted.{ SubscriptionCursor SubscriptionBufferBound Vector<TechnicalRelation> }
+  AcceptedSubscriptionStream.[ Thoughts.ThoughtStreamAccepted Relations.RelationStreamAccepted TechnicalNodes.TechnicalNodeStreamAccepted TechnicalRelations.TechnicalRelationStreamAccepted ]
+  SubscriptionAccepted.{ SubscriptionIdentifier AcceptedSubscriptionStream }
+  ThoughtSubscriptionEvent.{ SubscriptionCursor Thought }
+  RelationSubscriptionEvent.{ SubscriptionCursor Relation }
+  TechnicalNodeSubscriptionEvent.{ SubscriptionCursor TechnicalNode }
+  TechnicalRelationSubscriptionEvent.{ SubscriptionCursor TechnicalRelation }
+  SubscriptionStreamEvent.[ ThoughtCommitted.ThoughtSubscriptionEvent RelationCommitted.RelationSubscriptionEvent TechnicalNodeCommitted.TechnicalNodeSubscriptionEvent TechnicalRelationCommitted.TechnicalRelationSubscriptionEvent ]
+  SubscriptionEvent.{ SubscriptionIdentifier SubscriptionStreamEvent }
+  SubscriptionDemand.{ SubscriptionIdentifier SubscriptionDemandCredit }
+  SubscriptionDemandAccepted.{ SubscriptionIdentifier SubscriptionDemandCredit }
+  SubscriptionRetracted.{ SubscriptionIdentifier SubscriptionStreamKind SubscriptionCursor }
+  MindRequestUnimplemented.{ MindUnimplementedReason }
+  DependencyKind.[ Router Harness Terminal DurableStore ]
+  ResourceKind.[ SocketPath StateDirectory Database ]
+  MindUnimplementedReason.[ NotInPrototypeScope ChoreographyPolicyMissing DependencyMissing.DependencyKind ResourceUnavailable.ResourceKind ]
+  KnowledgeIdentity.String
+  ConflictingKnowledgeIdentities.Vector<KnowledgeIdentity>
+  KnowledgeSubmission.{ Domain TextBody }
+  AcceptedKnowledge.{ KnowledgeIdentity Domain TextBody ActorName TimestampNanos }
+  KnowledgeRecord.{ KnowledgeIdentity Domain TextBody }
+  KnowledgeJudgePacket.{ Domain TextBody Vector<AcceptedKnowledge> }
+  KnowledgeJudgeResponse.{ KnowledgeJudgeVerdict Option<TextBody> }
+  KnowledgeJudgeVerdict.[ Accept Reject.KnowledgeRejectionReason ]
+  KnowledgeRejectionReason.[ NotKnowledge PrivateOrUnauthorized MeaningUnclear SemanticDuplicate.KnowledgeIdentity ConflictsAcceptedKnowledge.ConflictingKnowledgeIdentities WrongDomain.Domain NeedsMoreSpecificShape PersistenceRejected ]
+  TechnicalNodeIdentifier.String
+  TechnicalRelationIdentifier.String
+  TechnicalNodeKey.String
+  SourceTechnicalNodeKey.TechnicalNodeKey
+  TargetTechnicalNodeKey.TechnicalNodeKey
+  StorageTechnicalNodeKey.TechnicalNodeKey
+  SchemaFamilyTechnicalNodeKey.TechnicalNodeKey
+  TechnicalNodeKeyFamily.[ Component Repository Crate Contract WorkItem SourceArtifact Report TechnicalClaim Witness StorageResource SchemaFamily Table ]
+  TechnicalNodeKeyRejection.{ TextBody TechnicalNodeKeyRejectionReason }
+  TechnicalNodeKeyRejectionReason.[ MissingFamilySeparator UnknownFamily WrongSegmentCount EmptySegment InvalidSegmentCharacter ]
+  TechnicalNodeKind.[ Component Repository Crate Contract WorkItem SourceArtifact Report TechnicalClaim Witness StorageResource SchemaFamily Table ]
+  ExpectedTechnicalNodeKind.TechnicalNodeKind
+  GotTechnicalNodeKind.TechnicalNodeKind
+  SourceTechnicalNodeKind.TechnicalNodeKind
+  TargetTechnicalNodeKind.TechnicalNodeKind
+  ExpectedSourceTechnicalNodeKinds.Vector<TechnicalNodeKind>
+  ExpectedTargetTechnicalNodeKinds.Vector<TechnicalNodeKind>
+  TechnicalNodeKindMismatch.{ ExpectedTechnicalNodeKind GotTechnicalNodeKind }
+  TechnicalNodeBody.[ Component.ComponentNode Repository.RepositoryNode Crate.CrateNode Contract.ContractNode WorkItem.WorkItemNode SourceArtifact.SourceArtifactNode Report.ReportNode TechnicalClaim.TechnicalClaimNode Witness.WitnessNode StorageResource.StorageResourceNode SchemaFamily.SchemaFamilyNode Table.TableNode ]
+  CrateName.TextBody
+  ContractName.TextBody
+  StorageResourceName.TextBody
+  SchemaFamilyName.TextBody
+  SchemaFamilyVersion.TextBody
+  TableName.TextBody
+  ComponentNode.{ ComponentName Option<TextBody> }
+  RepositoryNode.{ WirePath Option<TextBody> }
+  CrateNode.{ CrateName TechnicalNodeKey }
+  ContractNode.{ ContractName ContractSurface }
+  ContractSurface.[ Ordinary Meta Introspection ]
+  WorkItemNode.{ TaskToken TextBody }
+  SourceArtifactNode.{ TechnicalSourceLocator Option<TextBody> }
+  ReportNode.{ WirePath Option<TextBody> }
+  TechnicalClaimNode.{ TextBody }
+  WitnessNode.{ TextBody Option<TechnicalSourceLocator> }
+  StorageResourceNode.{ TechnicalNodeKey StorageResourceName Option<WirePath> }
+  SchemaFamilyNode.{ TechnicalNodeKey SchemaFamilyName Option<SchemaFamilyVersion> }
+  TableNode.{ StorageTechnicalNodeKey TableName Option<SchemaFamilyTechnicalNodeKey> }
+  TechnicalSourceLocator.[ Path.WirePath Repository.TechnicalNodeKey Task.TaskToken Url.TextBody Report.WirePath Symbol.TextBody ]
+  TechnicalNode.{ TechnicalNodeIdentifier TechnicalNodeKey TechnicalNodeKind TechnicalNodeBody ActorName TimestampNanos }
+  TechnicalRelationKind.[ OwnsRepository DefinesContract DefinesCrate BuildDependency RuntimeDependency WireDependency StorageDependency TaskDependency ProvenanceDependency Blocks Implements Documents ClaimsAbout ProvenBy Supersedes LocatedAt ]
+  TechnicalRelationKindMismatch.{ TechnicalRelationKind ExpectedSourceTechnicalNodeKinds ExpectedTargetTechnicalNodeKinds SourceTechnicalNodeKind TargetTechnicalNodeKind }
+  TechnicalRelationEndpoint.{ TechnicalNodeIdentifier TechnicalNodeKey }
+  SourceTechnicalRelationEndpoint.TechnicalRelationEndpoint
+  TargetTechnicalRelationEndpoint.TechnicalRelationEndpoint
+  TechnicalRelation.{ TechnicalRelationIdentifier TechnicalRelationKind SourceTechnicalRelationEndpoint TargetTechnicalRelationEndpoint ActorName TimestampNanos Option<TextBody> }
+  SubmitTechnicalNode.{ TechnicalNodeKey TechnicalNodeKind TechnicalNodeBody }
+  SubmitTechnicalRelation.{ TechnicalRelationKind SourceTechnicalNodeKey TargetTechnicalNodeKey Option<TextBody> }
+  QueryTechnicalNodes.{ TechnicalNodeQuery QueryLimit }
+  QueryTechnicalRelations.{ TechnicalRelationFilter QueryLimit }
+  SubscribeTechnicalNodes.{ TechnicalNodeFilter Option<SubscriptionCursor> SubscriptionDemandCredit }
+  SubscribeTechnicalRelations.{ TechnicalRelationFilter Option<SubscriptionCursor> SubscriptionDemandCredit }
+  TechnicalNodeQuery.[ Filter.TechnicalNodeFilter About.AboutTechnicalNode RelationNeighborhood.TechnicalRelationNeighborhoodQuery DependencyClosure.TechnicalDependencyClosureQuery ProvenanceChain.TechnicalProvenanceChainQuery ]
+  AboutTechnicalNode.{ TechnicalNodeKey }
+  TechnicalRelationNeighborhoodDirection.[ Incoming Outgoing Both ]
+  TechnicalRelationNeighborhoodQuery.{ TechnicalNodeKey TechnicalRelationNeighborhoodDirection Vector<TechnicalRelationKind> }
+  TechnicalDependencyClosureQuery.{ TechnicalNodeKey Vector<TechnicalRelationKind> }
+  TechnicalProvenanceChainQuery.{ TechnicalNodeKey Vector<TechnicalRelationKind> }
+  TechnicalNodeFilter.[ ByKind.ByTechnicalNodeKind ByStableKey.ByTechnicalNodeStableKey BySourceLocator.ByTechnicalSourceLocator Composite.CompositeTechnicalNodeFilter ]
+  ByTechnicalNodeKind.{ Vector<TechnicalNodeKind> }
+  ByTechnicalNodeStableKey.{ TechnicalNodeKey }
+  ByTechnicalSourceLocator.{ TechnicalSourceLocator }
+  CompositeTechnicalNodeFilter.{ Vector<TechnicalNodeKind> Option<TechnicalNodeKey> Option<TechnicalSourceLocator> }
+  TechnicalRelationFilter.[ ByKind.ByTechnicalRelationKind BySource.ByTechnicalRelationSource ByTarget.ByTechnicalRelationTarget BetweenEndpoints.ByTechnicalRelationEndpoints Composite.CompositeTechnicalRelationFilter ]
+  ByTechnicalRelationKind.{ Vector<TechnicalRelationKind> }
+  ByTechnicalRelationSource.{ SourceTechnicalNodeKey }
+  ByTechnicalRelationTarget.{ TargetTechnicalNodeKey }
+  ByTechnicalRelationEndpoints.{ SourceTechnicalNodeKey TargetTechnicalNodeKey }
+  CompositeTechnicalRelationFilter.{ Vector<TechnicalRelationKind> Option<SourceTechnicalNodeKey> Option<TargetTechnicalNodeKey> }
+  TechnicalNodeCommitted.{ TechnicalNode }
+  TechnicalRelationCommitted.{ TechnicalRelation }
+  TechnicalNodeList.{ Vector<TechnicalNode> HasMore }
+  TechnicalRelationList.{ Vector<TechnicalRelation> HasMore }
+  IncomingTechnicalRelations.Vector<TechnicalRelation>
+  OutgoingTechnicalRelations.Vector<TechnicalRelation>
+  TechnicalNodeNeighborhood.{ Option<TechnicalNode> IncomingTechnicalRelations OutgoingTechnicalRelations HasMore }
+  TechnicalDependencyClosure.{ Option<TechnicalNode> Vector<TechnicalNode> Vector<TechnicalRelation> HasMore }
+  TechnicalProvenanceChain.{ Option<TechnicalNode> Vector<TechnicalNode> Vector<TechnicalRelation> HasMore }
+  TechnicalNodeRejected.{ TechnicalNodeRejectionReason }
+  TechnicalNodeRejectionReason.[ InvalidStableNodeKey.TechnicalNodeKeyRejection KindBodyMismatch.TechnicalNodeKindMismatch DuplicateStableNodeKey.TechnicalNodeKey PersistenceRejected ]
+  TechnicalRelationRejected.{ TechnicalRelationRejectionReason }
+  TechnicalRelationRejectionReason.[ DuplicateRelation MissingEndpoint.TechnicalNodeKey DomainRangeViolation.TechnicalRelationKindMismatch PersistenceRejected ] ]

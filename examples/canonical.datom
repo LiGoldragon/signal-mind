@@ -1,0 +1,46 @@
+; Canonical Datom examples for signal-mind.
+; Every line below is actualized as a Query or a Response by
+; tests/generated_contract.rs; an example that stops parsing fails the gate.
+
+; ── Work graph ──────────────────────────────────────────────
+Opening.{ Task Medium «Repin the mind contract» «Move signal-mind onto the Datom stack.» }
+NoteSubmission.{ Display.mind-7 «Generation is asserted by build.rs.» }
+Link.{ Stable.item-1 DependsOn Item.Stable.item-2 Some.«blocked on the codec» }
+StatusChange.{ Stable.item-1 Closed None }
+AliasAssignment.{ Stable.item-1 primary-f99 }
+Query.{ Ready 20 }
+View.{ [] [] [] [] }
+Rejection.{ UnknownItem }
+AliasReceipt.{ { { 7 op-1 operator } item-1 primary-f99 } }
+
+; ── Mind graph ──────────────────────────────────────────────
+SubmitThought.{ Belief Belief.{ «Ethos generates the Rust.» Tested Current } }
+SubmitRelation.{ Supports record-1 record-2 None }
+QueryThoughts.{ ByAuthor.{ operator } 10 }
+SubscribeThoughts.{ ByKind.{ [ Belief Claim ] } None 16 }
+SubscriptionDemand.{ subscription-1 16 }
+SubscriptionRetraction.subscription-1
+ThoughtCommitted.{ record-1 mind-7 1757600000000000000 }
+SubscriptionRetracted.{ subscription-1 Thoughts 42 }
+SubscriptionDemandAccepted.{ subscription-1 8 }
+QueryRelations.{ BySource.{ record-1 } 25 }
+MindRequestUnimplemented.{ ResourceUnavailable.Database }
+
+; ── Technical dependency memory ─────────────────────────────
+SubmitTechnicalNode.{ crate:signal-mind Crate Crate.{ signal-mind repository:signal-mind } }
+SubmitTechnicalRelation.{ BuildDependency crate:signal-mind crate:signal-persona Some.«pinned by rev» }
+QueryTechnicalRelations.{ ByKind.{ [ BuildDependency ] } 25 }
+TechnicalNodeList.{ [] False }
+
+; ── Channel choreography ────────────────────────────────────
+AdjudicationRequest.{ adjudication-1 Internal.Mind Internal.terminal MessageDelivery «a delivery summary» }
+ChannelList.{ [ Kind.MessageDelivery ] }
+ChannelListView.{ [] }
+
+; ── Knowledge ───────────────────────────────────────────────
+Submit.{ Technology.Software.Engineering.Architecture «A contract repository generates its Rust from ethos.» }
+Get.knowledge-1
+Found.{ knowledge-1 Technology.Software.Engineering.Architecture «A contract repository generates its Rust from ethos.» }
+Accepted.knowledge-1
+Rejected.NotKnowledge
+NotFound

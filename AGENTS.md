@@ -1,5 +1,7 @@
 ## Protos estate status
 
-Stack: correct-new destination
-Status: active component contract, current checkout legacy-wired
-This checkout is not proof of correct-new adoption.
+Stack: Datom stack (ethos source, ethos-zero generation, protos + datom-codec, rkyv frames)
+Status: active component contract, migrated
+The authored contract is `ethos/signal.ethos`; `src/generated/signal.rs` is
+generated from it and `build.rs` asserts the two agree. Do not hand-edit the
+generated Rust.

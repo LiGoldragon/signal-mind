@@ -16,9 +16,9 @@ This contract names the public operations a caller sends to Mind. The daemon
 lowers those operations into Nexus commands and SEMA reads or writes behind the
 boundary; database-action classes are not public request roots.
 
-**Contract operations on the wire (this crate).** The wire uses
-`signal-frame` contract-local operations directly; there is no universal
-verb-class wrapper in `MindRequest`. The current operation roots remain
+**Contract operations on the wire (this crate).** The wire uses the
+contract-local operations declared in `ethos/signal.ethos` directly; there is
+no universal verb-class wrapper in `Query`. The current operation roots remain
 relation-specific:
 
 - *Typed mind graph relation:* `Submit` (for `SubmitThought`,
@@ -68,19 +68,20 @@ behind Orchestrate's machinery path:
 `meta-signal-orchestrate` → `meta-signal-router`,
 not this working signal.
 
-**Frame layer.** The dependency is `signal-frame`.
+**Frame layer.** A value crosses the wire as an rkyv archive inside the
+typed `Signal<T>` declared in `src/lib.rs`. There is no separate frame crate.
 
 References:
 - `primary/skills/contract-repo.md` §"Public contracts use contract-local operation verbs"
 
-> **Scope.** This contract sits on today's stack — `signal-frame` wire,
-> rkyv archives, `sema-db` storage in consumers. The
-> eventually-self-hosting stack is Sema-on-Sema, in which signal-*
-> as a separate vocabulary layer collapses. Today's contract is a
-> realization step. See `~/primary/ARCHITECTURE.md` §"Workspace vision and intent".
+> **Scope.** This contract sits on the Datom stack — an authored
+> `ethos/signal.ethos`, ethos-zero generation asserted by `build.rs`,
+> protos + datom-codec derives, and rkyv archives. Storage in consumers is
+> theirs, not this contract's. See `~/primary/ARCHITECTURE.md`
+> §"Workspace vision and intent".
 
-This repo owns records, validation newtypes, rkyv round trips, and channel
-shape. It does not own the CLI binary, actors, database, storage tables,
+This repo owns the authored ethos, the generation asserted against it, rkyv
+round trips, and channel shape. It does not own the CLI binary, actors, database, storage tables,
 transport lifecycle, or lock-file migration.
 
 Ordinary role claims, handoffs, observations, and activity-log operations are
@@ -90,17 +91,16 @@ memory, work-and-memory graph, and channel choreography observation), and Mind
 orders Orchestrate through `meta-signal-mind` rather than performing role or
 activity orchestration on this working signal.
 
-Each `MindRequest` variant is a contract-local operation. The daemon owns its
-typed component commands, Nexus decisions, and SEMA reads or writes. Database
-action classes do not appear on the wire and this contract has no
-`signal-sema` dependency.
+Each `Query` variant is a contract-local operation. The daemon owns its typed
+component commands, Nexus decisions, and store reads or writes. Database
+action classes do not appear on the wire.
 
 ```mermaid
 flowchart LR
-    cli[mind CLI] --> request[MindRequest]
+    cli[mind CLI] --> request[Query]
     request --> frame[signal frame]
     frame --> daemon[persona mind daemon]
-    daemon --> reply[MindReply]
+    daemon --> reply[Response]
     reply --> cli
 ```
 
@@ -113,90 +113,27 @@ flowchart LR
 | Reply producer | `mind` daemon. |
 | Reply consumer | the caller that submitted the operation. |
 
-The CLI text surface is one DOTOS record in and one DOTOS record out. That text
-projection must decode into the same `MindRequest` enum declared here. It must
+The CLI text surface is one Datom value in and one Datom value out. That text
+projection must actualize into the same `Query` enum generated here. It must
 not create a second CLI-only command language.
 
-Rust-to-Rust boundaries use `signal-frame` frames carrying rkyv archives. The
-same typed request/reply vocabulary underlies both the DOTOS projection and the
-binary frame projection.
+Rust-to-Rust boundaries use `Signal<T>` frames carrying rkyv archives. The
+same typed request/reply vocabulary underlies both the Datom text projection
+and the binary frame projection.
 
 The local transport between CLI and daemon belongs to `mind`, not this
-contract. The likely first transport is a Unix socket carrying `signal-frame`
+contract. The likely first transport is a Unix socket carrying `Signal<T>`
 frames.
 
 ## 2 · Channel Declaration
 
-The channel is one `signal_channel!` invocation in `src/lib.rs`.
+The channel is the request and reply list of `ethos/signal.ethos`.
 
-```rust
-signal_channel! {
-    channel Mind {
-        operation SubmitThought(SubmitThought),
-        operation SubmitRelation(SubmitRelation),
-        operation QueryThoughts(QueryThoughts),
-        operation QueryRelations(QueryRelations),
-        operation SubscribeThoughts(SubscribeThoughts) opens MindEventStream,
-        operation SubscribeRelations(SubscribeRelations) opens MindEventStream,
-        operation SubscriptionRetraction(SubscriptionIdentifier),
-        operation SubscriptionDemand(SubscriptionDemand),
-        operation Opening(Opening),
-        operation NoteSubmission(NoteSubmission),
-        operation Link(Link),
-        operation StatusChange(StatusChange),
-        operation AliasAssignment(AliasAssignment),
-        operation Query(Query),
-        operation AdjudicationRequest(AdjudicationRequest),
-        operation ChannelList(ChannelList),
-        operation SubmitTechnicalNode(SubmitTechnicalNode),
-        operation SubmitTechnicalRelation(SubmitTechnicalRelation),
-        operation QueryTechnicalNodes(QueryTechnicalNodes),
-        operation QueryTechnicalRelations(QueryTechnicalRelations),
-        operation SubscribeTechnicalNodes(SubscribeTechnicalNodes) opens MindEventStream,
-        operation SubscribeTechnicalRelations(SubscribeTechnicalRelations) opens MindEventStream,
-        operation Submit(KnowledgeSubmission),
-        operation Get(KnowledgeIdentity),
-        reply MindReply {
-            ThoughtCommitted(ThoughtCommitted),
-            RelationCommitted(RelationCommitted),
-            ThoughtList(ThoughtList),
-            RelationList(RelationList),
-            SubscriptionAccepted(SubscriptionAccepted),
-            SubscriptionRetracted(SubscriptionRetracted),
-            SubscriptionDemandAccepted(SubscriptionDemandAccepted),
-            OpeningReceipt(OpeningReceipt),
-            NoteReceipt(NoteReceipt),
-            LinkReceipt(LinkReceipt),
-            StatusReceipt(StatusReceipt),
-            AliasReceipt(AliasReceipt),
-            View(View),
-            Rejection(Rejection),
-            AdjudicationReceipt(AdjudicationReceipt),
-            ChannelListView(ChannelListView),
-            MindRequestUnimplemented(MindRequestUnimplemented),
-            TechnicalNodeCommitted(TechnicalNodeCommitted),
-            TechnicalRelationCommitted(TechnicalRelationCommitted),
-            TechnicalNodeList(TechnicalNodeList),
-            TechnicalRelationList(TechnicalRelationList),
-            TechnicalNodeRejected(TechnicalNodeRejected),
-            TechnicalRelationRejected(TechnicalRelationRejected),
-            Accepted(KnowledgeIdentity),
-            Rejected(KnowledgeRejectionReason),
-            Found(KnowledgeRecord),
-            NotFound,
-        }
-        event MindEvent {
-            SubscriptionDelta(SubscriptionEvent) belongs MindEventStream,
-        }
-        stream MindEventStream {
-            token SubscriptionIdentifier;
-            opened SubscriptionAccepted;
-            event SubscriptionDelta;
-            close SubscriptionRetraction;
-        }
-    }
-}
-```
+The request list, the reply list and every payload type are declared once, in
+`ethos/signal.ethos`. That file is the channel declaration; this document does
+not restate it. `ethos-zero` turns the request list into `pub enum Query` and
+the reply list into `pub enum Response`, and `build.rs` fails the build if the
+committed `src/generated/signal.rs` differs from a fresh generation.
 
 Closed enums are intentional. There is no `Unknown` escape hatch. New
 operations are schema changes coordinated through this contract.
@@ -222,21 +159,22 @@ becomes.
 | `SubscribeThoughts` | typed `SubscriptionAccepted::Thoughts`, then `SubscriptionDelta::ThoughtCommitted` events, terminated by `SubscriptionRetracted` |
 | `SubscribeRelations` | typed `SubscriptionAccepted::Relations`, then `SubscriptionDelta::RelationCommitted` events, terminated by `SubscriptionRetracted` |
 
-Subscription close follows the `signal_channel!` streaming grammar. The
+Subscription close is expressed in the request and reply lists themselves. The
 `Subscribe` request opens the stream; the consumer sends a typed
-`MindRequest::SubscriptionRetraction(SubscriptionIdentifier)` request to close it;
-the producer emits `MindReply::SubscriptionRetracted` as the final
-acknowledgement before the stream ends. Both the retract request and the
-retracted reply are first-class — `signal_channel!` derives the
-`MindRequest::closed_stream()` discriminant from this pairing.
+`Query::SubscriptionRetraction(SubscriptionIdentifier)` request to close it; the
+producer emits `Response::SubscriptionRetracted` as the final acknowledgement
+before the stream ends. Deltas arrive as `Response::SubscriptionDelta`, each
+carrying the subscription identifier that selects the stream. Both the retract
+request and the retracted reply are first-class variants; there is no separate
+stream-envelope layer pairing them.
 
 Each subscription request carries `resume_after: Option<SubscriptionCursor>` and
 `initial_demand: SubscriptionDemandCredit`. The opened reply carries a typed
 accepted stream payload with the stream family, current cursor, bounded
 producer-side buffer, and initial snapshot. Each pushed event carries the next
 cursor inside a family-typed event payload. Additional capacity is signalled by
-`MindRequest::SubscriptionDemand(SubscriptionDemand)` and acknowledged by
-`MindReply::SubscriptionDemandAccepted`.
+`Query::SubscriptionDemand(SubscriptionDemand)` and acknowledged by
+`Response::SubscriptionDemandAccepted`.
 
 The 0.4.0 contract records cursors, family-typed snapshots, demand credits, and
 the producer-side buffer bound; it does not define or imply a durable outbox.
@@ -446,48 +384,50 @@ do not pass unstructured maps.
 
 ## 5 · Text Projection
 
-The required text surface is DOTOS. Nexus may supply the semantic content shape
-inside DOTOS, but there is no second text syntax.
+The required text surface is Datom. Nexus may supply the semantic content
+shape inside Datom, but there is no second text syntax.
 
-The contract records implement DOTOS directly. Root `MindRequest` and
-`MindReply` text decoding dispatches through `signal_frame::signal_channel!`;
-payload records derive or implement DOTOS in this crate. Validating boundary
-newtypes such as `WirePath` and `TaskToken` decode through their constructors,
-so text input cannot bypass boundary validation.
+Every declared type bears `Datomic`, generated from its anatomy by ethos-zero
+under the `datom` feature. Root `Query` and `Response` actualize from Datom
+text the same way their payload records do; there are no hand-written codecs
+and no validating constructors — identity types are plain aliases, and a
+value's shape is the schema the reader walks.
 
 ```mermaid
 flowchart LR
-    text[DOTOS record] --> decode[contract decoder]
-    decode --> request[MindRequest]
+    text[Datom value] --> decode[contract decoder]
+    decode --> request[Query]
     request --> encode[contract encoder]
-    encode --> text_again[DOTOS record]
+    encode --> text_again[Datom value]
 ```
 
 Representative contract text shapes:
 
 ```text
-(Query (Ready) 25)
-(Opening Task High [wire command-line mind] [replace lock helper with typed state])
-(AdjudicationRequest [adjudication-aab] (External (Owner)) (Internal Router) MessageSubmission [owner asks router to deliver a prompt])
+Query.{ Ready 25 }
+Opening.{ Task High «wire command-line mind» «replace lock helper with typed state» }
+AdjudicationRequest.{ adjudication-aab Internal.Mind Internal.terminal MessageSubmission «owner asks router to deliver a prompt» }
 ```
 
-Surface owners decide where this DOTOS is accepted or rendered. This crate owns
-the codec on the contract types, and the parsed value is one of the
-`MindRequest` or `MindReply` variants declared here.
+`examples/canonical.datom` holds one such example per area of the contract and
+`tests/generated_contract.rs` actualizes every line of it. Surface owners decide
+where this Datom is accepted or rendered. This crate owns the generated codec on
+the contract types, and the parsed value is one of the `Query` or `Response`
+variants generated here.
 
 ## 6 · Versioning
 
-`signal-frame::Frame` carries protocol version. Schema changes that add/remove
-variants or change fields require coordinated upgrades of producers and
-consumers.
+The crate version carries the contract version; the 2.x line is the Datom
+stack. Schema changes that add/remove variants or change fields require
+coordinated upgrades of producers and consumers.
 
-Backward compatibility is handled by explicit conversion code, not by weak
-catch-all records.
+Backward compatibility is never a design variable. There is no conversion
+layer and no catch-all record: every consumer moves together.
 
 ## 6.5 · Skeleton honesty (Unimplemented reply)
 
-`MindReply` carries a typed `MindRequestUnimplemented(MindUnimplementedReason)`
-variant. Prototype-time mind decodes every `MindRequest` variant; for choreography
+`Response` carries a typed `MindRequestUnimplemented(MindUnimplementedReason)`
+variant. Prototype-time mind decodes every `Query` variant; for choreography
 ops or other variants whose behavior is not yet built, mind replies
 `MindRequestUnimplemented(NotInPrototypeScope)` — a typed answer, not a panic
 and not a parse error.
@@ -502,11 +442,11 @@ MindUnimplementedReason
 
 ## 7 · Constraints
 
-- The channel is one closed `MindRequest` enum and one closed `MindReply`
-  enum emitted by `signal_channel!`. All variants are contract-local
-  operations; SEMA reads, writes, and classifications are daemon-side only.
-- The architecture's channel declaration matches the implemented
-  `signal_channel!` invocation in `src/lib.rs`.
+- The channel is one closed `Query` enum and one closed `Response` enum
+  generated from `ethos/signal.ethos`. All variants are contract-local
+  operations; store reads, writes, and classifications are daemon-side only.
+- The committed generation matches a fresh generation of the authored ethos;
+  `build.rs` asserts this on every build.
 - `RoleName` covers every workspace coordination role in
   `~/primary/orchestrate/AGENTS.md`.
 - Request payloads do not mint `ActorName`, `TimestampNanos`, `EventSeq`,
@@ -554,11 +494,11 @@ MindUnimplementedReason
   channel grant, extension, revocation, or denial.
 - This contract crate contains no CLI, daemon, actor runtime, database table,
   transport, or migration implementation.
-- The text surface is DOTOS projected into these exact records; there is no
+- The text surface is Datom projected into these exact records; there is no
   second command language.
 - Subscription close uses the streaming grammar: a typed subscription request opens
   the stream; a typed `SubscriptionRetraction(SubscriptionIdentifier)`
-  request closes it; the producer emits `MindReply::SubscriptionRetracted`
+  request closes it; the producer emits `Response::SubscriptionRetracted`
   as the final acknowledgement before the stream ends.
 - Subscription opens and deltas are family-typed: a technical-node subscriber
   receives `TechnicalNodeStreamAccepted` snapshots and
@@ -582,11 +522,17 @@ MindUnimplementedReason
 
 ## 8 · Tests
 
-Existing tests in `tests/round_trip.rs` cover:
+Existing tests in `tests/generated_contract.rs` cover:
 
-- request/reply frame round trips;
-- representative DOTOS text round trips for root requests and replies:
-  `Query`, `Opening`, and `AdjudicationRequest`;
+- request/reply frame round trips and rejection of a malformed archive;
+- Datom text round trips for root requests and replies;
+- actualization of every line of `examples/canonical.datom`;
+- the `Magnitude` rung order;
+
+The generation freshness assertion in `build.rs` is the gate on the contract
+surface itself: the type list below is declared once, in
+`ethos/signal.ethos`, and the committed Rust must match a fresh generation of
+it. What earlier hand-written validators checked at the boundary —
 - memory/work variants;
 - every `QueryKind`;
 - every `EdgeKind`;
@@ -596,11 +542,11 @@ Existing tests in `tests/round_trip.rs` cover:
 - `MessageIngressSubmission` distinct from generic `MessageSubmission`;
 - scope variants;
 - external references;
-- boundary validation, including `WirePath` DOTOS decode rejection.
+- boundary validation of identity strings —
 - workspace role coverage.
 - relation-kind domain/range validation and table coverage.
 - technical key validation and invalid-key rejection reasons.
-- technical node/relation kind DOTOS round trips, kind/body validation, storage
+- technical node/relation kind Datom round trips, kind/body validation, storage
   node bodies, split dependency relation domain/range validation,
   request/reply/event frame round trips, and operation head coverage.
 - technical about-node, relation-neighborhood, dependency-closure, and
@@ -617,7 +563,7 @@ Additional architecture guards still worth adding:
 
 | Test | Proves |
 |---|---|
-| `dotos_projection_rejects_cli_only_command` | no second command language. |
+| `datom_projection_rejects_cli_only_command` | no second command language. |
 | `request_payload_cannot_carry_timestamp` | store mints time. |
 | `request_payload_cannot_mint_event_sequence` | store mints sequence; callers may only echo producer-issued resume cursors. |
 | `contract_crate_cannot_spawn_actor_runtime` | contract crate stays behavior-free. |
@@ -640,11 +586,11 @@ This repo does not own:
 ## Code Map
 
 ```text
-src/lib.rs              shared newtypes and signal_channel! declaration
-src/graph.rs            Thought/Relation graph records and subscription snapshot/delta shapes
-src/technical.rs        TechnicalNode/TechnicalRelation records, filters, validators, replies
-src/knowledge.rs        AcceptedKnowledge records, judge verdicts, selectors, validators, replies
-tests/round_trip.rs     frame round trips, DOTOS witnesses, and validation tests
+ethos/signal.ethos             the authored contract: requests, replies, types
+src/generated/signal.rs        ethos-zero output; asserted fresh by build.rs
+src/lib.rs                     Signal<T> frame, Signalizable/Restorable, Magnitude order
+examples/canonical.datom       one Datom example per area of the contract
+tests/generated_contract.rs    frame round trips, Datom witnesses, canonical examples
 ```
 
 ## See Also
@@ -653,7 +599,6 @@ tests/round_trip.rs     frame round trips, DOTOS witnesses, and validation tests
 - `../meta-signal-mind/ARCHITECTURE.md`
 - `../meta-signal-router/ARCHITECTURE.md`
 - `../signal-orchestrate/ARCHITECTURE.md` — ordinary role/activity orchestration.
-- `../signal-frame/ARCHITECTURE.md`
 - `~/primary/orchestrate/AGENTS.md`
 - `~/primary/skills/contract-repo.md`
 - `~/primary/skills/component-triad.md`.

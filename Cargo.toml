@@ -1,30 +1,33 @@
 [package]
-name         = "signal-mind"
-version      = "0.8.0"
-edition      = "2024"
+name = "signal-mind"
+version = "2.0.0"
+edition = "2024"
 rust-version = "1.89"
-license      = "MIT OR Apache-2.0"
-repository   = "https://github.com/LiGoldragon/signal-mind"
-description  = "Signal contract — `mind` CLI ↔ mind channel: typed records for work graph, mind graph, and channel choreography."
-publish      = false
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/LiGoldragon/signal-mind"
+description = "Signal contract — `mind` CLI ↔ mind channel: typed records for work graph, mind graph, technical dependency memory, and channel choreography."
+publish = false
+build = "build.rs"
 
 [lib]
 name = "signal_mind"
 path = "src/lib.rs"
 
 [features]
-default = ["dotos-text"]
-dotos-text = ["signal-frame/dotos-text"]
+default = []
+datom = ["dep:datom-codec", "dep:protos", "signal-persona/datom", "signal-domain/datom"]
 
 [dependencies]
-signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", rev = "ca72b2d1151f5b3df536295b2ba68f039536ec19" }
-signal-persona = { git = "https://github.com/LiGoldragon/signal-persona.git", rev = "51ee97b12fef5dfd8c4bbf876dc3e4f0ee14df5a", features = ["dotos-text"] }
-signal-domain = { git = "https://github.com/LiGoldragon/signal-domain.git", rev = "1890f33174f3637b2d605b9c79e584e127580d13", features = ["dotos-text"] }
-dotos = { package = "dotos", git = "https://github.com/LiGoldragon/dotos.git", rev = "80c7b17f7ad3" }
-rkyv                = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
-thiserror           = "2"
+datom-codec = { git = "https://github.com/LiGoldragon/datom-codec", rev = "627db67f2655efd9f786864009955005fd8ab2ad", optional = true }
+protos = { git = "https://github.com/LiGoldragon/protos", rev = "171b21f65337983ab624b7b906397a4f1f92c5a3", optional = true }
+rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
+signal-persona = { git = "https://github.com/LiGoldragon/signal-persona.git", rev = "48118557368f26b7292f6b0fb2f98df5cec29fc5", default-features = false }
+signal-domain = { git = "https://github.com/LiGoldragon/signal-domain.git", rev = "0e3c55bb2b833057ef8261af5c509552bfd2ee96", default-features = false }
+
+[build-dependencies]
+ethos-zero = { git = "https://github.com/LiGoldragon/ethos-zero", rev = "de3d9928b156f2e1a92d060b7817af201abfdbef" }
 
 [lints.rust]
 unsafe_code = "forbid"
-unused      = { level = "warn", priority = -1 }
-dead_code   = "warn"
+unused = { level = "warn", priority = -1 }
+dead_code = "warn"

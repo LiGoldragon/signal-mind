@@ -1,5 +1,5 @@
 {
-  description = "signal-mind — Signal contract for `mind` CLI ↔ mind work graph, mind graph, and channel choreography";
+  description = "signal-mind — Signal contract for `mind` CLI ↔ mind work graph, mind graph, technical dependency memory, and channel choreography";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -20,10 +20,21 @@
         };
 
         inherit (rust) craneLib toolchain;
-        schemaFilter = path: type: type == "regular" && pkgs.lib.hasSuffix ".schema" path;
+
+        # The authored ethos source and the committed generation are both
+        # build inputs: `src/lib.rs` reads the ethos with `include_str!` and
+        # `build.rs` asserts the committed Rust matches a fresh generation.
+        # `examples/canonical.datom` is read by the contract test.
+        examplesFilter = path: _type: builtins.match ".*/examples(/.*)?$" path != null;
+        contractFilter = path: type:
+          type == "regular" && (
+            pkgs.lib.hasSuffix ".ethos" path ||
+            pkgs.lib.hasSuffix "/build.rs" path ||
+            builtins.match ".*/src/generated(/.*)?$" path != null
+          );
         src = rust.cleanSource {
           root = ./.;
-          extraFilters = [ schemaFilter ];
+          extraFilters = [ examplesFilter contractFilter ];
         };
         commonArgs = { inherit src; strictDeps = true; };
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
@@ -32,34 +43,18 @@
         packages.default = craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
         checks = {
           build = craneLib.cargoBuild (commonArgs // { inherit cargoArtifacts; });
-          test  = craneLib.cargoTest  (commonArgs // { inherit cargoArtifacts; });
-          test-round-trip = craneLib.cargoTest (commonArgs // {
+          test = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; });
+          test-generated-contract = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test round_trip";
+            cargoTestExtraArgs = "--test generated_contract";
           });
-          test-schema-doc-drift = craneLib.cargoTest (commonArgs // {
+          test-datom = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test schema_drift";
+            cargoTestExtraArgs = "--all-features --test generated_contract";
           });
-          test-relation-kind-domain-table-covers-every-relation-kind = craneLib.cargoTest (commonArgs // {
+          test-canonical-examples = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test round_trip relation_kind_domain_table_covers_every_relation_kind";
-          });
-          test-relation-kind-rejects-wrong-domain = craneLib.cargoTest (commonArgs // {
-            inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test round_trip relation_kind_rejects_wrong_domain";
-          });
-          test-authored-rejects-non-identity-reference-source = craneLib.cargoTest (commonArgs // {
-            inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test round_trip authored_relation_rejects_non_identity_reference_source";
-          });
-          test-signal-verb-mapping = craneLib.cargoTest (commonArgs // {
-            inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test round_trip mind_request_exposes_contract_owned_operation_kind";
-          });
-          test-no-silent-assert-default = craneLib.cargoTest (commonArgs // {
-            inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test round_trip mind_contract_has_no_sema_classification_dependency_or_roots";
+            cargoTestExtraArgs = "--all-features --test generated_contract every_canonical_example_actualizes";
           });
           test-doc = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
@@ -72,7 +67,7 @@
           fmt = craneLib.cargoFmt { inherit src; };
           clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--all-targets -- -D warnings";
+            cargoClippyExtraArgs = "--all-targets --all-features -- -D warnings";
           });
         };
         devShells.default = pkgs.mkShell {
