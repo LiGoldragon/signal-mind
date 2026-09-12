@@ -114,3 +114,51 @@ fn every_canonical_example_actualizes() {
     }
     assert!(seen >= 33, "expected the canonical examples, saw {seen}");
 }
+
+/// One generic transport, written against `signal`'s kinds alone, carries a
+/// mind frame and a Persona frame. That is only possible because both
+/// contracts speak `signal`'s frame rather than each vendoring its own; a
+/// vendored copy is a distinct Rust type and this function would not accept
+/// both.
+#[test]
+fn one_generic_transport_carries_mind_and_persona_frames() {
+    fn ship<T>(value: &T) -> Vec<u8>
+    where
+        T: signal::Signalizable,
+        signal::Signal<T>: signal::ByteViewable,
+    {
+        use signal::ByteViewable;
+        value.signalize().expect("archive").bytes().to_vec()
+    }
+    fn land<T>(bytes: Vec<u8>) -> T
+    where
+        signal::Signal<T>: signal::Restorable<T>,
+    {
+        use signal::Restorable;
+        signal::Signal::<T>::from(bytes).restore().expect("restore")
+    }
+
+    let mind_query = Query::Query(MemoryQuery {
+        query_kind: QueryKind::Ready,
+        query_limit: 20,
+    });
+    let persona_query = signal_persona::Query::Stop(String::from("router"));
+
+    let landed_mind: Query = land(ship(&mind_query));
+    let landed_persona: signal_persona::Query = land(ship(&persona_query));
+    assert_eq!(landed_mind, mind_query);
+    assert_eq!(landed_persona, persona_query);
+
+    // The two contracts' re-exported frame names denote one type.
+    let framed: Signal<Query> = signal::Signal::<Query>::from(ship(&mind_query));
+    let persona_framed: signal_persona::Signal<signal_persona::Query> =
+        signal::Signal::from(ship(&persona_query));
+    assert_eq!(
+        <Signal<Query> as Restorable<Query>>::restore(&framed).expect("restore"),
+        mind_query
+    );
+    assert_eq!(
+        signal::Restorable::restore(&persona_framed).expect("restore"),
+        persona_query
+    );
+}
