@@ -13,7 +13,7 @@ work-and-memory graph, and channel choreography observation.
 ## Contract/Daemon Boundary
 
 This contract names the public operations a caller sends to Mind. The daemon
-lowers those operations into Nexus commands and SEMA reads or writes behind the
+lowers those operations into Nexus commands and MEMORY reads or writes behind the
 boundary; database-action classes are not public request roots.
 
 **Contract operations on the wire (this crate).** The wire uses the
@@ -574,9 +574,9 @@ This repo does not own:
 
 - `mind` binary implementation;
 - Kameo actors;
-- `mind.sema`;
+- `mind.memory`;
 - daemon lifecycle and local socket path;
-- `sema` table declarations;
+- `memory` table declarations;
 - caller identity resolution policy;
 - time/ID minting policy;
 - lock-file migration workflow;
